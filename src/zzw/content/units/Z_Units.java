@@ -251,7 +251,7 @@ public class Z_Units {
                 bullet = new mindustry.entities.bullet.BombBulletType(27f, 250f) {{  // 25 + 250
                     width = 10f;
                     height = 14f;
-                    hitEffect = zzw.content.units.effects.CombatFx.flakBlast;
+                    // hitEffect 用 BombBulletType 默认 (原版 Fx.flakExplosion), PU132 原版未覆盖
                     shootEffect = mindustry.content.Fx.none;
                     smokeEffect = mindustry.content.Fx.none;
                     // ★ 修复 "段身投弹打不到人":
@@ -532,8 +532,8 @@ public class Z_Units {
                     drag = -0.01f;
                     splashDamage = 30f;
                     splashDamageRadius = 35f;
-                    hitEffect = zzw.content.units.effects.CombatFx.blastExplosion;
-                    despawnEffect = zzw.content.units.effects.CombatFx.blastExplosion;
+                    hitEffect = Fx.blastExplosion;  // ★ 还原原版: PU132 plagueMissile / fin basicMissile 均为原版特效
+                    despawnEffect = Fx.blastExplosion;
                 }};
             }});
             weapons.add(new Weapon("create-small-plague-launcher") {{
@@ -549,8 +549,8 @@ public class Z_Units {
                     drag = -0.01f;
                     splashDamage = 30f;
                     splashDamageRadius = 35f;
-                    hitEffect = zzw.content.units.effects.CombatFx.blastExplosion;
-                    despawnEffect = zzw.content.units.effects.CombatFx.blastExplosion;
+                    hitEffect = Fx.blastExplosion;  // ★ 还原原版: PU132 plagueMissile / fin basicMissile 均为原版特效
+                    despawnEffect = Fx.blastExplosion;
                 }};
             }});
         }};
@@ -1872,8 +1872,8 @@ public class Z_Units {
                     splashDamageRadius = 42f;  // ★ 加强 (原 30)
                     weaveScale = 8f;
                     weaveMag = 2f;
-                    hitEffect = zzw.content.units.effects.CombatFx.blastExplosion;
-                    despawnEffect = zzw.content.units.effects.CombatFx.blastExplosion;
+                    hitEffect = Fx.blastExplosion;  // ★ 还原原版: PU132 plagueMissile / fin basicMissile 均为原版特效
+                    despawnEffect = Fx.blastExplosion;
                 }};
             }});
 
@@ -1902,8 +1902,8 @@ public class Z_Units {
                     splashDamageRadius = 30f;
                     weaveScale = 8f;
                     weaveMag = 2f;
-                    hitEffect = zzw.content.units.effects.CombatFx.blastExplosion;
-                    despawnEffect = zzw.content.units.effects.CombatFx.blastExplosion;
+                    hitEffect = Fx.blastExplosion;  // ★ 还原原版: PU132 plagueMissile / fin basicMissile 均为原版特效
+                    despawnEffect = Fx.blastExplosion;
                 }};
             }});
 
@@ -1933,8 +1933,8 @@ public class Z_Units {
                     splashDamageRadius = 30f;
                     weaveScale = 8f;
                     weaveMag = 2f;
-                    hitEffect = zzw.content.units.effects.CombatFx.blastExplosion;
-                    despawnEffect = zzw.content.units.effects.CombatFx.blastExplosion;
+                    hitEffect = Fx.blastExplosion;  // ★ 还原原版: PU132 plagueMissile / fin basicMissile 均为原版特效
+                    despawnEffect = Fx.blastExplosion;
                 }};
             }});
 
@@ -1963,8 +1963,8 @@ public class Z_Units {
                     splashDamageRadius = 30f;
                     weaveScale = 8f;
                     weaveMag = 2f;
-                    hitEffect = zzw.content.units.effects.CombatFx.blastExplosion;
-                    despawnEffect = zzw.content.units.effects.CombatFx.blastExplosion;
+                    hitEffect = Fx.blastExplosion;  // ★ 还原原版: PU132 plagueMissile / fin basicMissile 均为原版特效
+                    despawnEffect = Fx.blastExplosion;
                 }};
             }});
 
@@ -3049,7 +3049,7 @@ public class Z_Units {
                 mirror = true;
                 shootSound = Sounds.shootArtillery;
                 bullet = new ArtilleryBulletType(3f, 38f) {{
-                    hitEffect = zzw.content.units.effects.CombatFx.blastExplosion;
+                    hitEffect = Fx.blastExplosion;  // ★ 还原原版: PU_V8 empire cannon 即用原版特效
                     knockback = 0.8f;
                     lifetime = 150f;  // ★ 加强 (原 125f): 射程加远 (3f × 150 = 450px)
                     width = 14f;
@@ -3435,8 +3435,8 @@ public class Z_Units {
                     drag = -0.01f;
                     splashDamageRadius = 30f;
                     splashDamage = 65f;  // ★ 伤害加强 (原 55f)
-                    hitEffect = CombatFx.blastExplosion;
-                    despawnEffect = CombatFx.blastExplosion;
+                    hitEffect = Fx.blastExplosion;  // ★ 还原原版: PU132 blue 导弹井为原版特效
+                    despawnEffect = Fx.blastExplosion;
                     hitColor = mindustry.graphics.Pal.sapBullet;  // ★ 修复: 命中特效颜色默认是白色, 改为紫色
                     backColor = trailColor = mindustry.graphics.Pal.sapBulletBack;
                     frontColor = lightningColor = lightColor = mindustry.graphics.Pal.sapBullet;
@@ -4539,8 +4539,8 @@ public class Z_Units {
                     splashDamage = 30f;
                     lifetime = 62f;
                     trailColor = mindustry.graphics.Pal.missileYellowBack;
-                    hitEffect = zzw.content.units.effects.CombatFx.blastExplosion;
-                    despawnEffect = zzw.content.units.effects.CombatFx.blastExplosion;
+                    hitEffect = Fx.blastExplosion;  // ★ 还原原版: PU132 plagueMissile / fin basicMissile 均为原版特效
+                    despawnEffect = Fx.blastExplosion;
                     weaveScale = 8f;
                     weaveMag = 2f;
                 }};
@@ -4566,8 +4566,8 @@ public class Z_Units {
                     splashDamage = 30f;
                     lifetime = 62f;
                     trailColor = mindustry.graphics.Pal.missileYellowBack;
-                    hitEffect = zzw.content.units.effects.CombatFx.blastExplosion;
-                    despawnEffect = zzw.content.units.effects.CombatFx.blastExplosion;
+                    hitEffect = Fx.blastExplosion;  // ★ 还原原版: PU132 plagueMissile / fin basicMissile 均为原版特效
+                    despawnEffect = Fx.blastExplosion;
                     weaveScale = 8f;
                     weaveMag = 2f;
                 }};
@@ -4593,10 +4593,10 @@ public class Z_Units {
                     splashDamage = 160f;
                     trailWidth = 7f;
                     trailColor = mindustry.graphics.Pal.bulletYellowBack;
-                    hitEffect = zzw.content.units.effects.CombatFx.massiveExplosion;
+                    hitEffect = zzw.content.units.effects.HitEffect.hitExplosionMassive;  // ★ 还原原版: PU132 fin mortar 用 HitFx.hitExplosionMassive
                     lifetime = 65f;
                     fragBullet = new mindustry.entities.bullet.ArtilleryBulletType(3f, 20f) {{
-                        hitEffect = zzw.content.units.effects.CombatFx.flakBlast;
+                        // hitEffect 用引擎默认 (v160 ArtilleryBulletType 默认特效), PU132 原版即原版 artilleryDense
                         knockback = 0.8f;
                         lifetime = 80f;
                         width = 11f;
@@ -4721,8 +4721,8 @@ public class Z_Units {
                     splashDamage = 45f;
                     lifetime = 65f;
                     trailColor = Pal.missileYellowBack;
-                    hitEffect = CombatFx.blastExplosion;
-                    despawnEffect = CombatFx.blastExplosion;
+                    hitEffect = Fx.blastExplosion;  // ★ 还原原版: PU132 blue 导弹井为原版特效
+                    despawnEffect = Fx.blastExplosion;
                 }};
             }}, new GuidedMissileWeapon(name + "-side-silo") {{
                 top = false;
@@ -4754,8 +4754,8 @@ public class Z_Units {
                     splashDamage = 45f;
                     lifetime = 65f;
                     trailColor = Pal.missileYellowBack;
-                    hitEffect = CombatFx.blastExplosion;
-                    despawnEffect = CombatFx.blastExplosion;
+                    hitEffect = Fx.blastExplosion;  // ★ 还原原版: PU132 blue 导弹井为原版特效
+                    despawnEffect = Fx.blastExplosion;
                 }};
             }});
 
@@ -4785,8 +4785,8 @@ public class Z_Units {
                     splashDamage = 30f;
                     lifetime = 62f;
                     trailColor = Pal.missileYellowBack;
-                    hitEffect = CombatFx.blastExplosion;
-                    despawnEffect = CombatFx.blastExplosion;
+                    hitEffect = Fx.blastExplosion;  // ★ 还原原版: PU132 blue 导弹井为原版特效
+                    despawnEffect = Fx.blastExplosion;
                     weaveScale = 8f;
                     weaveMag = 2f;
                 }};

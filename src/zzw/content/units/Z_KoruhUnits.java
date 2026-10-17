@@ -113,8 +113,8 @@ public class Z_KoruhUnits{
                     trailColor = Color.gray;
                     backColor = Pal.bulletYellowBack;
                     frontColor = Pal.bulletYellow;
-                    hitEffect = zzw.content.units.effects.CombatFx.blastExplosion;
-                    despawnEffect = zzw.content.units.effects.CombatFx.blastExplosion;
+                    hitEffect = Fx.blastExplosion;  // ★ 还原: 小导弹用原版特效 (弹体小, 夸张爆炸特效重复刺眼)
+                    despawnEffect = Fx.blastExplosion;
                     weaveScale = 8f;
                     weaveMag = 2f;
                     status = StatusEffects.blasted;
@@ -162,8 +162,8 @@ public class Z_KoruhUnits{
                     splashDamage = 1f;
                     lifetime = 60;
                     trailColor = Color.valueOf("b6c6fd");
-                    hitEffect = zzw.content.units.effects.CombatFx.blastExplosion;
-                    despawnEffect = zzw.content.units.effects.CombatFx.blastExplosion;
+                    hitEffect = Fx.blastExplosion;  // ★ 还原: 小导弹用原版特效 (弹体小, 夸张爆炸特效重复刺眼)
+                    despawnEffect = Fx.blastExplosion;
                     backColor = Pal.bulletYellowBack;
                     frontColor = Pal.bulletYellow;
                     weaveScale = 8f;

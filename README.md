@@ -384,6 +384,14 @@
   - **重写「科技树模板.java」**：补上 VE 核心写法 `planet.techTree = nodeRoot(...)`（自定义星球整棵树），并移植本项目 `Z_TechTree` 的 `attach`/`node`/`nodeProduce` 辅助方法（160 无 `TechTree.get(parent)`，改用 `content.techNode` 字段）；补充 `Objectives` 清单与 VE 倒金字塔布局 `InvertedPyramidTreeLayout` 说明
   - 更新「Mod主类模板.java」加载顺序为 `物品 → 液体 → 状态 → 子弹 → 方块 → 单位 → 星球 → 科技树`，并在 `loadContent()` 方法体补上星球加载步骤
 ## 更新日志
+- **特效误加清理（还原 PU 原版观感）**：部分小口径/中口径弹药此前被统一替换成 `CombatFx.blastExplosion`（白色六边形冲击波），原版其实用的是原版特效或 PU 自家特效，观感重复刺眼——逐项对照 PU132/PU_V8 原版还原：
+  - **empire 炮弹**：PU_V8 原版即 `Fx.blastExplosion`，还原
+  - **fin**：导弹还原 `Fx.blastExplosion`（原版 basicMissile）；迫击炮还原 PU132 自家 `HitFx.hitExplosionMassive`（新增移植 `HitEffect.hitExplosionMassive`，白环+烟团+橙放射线）；破片还原引擎默认特效（原版 artilleryDense）
+  - **blue 导弹井 ×3**：还原 `Fx.blastExplosion`（PU132 原版）
+  - **虫族段身 plague 导弹 ×6**（arcnelidia 段身投弹 / toxobyte / catenapede 段身武器）：还原 `Fx.blastExplosion`（PU132 plagueMissile 原版）；电弧虫段身投弹改回 BombBulletType 默认特效
+  - **End 破甲导弹**：还原 `Fx.blastExplosion`（PU132 原版）
+  - **koruh 小导弹 ×2**：还原 `Fx.blastExplosion`
+  - **monumentRailBullet 误加清理**：`smokeEffect` 误设 `blastExplosion` 导致磁轨轨迹每 35px 爆炸一次刷屏，恢复默认无特效
 - **CombatFx 特效形态多样化重写**（解决"所有特效都是扩散圆、只差颜色大小"的同质化问题，12 个特效重写为不同形态语言）：
   - `laserHit` → 旋转十字光线 + 菱形碎片散射（十字星形态）
   - `laserHitBlast` → 双填充三角反向旋转展开成六芒星 + 放射三角碎片

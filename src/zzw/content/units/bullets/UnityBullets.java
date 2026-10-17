@@ -90,7 +90,7 @@ public class UnityBullets{
             trailSpacing = 35f;
             shootEffect = MonolithFx.monumentShoot;
             despawnEffect = MonolithFx.monumentDespawn;
-            smokeEffect = zzw.content.units.effects.CombatFx.blastExplosion;
+            // smokeEffect 不设 (保持默认无): 原先误设 blastExplosion, 导致轨迹上每 35px 爆一次刷屏
             trailEffect = MonolithFx.monumentTrail;
         }};
     }

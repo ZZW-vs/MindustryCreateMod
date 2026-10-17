@@ -221,8 +221,8 @@ public class Z_EndUnits {
                     homingPower = 0.08f;
                     weaveScale = 6f;
                     weaveMag = 1.2f;
-                    hitEffect = CombatFx.blastExplosion;
-                    despawnEffect = CombatFx.blastExplosion;
+                    hitEffect = Fx.blastExplosion;  // ★ 还原原版: PU132 破甲导弹即用原版特效
+                    despawnEffect = Fx.blastExplosion;
 
                     ratioStart = 56000f;
                     ratioDamage = 1f / 150f;

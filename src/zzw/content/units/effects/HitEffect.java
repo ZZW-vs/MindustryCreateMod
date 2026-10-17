@@ -308,6 +308,29 @@ public class HitEffect {
         }
     });
 
+    /**
+     * 超大命中爆炸 (70f) — PU132 HitFx.hitExplosionMassive (L459-478)。
+     * 白色扩散冲击环 + 灰色烟团 + 橙色放射线, fin 迫击炮 / 大口径弹药专用。
+     */
+    public static final Effect hitExplosionMassive = new Effect(70f, 370f, e -> {
+        e.scaled(17f, s -> {
+            Draw.color(Color.white, Color.lightGray, e.fin());
+            Lines.stroke(s.fout() + 0.5f);
+            Lines.circle(e.x, e.y, e.fin() * 185f);
+        });
+
+        Draw.color(Color.gray);
+        Angles.randLenVectors(e.id, 12, 5f + 135f * e.finpow(), (x, y) -> {
+            Fill.circle(e.x + x, e.y + y, e.fout() * 22f + 0.5f);
+            Fill.circle(e.x + x / 2f, e.y + y / 2f, e.fout() * 9f);
+        });
+
+        Draw.color(mindustry.graphics.Pal.lighterOrange, mindustry.graphics.Pal.lightOrange, Color.gray, e.fin());
+        Lines.stroke(1.5f * e.fout());
+        Angles.randLenVectors(e.id + 1, 14, 1f + 160f * e.finpow(), (x, y) ->
+            Lines.lineAngle(e.x + x, e.y + y, Mathf.angle(x, y), 1f + e.fout() * 3f));
+    });
+
     /** 临时颜色对象 (避免每次 new) */
     private static class TmpColor {
         static final Color c1 = new Color();
