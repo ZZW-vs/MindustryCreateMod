@@ -384,6 +384,7 @@
   - **重写「科技树模板.java」**：补上 VE 核心写法 `planet.techTree = nodeRoot(...)`（自定义星球整棵树），并移植本项目 `Z_TechTree` 的 `attach`/`node`/`nodeProduce` 辅助方法（160 无 `TechTree.get(parent)`，改用 `content.techNode` 字段）；补充 `Objectives` 清单与 VE 倒金字塔布局 `InvertedPyramidTreeLayout` 说明
   - 更新「Mod主类模板.java」加载顺序为 `物品 → 液体 → 状态 → 子弹 → 方块 → 单位 → 星球 → 科技树`，并在 `loadContent()` 方法体补上星球加载步骤
 ## 更新日志
+- 修复多节单位段身无影子（arcnelidia 电弧虫等）：原先调用 `seg.type.drawShadow(seg)` 依赖段身类型的 fullIcon 剪影，而段身贴图在 atlas 中带 mod 前缀、段身类型 region 在 load() 阶段查不到导致 fullIcon 无效；现按 PU132 `WormSegmentUnit.drawShadow` 原样改为手动剪影（段身/tail 贴图 + `Pal.shadow` 色 + `UnitType.shadowTX/TY × 飞行高度` 偏移），所有共用 SegmentUnitEntity 的虫子段身统一恢复影子
 - 全模组战斗特效加强（新建颜色参数化特效集 `CombatFx`，PU132 ShootFx 手法 + 饱和火力 / FlameOut / Vanilla-Expansion 的绘制技巧，替代原版 `Fx.*`）：
   - **炮口开火**：`muzzleFlash`（火焰三角+白芯+扩散环+火花+动态光源）替代 `Fx.shootBig`；`muzzleFlashSmoke` / `muzzleFlashSmokeBig`（火光+延迟硝烟+后坐冲击环）替代 `Fx.shootBigSmoke` / `shootBigSmoke2` / `Fx.thoriumShoot`；`laserShoot`（PU132 laserChargeShoot 四向旋转白芯三角）替代 `Fx.lancerLaserShoot`；`railShoot`（磁轨炮双侧对开大三角+白色冲击环）替代 `Fx.instShoot`；`lightningShoot`（三向电弧三角+环绕电火花）替代 `Fx.lightningShoot`
   - **弹道命中**：`laserHit` / `laserHitBlast`（命中圈+放射线火花+四向尖刺+光源）替代 `Fx.hitLancer` / `hitLaser` / `hitLaserBlast`；`bulletHit` / `bulletHitSmall` / `bulletHitBig`（白→弹色渐变火花）替代 `Fx.hitBulletColor` / `hitBulletSmall` / `hitBulletBig`；另有 `fireHitSpark`（火舌+烟团）、`liquidHit`（液滴四溅）、`beamHit`（持续光束命中点）、`empSpark`（高频折线电弧）、`pointBeam`（定点射线）分别替代对应原版特效

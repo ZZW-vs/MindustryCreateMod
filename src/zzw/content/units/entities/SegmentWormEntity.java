@@ -1320,18 +1320,37 @@ public class SegmentWormEntity extends UnitEntity {
         // ★ 先绘制头部 (UnitType.draw 设置 z = flyingLayer, 绘制头部 body/cell/weapons)
         super.draw();
 
-        // ★ 绘制段身影子 (PU132 WormDefaultUnit.drawShadow L220-227)
+        // ★ 绘制段身影子 (还原 PU132 WormSegmentUnit.drawShadow L388-394)
         // 段身不在 Groups.draw 中, 不会自动画影子, 需由头部统一绘制
-        // ★ 关键: drawShadow 前必须设 Draw.z(Layer.darkness), 否则影子画在 flyingLayer
-        //   会盖在段身贴图之上 (v158 UnitType.draw L1495-1497 会自动设 z, 这里手动设)
+        // ★ 不能用 seg.type.drawShadow(seg): 那依赖段身类型的 shadowRegion(=图标生成期的
+        //   fullIcon 剪影), 而段身贴图在 atlas 中带 mod 前缀, 段身类型的 region 在 load()
+        //   阶段查不到 → fullIcon 无效 → 影子不渲染 (arcnelidia 段身无影子的根因)
+        // ★ PU132 原版做法: 直接用段身/尾段贴图剪影 + Pal.shadow 色 + shadowTX/TY 偏移
+        // ★ 关键: 画影子前必须设 Draw.z(Layer.darkness), 否则影子画在 flyingLayer
+        //   会盖在段身贴图之上
         if (segments.length > 0) {
             Draw.z(mindustry.graphics.Layer.darkness);
+            float shadowTX = mindustry.type.UnitType.shadowTX,
+                  shadowTY = mindustry.type.UnitType.shadowTY;
             for (int i = 0; i < segments.length; i++) {
                 SegmentUnitEntity seg = segments[i];
                 if (seg != null && seg.isAdded() && !seg.dead && seg.type != null) {
-                    seg.type.drawShadow(seg);
+                    // 段身贴图 (与 drawBody 同一套查找逻辑: 尾段用 tail, 其余用 segment)
+                    String p = seg.texturePrefix;
+                    String modP = "create-" + p;
+                    String base = seg.isTail ? "tail" : "segment";
+                    arc.graphics.g2d.TextureRegion region = findRegion(p + base, modP + base);
+                    if (!region.found()) region = seg.type.region;
+                    if (!region.found()) continue;
+
+                    // PU132 L391: e = max(elevation, type.visualElevation)
+                    // 段身 update() 不跑 super, elevation 可能停留在 0, 用飞行高度 1f 兜底
+                    float e = Math.max(seg.elevation, seg.type.flying ? 1f : 0f);
+                    Draw.color(mindustry.graphics.Pal.shadow);
+                    Draw.rect(region, seg.x + shadowTX * e, seg.y + shadowTY * e, seg.rotation - 90f);
                 }
             }
+            Draw.color();
         }
 
         // ★ 头部绘制完后, 统一绘制所有段身 (借鉴 PU132 UnityUnitType.drawBody L656-681)
