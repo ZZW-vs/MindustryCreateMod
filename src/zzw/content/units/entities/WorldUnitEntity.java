@@ -456,6 +456,9 @@ public class WorldUnitEntity extends UnitEntity {
         //    这里按位置自动收编; 倒序遍历删除后此列表无残留死单位)
         for (Unit u : Groups.unit) {
             if (u == this || u.dead || u.type == null) continue;
+            // ★ 其他大地单位不收编: 平台携带平台会把对方位置/朝向每帧强制覆盖,
+            //   被携带者一旦被玩家附身就完全无法操控
+            if (u instanceof WorldUnitEntity) continue;
             if (u.isFlying() || u.type.naval) continue;
             if (subUnits.contains(u)) continue;
             if (fallOffBanned.contains(u.id)) continue;
@@ -1279,7 +1282,7 @@ public class WorldUnitEntity extends UnitEntity {
          * (= 0x03000000 个单位), 流彻底错位 → EOFException, 存档损坏。
          * 现改为无条件读首字节判断:
          * <ul>
-         *   <li>2 / 3 → v2 / v3 显式版本号</li>
+         *   <li>2 ~ {@link #VERSION} → 对应版本的显式版本号</li>
          *   <li>其他 (v1 旧格式首字节 = units int 最高字节, 小数量时恒 0) →
          *       手动拼回剩余 3 字节还原 units</li>
          * </ul></p>
@@ -1288,8 +1291,9 @@ public class WorldUnitEntity extends UnitEntity {
             int first = read.b() & 0xFF;
             byte ver;
             int units;
-            if (first == 3 || first == 2) {
-                // v2/v3: 首字节是显式版本号
+            if (first >= 2 && first <= VERSION) {
+                // v2~v4: 首字节是显式版本号 (★ v4 之前漏识别: 写出 v4 存档后
+                // 首字节 4 落进 v1 分支被当成 units 高字节 → 流错位, 子世界全部丢失)
                 ver = (byte) first;
                 units = read.i();
             } else {

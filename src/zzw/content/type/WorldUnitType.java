@@ -26,6 +26,7 @@ import arc.Events;
 import mindustry.Vars;
 import mindustry.content.Blocks;
 import mindustry.core.World;
+import mindustry.entities.units.AIController;
 import mindustry.entities.units.BuildPlan;
 import mindustry.entities.units.UnitController;
 import mindustry.game.EventType;
@@ -121,19 +122,20 @@ public class WorldUnitType extends UnityUnitType {
         return new EmptyController();
     }
 
-    /** 空控制器: 只保存单位引用, 不做任何移动/索敌 (PU132 EmptyAI 移植) */
-    public static class EmptyController implements UnitController {
-        protected Unit unit;
-
-        @Override
-        public void unit(Unit unit) {
-            this.unit = unit;
-        }
-
-        @Override
-        public Unit unit() {
-            return unit;
-        }
+    /**
+     * 空控制器: 只保存单位引用, 不做任何移动/索敌 (PU132 EmptyAI 移植).
+     *
+     * <p>★ 必须继承 {@link AIController}: 原版玩家点击附身的前置条件是
+     * {@code unit.isAI() == true} (UnitComp.isAI() 判断 controller 是否为
+     * AIController 实例), 之前直接实现 UnitController 接口导致 isAI() 恒为
+     * false, 大地无法被玩家点击附身 ("不能操控")。</p>
+     *
+     * <p>AIController 基类的 update() 是空实现 (接口默认方法), 继承后不会
+     * 引入任何自主移动/索敌行为, 与原"空控制器"语义完全一致。</p>
+     */
+    public static class EmptyController extends AIController {
+        // 全部行为继承 AIController: unit 字段与 unit()/unit() 方法、
+        // update() 空实现 —— 无需任何覆写
     }
 
     /**
