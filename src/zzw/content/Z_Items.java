@@ -112,10 +112,13 @@ public class Z_Items {
         //endregion
 
         //region ProjectUnity faction items
+        // ★ flammability>0 → 被原版 ConsumeItemFlammable 判定为可燃,
+        //   燃烧发电机/蒸汽发电机可直接烧 (原版燃料体系的联动入口)
         contagium = new Item("contagium", Color.valueOf("68985e")) {{
             cost = 1.5f;
             hardness = 3;
             radioactivity = 0.7f;
+            flammability = 0.4f;  // 感染原: 有机污染物, 可燃
         }};
 
         denseAlloy = new Item("dense-alloy", Color.valueOf("a68a84")) {{
@@ -200,6 +203,8 @@ public class Z_Items {
         // 农作物相关
         Pumpkin_Seeds = basic("pumpkin_seeds", "ffcc00");
         Pulp = basic("pulp", "cfcfcf");
+        // ★ 纸浆: 生物质, 可燃 → 原版燃烧/蒸汽发电机可直接烧 (联动入口)
+        Pulp.flammability = 0.6f;
 
         // 特殊：动态贴图
         Campfire_Fire = new Item("campfire_fire", Color.valueOf("cfcfcf")) {{

@@ -259,8 +259,11 @@ public class CrucibleGraph extends BaseGraph<GraphCrucibleModule, CrucibleGraph>
         boilOrder.sort((a, b) -> -Float.compare(a.boilpoint, b.boilpoint));
 
         // 凝固 (放热)
+        // ★ remaining 每轮用实时温度重算: 循环前先取的 temp 在前一种原料相变后会变化,
+        //   若沿用旧温度, 多种原料同时相变会各自按"满额温差"抽取/注入热量,
+        //   合计远超网络实际可用热量 → 温度被压到绝对零度以下甚至剧烈震荡。
         for(var item : coolOrder){
-            float remaining = (item.meltingpoint - temp) * heatCapacity;
+            float remaining = (item.meltingpoint - heat.getTemp()) * heatCapacity;
             if(remaining <= 0f) break;
 
             float reqSmelt = share * Math.min(fluids.get(item).melted, Math.max(0.1f, fluids.get(item).melted * item.meltspeed * Time.delta));
@@ -271,9 +274,9 @@ public class CrucibleGraph extends BaseGraph<GraphCrucibleModule, CrucibleGraph>
             heat.addHeatEnergy(smeltRatio * reqSmeltEnergy);
         }
 
-        // 熔化 (吸热)
+        // 熔化 (吸热) —— remaining 每轮实时重算 (同凝固循环的说明)
         for(var item : smeltOrder){
-            float remaining = (temp - item.meltingpoint) * heatCapacity;
+            float remaining = (heat.getTemp() - item.meltingpoint) * heatCapacity;
             if(remaining <= 0f) break;
 
             float reqSmelt = share * Math.min(fluids.get(item).solid, Math.max(0.1f, fluids.get(item).solid * item.meltspeed * Time.delta));
@@ -284,9 +287,9 @@ public class CrucibleGraph extends BaseGraph<GraphCrucibleModule, CrucibleGraph>
             heat.addHeatEnergy(-smeltRatio * reqSmeltEnergy);
         }
 
-        // 汽化 (吸热 + 特效)
+        // 汽化 (吸热 + 特效) —— remaining 每轮实时重算 (同凝固循环的说明)
         for(var item : boilOrder){
-            float remaining = (temp - item.boilpoint) * heatCapacity;
+            float remaining = (heat.getTemp() - item.boilpoint) * heatCapacity;
             if(remaining <= 0f) break;
 
             float reqSmelt = share * Math.min(fluids.get(item).melted, Math.max(0.1f, fluids.get(item).melted * item.boilspeed * Time.delta));

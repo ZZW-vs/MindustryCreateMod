@@ -720,6 +720,19 @@ public class Z_Bullets {
         public boolean extinction = false;
         public Color sparkColor = Color.valueOf("ff9c5a");
 
+        // ★ v160.1 适配: 原生 ContinuousLaserBulletType 无 strokes/spaceMag 字段
+        //   (经 javap 验证), PU132 使用其改版 Mindustry 基类自带四层光束绘制。
+        //   此处自行声明并在 draw() 中复刻 PU 激光家族的四层渲染,
+        //   默认值对齐 PU132 RoundLaserBulletType / 磁轨激光家族约定。
+        /** 各颜色层描边宽度系数 (PU132 改版基类默认, 四层光束由外到内) */
+        public float[] strokes = {2.8f, 2.4f, 1.9f, 1.3f};
+        /** 各层闪烁缩放 (呼吸感) */
+        public float[] tscales = {1f, 0.7f, 0.5f, 0.24f};
+        /** 各层长度缩放 (内层更长, 形成尖端延伸) */
+        public float[] lenscales = {1f, 1.13f, 1.16f, 1.17f};
+        /** 光束层间距 (spaceMag=70 为大炮台配置, catastrophe 未设置保持默认 45) */
+        public float spaceMag = 45f;
+
         public SparkingContinuousLaserBulletType(float damage) {
             super(damage);
             lightningColor = Color.valueOf("ff9c5a");
@@ -781,13 +794,52 @@ public class Z_Bullets {
                         }
                         // 锥形伤害敌方建筑
                         mindustry.gen.Building build = tile.build;
-                        if (build != null && build.team != b.team) {
-                            build.damage(arc.math.Interp.smooth.apply(angD) * 23.3f * Mathf.clamp(dstC * 1.7f));
-                        }
+                    if (build != null && build.team != b.team) {
+                        build.damage(arc.math.Interp.smooth.apply(angD) * 23.3f * Mathf.clamp(dstC * 1.7f));
                     }
                 }
             }
         }
+    }
+
+    /**
+     * 四层光束绘制 (PU132 改版 ContinuousLaserBulletType.draw 复刻)。
+     *
+     * <p>与项目 SaberContinuousLaserBulletType.draw 同源: 对每层颜色,
+     * 按 strokes[] × tscales[] 递减描边宽度、按 lenscales[] 递增长度
+     * (内层向后偏移 spaceMag × (lenscale-1)), 形成"由外向内变细变亮变长"
+     * 的能量光束观感。</p>
+     *
+     * <p>★ v160.1 差异: 原生 drawLight 不变仍走基类;
+     * 光照复刻 PU132 用 Drawf.light 无 team 重载。</p>
+     */
+    @Override
+    public void draw(Bullet b) {
+        // 实际激光长度 (被墙挡住时截断)
+        float realLength = Damage.findLaserLength(b, length);
+        // 淡出系数: 生命末期 fadeTime 内线性淡出
+        float fout = Mathf.clamp(b.time > b.lifetime - fadeTime ?
+            1f - (b.time - (lifetime - fadeTime)) / fadeTime : 1f);
+        float baseLen = realLength * fout;
+
+        // 激光主干
+        Lines.lineAngle(b.x, b.y, b.rotation(), baseLen);
+        // 遍历颜色层 × 形状层, 绘制四层光束
+        for (int s = 0; s < colors.length; s++) {
+            Draw.color(Tmp.c1.set(colors[s]).mul(1f + Mathf.absin(Time.time, 1f, 0.1f)));
+            for (int i = 0; i < tscales.length; i++) {
+                // 内层光束起点向炮口后方偏移, 形成延伸尖端
+                Tmp.v1.trns(b.rotation() + 180f, (lenscales[i] - 1f) * spaceMag);
+                Lines.stroke((width + Mathf.absin(oscScl, oscMag)) * fout * strokes[s] * tscales[i]);
+                Lines.lineAngle(b.x + Tmp.v1.x, b.y + Tmp.v1.y, b.rotation(), baseLen * lenscales[i], false);
+            }
+        }
+
+        // 末端光照
+        Tmp.v1.trns(b.rotation(), baseLen * 1.1f);
+        Drawf.light(b.x, b.y, b.x + Tmp.v1.x, b.y + Tmp.v1.y, lightStroke, lightColor, 0.7f);
+        Draw.reset();
+    }
     }
 
     /** ===== GravitonLaserBulletType (PU132 graviton) - 重力子牵引激光 =====

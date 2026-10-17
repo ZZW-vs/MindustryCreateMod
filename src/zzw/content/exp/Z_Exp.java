@@ -86,6 +86,10 @@ public class Z_Exp {
     // 经验炮台 (OmniLiquid 液体)
     public static OmniLiquidTurret kelvinLaserTurret;
 
+    // ★ PU132 UnityBullets.distField / smallDistField: 扭曲力场弹 (static 以便
+    //   Z_Weathers.timeStorm 在天气中随机生成力场)
+    public static DistFieldBulletType distField, smallDistField;
+
     /**
      * 全量加载: 经验存储运输 + 力场投影仪 (非炮台部分)。
      * <p>
@@ -321,7 +325,7 @@ public class Z_Exp {
         }};
 
         // ===== PU132 UnityBullets.distField / smallDistField (fractal-laser-turret 的扭曲力场) =====
-        DistFieldBulletType distFieldBullet = new DistFieldBulletType(0f, -1f){{
+        distField = new DistFieldBulletType(0f, -1f){{
             centerColor = Pal.lancerLaser.cpy().a(0f);
             edgeColor = Pal.place;
             distSplashFx = UnityFx.distSplashFx;
@@ -342,7 +346,7 @@ public class Z_Exp {
             distDamage = 0.1f;
         }};
 
-        DistFieldBulletType smallDistFieldBullet = new DistFieldBulletType(0f, -1f){{
+        smallDistField = new DistFieldBulletType(0f, -1f){{
             centerColor = Pal.lancerLaser.cpy().a(0f);
             edgeColor = Pal.place;
             distSplashFx = UnityFx.distSplashFx;
@@ -507,7 +511,7 @@ public class Z_Exp {
             size = 3;
             health = 2000;
 
-            reload = distFieldBullet.lifetime / 3f;   // PU132: UnityBullets.distField.lifetime / 3f
+            reload = Z_Exp.distField.lifetime / 3f;   // PU132: UnityBullets.distField.lifetime / 3f
             coolantMultiplier = 2f;
             range = 140f;
 
@@ -545,15 +549,15 @@ public class Z_Exp {
                 maxRange = 150f + 2f * 30f;   // PU132: 计入射程增长
                 fromColor = Pal.lancerLaser.cpy().lerp(Pal.place, 0.5f);
                 toColor = Pal.place;
-                distField = distFieldBullet;
-                smallDistField = smallDistFieldBullet;
+                distField = Z_Exp.distField;
+                smallDistField = Z_Exp.smallDistField;
                 // v160 蓄力由 TurretBuild.shoot() 驱动: 开始蓄力时播放一次 chargeEffect
                 chargeEffect = new MultiEffect(UnityFx.laserFractalCharge, UnityFx.laserFractalChargeBegin);
             }};
 
             maxLevel = 30;
             expFields = new EField[]{
-                new LinearReloadTime(v -> reload = v, distFieldBullet.lifetime / 3f, -2f),
+                new LinearReloadTime(v -> reload = v, Z_Exp.distField.lifetime / 3f, -2f),
                 new ELinear(v -> range = v, 140f, 0.25f * tilesize, mindustry.world.meta.Stat.shootRange, v -> arc.util.Strings.autoFixed(v / tilesize, 2) + " " + mindustry.world.meta.StatUnit.blocks.localized())
             };
 

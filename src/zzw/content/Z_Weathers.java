@@ -12,6 +12,7 @@ import mindustry.graphics.Pal;
 import mindustry.type.weather.ParticleWeather;
 import mindustry.gen.WeatherState;
 import mindustry.type.Weather;
+import zzw.content.exp.Z_Exp;
 
 
 import static mindustry.Vars.tilesize;
@@ -22,10 +23,9 @@ import static mindustry.Vars.world;
  *
  * <p>包含 imber 派系的时空异常雨 timeStorm 与 end 派系的碎屑风暴 debrisStorm。</p>
  *
- * <p>★ v158 适配: 原生 {@link ParticleWeather} 在 v158.1 仍存在, timeStorm 的
- * noise 参数全部兼容; 唯一差异是 timeStorm 的 update 会在场上生成
- * {@code UnityBullets.distField}(空间扭曲力场弹) —— 该弹型属于未移植的
- * exp 力场系统, 暂以注释保留, 待 DistFieldBulletType 移植后恢复。</p>
+ * <p>★ v160.1 适配: timeStorm 的 update 会在场上生成
+ * {@code Z_Exp.distField}(空间扭曲力场弹, PU132 ExpBulletType 家族的
+ * DistFieldBulletType 移植版), 时空异常雨机制已完整复刻。</p>
  *
  * @author PU132 原作, 移植: zzw
  */
@@ -58,9 +58,15 @@ public class Z_Weathers{
 
             @Override
             public void update(WeatherState state){
-                // TODO PU132: 每 tick 以 spawnChance 概率在场上随机位置生成
-                // UnityBullets.distField 空间扭曲力场 (依赖未移植的 DistFieldBulletType,
-                // new Float[]{Mathf.random(minDistSize, maxDistSize), 2f} 为力场参数)
+                // ★ PU132: 每 tick 以 (强度 × spawnChance) 概率在场上随机位置生成
+                // 空间扭曲力场 (UnityBullets.distField → Z_Exp.distField),
+                // 力场半径随机取 minDistSize~maxDistSize (PU132 原始 data 参数原样保留)
+                if(Mathf.chanceDelta(state.intensity * spawnChance)){
+                    Z_Exp.distField.create(null, mindustry.game.Team.derelict,
+                        Mathf.random(world.unitWidth()), Mathf.random(world.unitHeight()), 0f,
+                        1f, 1f, 1f,
+                        new Float[]{Mathf.random(minDistSize, maxDistSize), 2f});
+                }
                 super.update(state);
             }
         };

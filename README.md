@@ -448,6 +448,24 @@
 - 扭矩钻头功能区分：修复螺旋抽水机（mechanical-extractor）缺失 `result`/`attribute` 的问题——补回 PU_V8 `rotary-water-extractor` 的 `result=Liquids.water`、`attribute=Attribute.water`、`pumpAmount=0.2`、`liquidCapacity=60`，此前该方块抽不出任何液体
 - 新增螺旋石油钻井（oil-derrick）：扭矩驱动的石油抽取器（`SolidPump`，`result=Liquids.oil`、`attribute=Attribute.oil`，需建在油层上），绘制为螺旋钻杆样式（类 `zzw.content.mechanics.torque.blocks.production.OilDerrick`）
 
+## 更新日志
+- **历史简化移植重写收尾**（三处旧"简化/TODO"全部升级为 PU132 完整机制）：
+  - **dark 系四连激光四层光束渲染**：`SparkingContinuousLaserBulletType` 补上 PU132 改版基类的 `strokes[]`（四层描边宽度）+ `tscales[]`（闪烁）+ `lenscales[]`（层长递增）+ `spaceMag`（层间距）字段与配套 `draw()` 覆盖（v160.1 原生 `ContinuousLaserBulletType` 无这些字段，经 javap 验证后自行复刻，绘制逻辑与本项目 Saber 激光同源）；三个炮台按 PU132 原值启用——catastrophe 描边 ×1.4、calamity ×1.7 + 层间距 70、extinction ×2.2 + 层间距 70 + 一次引 4 道炮口闪电（`fromBlockAmount=4` 此前遗漏，一并补齐）
+  - **excelsus 后腿独立贴图翻转渲染**：`UnityUnitType` 移植 PU132 `customBackLegs`（boolean 语义，旧 TextureRegion 字段改名 `backLegsRegion` 避让）与 `drawLegs` 覆盖——后腿用 `foot-back / leg-back / leg-base-back` 三张独立贴图先绘制、前腿后绘制盖住后腿，形成"前后双层腿"遮挡效果（贴图 excelsus-leg-back 系列早已就位）；v160.1 差异：`legAngle` 只需腿索引、`visualElevation` 已移除故省略移动中腿的抬升投影
+  - **时空异常雨 (timeStorm) 力场生成**：移植 PU132 `DistFieldBulletType` 相关弹体——经验炮台的 `distField / smallDistField` 提升为 `Z_Exp` 静态字段，天气 update 每 tick 以 (强度 × 0.02) 概率在场上随机位置生成 derelict 阵营空间扭曲力场（减速敌方子弹 + 扭曲状态 + 持续伤害），PU132 原始 data 参数原样保留；PU132 该弹依赖 exp 等级系统的字段按"无炮台主"场景简化（★ 标注）
+  - **递归重构器过时注释清理**：rex→excelsus / monument→colossus / colossus→bastion 升级配方实际早已全部写入，删除"尚未移植"的过时说明
+- **原版兼容与体验调优**（原版内容单例字段注入，不重写任何原版行为）：
+  - **原版炮台弹药扩展** (`Z_VanillaAmmo`)：向原版 `ItemTurret` 弹药表注入模组材料弹药——子弹复制该炮台已有最强弹药再按系数等比强化（伤害/溅射等比缩放，弹速/特效/状态/穿透全部保持原版手感），注入时机早于原版 `init()` 的 `limitRange()`，射程与统计面板自动纳入
+  - **原版方块联动** (`Z_VanillaLink`)：模组熔岩接入原版波纹/海啸液体炮台弹药（与熔渣同级、附带燃烧）；感染原 / 纸浆添加可燃性 (`flammability`)，可直接作原版燃烧/蒸汽发电机燃料
+  - **原版体验调优** (`Z_VanillaQoL`)：容器 300→400、仓库 1000→1500、液体罐 1800→2400；铜/钛/装甲传送带微提速 (+12%~17%)；卸载器 60/11 → 60/9 物品每秒
+  - **原版炮台接入经验系统** (`VanillaExp`)：替换 13 个原版 `ItemTurret` 的 `buildType` 为经验化实现——经验球拾取/经验塔发送自动覆盖（`instanceof` 扫描无需改经验网络），等级数学与 PU `ExpTurret` 一致（maxLevel=10），伤害每级 +8%、满级 +80%，经验进度走独立 `CustomChunk` 存档
+  - 经验节点装填进度条：装满时显示"已就绪"（`bar.expready`），一眼看出节点能否分配经验
+- **科技树研究制** (`Z_TechTree.load()` 正式启用)：挂树内容改为研究解锁；扭矩/坩埚/经验系等未挂树内容兜底直接解锁，不影响正常游玩
+- **PU132 剧情框架移植** (`zzw/map` + `Z_Story`)：
+  - `cinematic`：Cutscene（过场演出基类，含 PanCutscene 镜头平移 / CallbackCutscene 回调子类）、Speeches（对话条）、StoryNode（剧情节点树）、Cinematics（装配入口）
+  - `objectives`：自定义地图目标系统——Objective / GlobalObjective / CustomObj / ResourceAmountObj（资源数量目标）/ UnitPosObj（单位位置目标）与 ObjectiveTypes（JSON 目标类型工厂）
+  - `Z_Story` 装配层：进入地图时若地图标签含 `create-nodes` 剧情声明则解析节点树并绑定演出；剧情进度持久化到 `state.rules.tags["create-cinematic"]`，随地图存档读写
+
 ## 安装说明
 
 1. 下载最新版本的模组文件

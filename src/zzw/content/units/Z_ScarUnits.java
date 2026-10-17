@@ -439,10 +439,10 @@ public class Z_ScarUnits {
             allowLegStep = true;
             rotateSpeed = 1.4f;
             armor = 32f;  // ★ 加强 (原 18f)
-            // customBackLegs = true; // TODO: PU132 的 boolean customBackLegs 后腿翻转渲染
-            //   依赖 drawLegs 覆盖 + leg-back/leg-base-back/foot-back 三张贴图,
-            //   项目 UnityUnitType 的 customBackLegs 字段目前是 TextureRegion 语义,
-            //   待单独移植渲染逻辑后启用 (贴图 excelsus-leg-back 系列已就位)
+            // ★ PU132: 后腿独立贴图翻转渲染 (boolean customBackLegs, 依赖
+            //   UnityUnitType.drawLegs 覆盖 + leg-back/leg-base-back/foot-back 三张贴图,
+            //   贴图 excelsus-leg-back 系列已就位)
+            customBackLegs = true;
 
             hovering = true;
             groundLayer = Layer.legUnit + 0.03f;

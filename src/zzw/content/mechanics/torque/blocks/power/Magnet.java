@@ -64,8 +64,10 @@ public class Magnet extends GraphBlock{
             Groups.bullet.intersect(x - f * 2f, y - f * 2f, f * 4f, f * 4f, bullet -> {
                 if(bullet.type == null) return;
 
-                // 经验球判定 (PU132 ExpOrb): 本项目经验球为直接分配无子弹实体, 恒 false
-                boolean isOrb = false;
+                // ★ 经验球判定: 本项目经验球是 BulletType (ExpOrbs.ExpOrb),
+                //   恢复 PU132 玩法 —— 磁体对经验球施加 5 倍偏转力
+                //   (可用磁体给经验球转向 / 阻挡, 也能偏转敌方经验球)
+                boolean isOrb = bullet.type instanceof zzw.content.exp.ExpOrbs.ExpOrb;
 
                 if(bullet.type.hittable || isOrb){
                     float dx = bullet.x - x;

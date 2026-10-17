@@ -3,9 +3,12 @@ package zzw.content.type;
 import arc.Core;
 import arc.func.Func;
 import arc.graphics.g2d.*;
+import arc.math.Mathf;
+import arc.math.geom.Vec2;
 import arc.struct.*;
 import arc.util.*;
 import mindustry.ctype.*;
+import mindustry.entities.Leg;
 import mindustry.entities.abilities.*;
 import mindustry.entities.units.*;
 import mindustry.gen.*;
@@ -53,8 +56,26 @@ public class UnityUnitType extends UnitType{
     /** 能力贴图数组 */
     public TextureRegion[] abilityRegions = new TextureRegion[AbilityTextures.values().length];
     
-    /** 自定义后腿贴图 */
-    public TextureRegion customBackLegs;
+    /**
+     * 自定义后腿贴图 (旧字段, 现已改名 {@link #backLegsRegion} 以腾出
+     * {@link #customBackLegs} 承载 PU132 的 boolean 语义)。
+     */
+    public TextureRegion backLegsRegion;
+
+    // ===== PU132 后腿独立贴图翻转渲染 (customBackLegs) =====
+    /**
+     * ★ PU132 unity.type.UnityUnitType.customBackLegs (boolean 语义):
+     * true 时 drawLegs 用 leg-back/leg-base-back/foot-back 三张独立贴图
+     * 渲染后腿并翻转 (前腿在前, 后腿在后), 实现"双层腿"遮挡效果
+     * (excelsus 等 6 腿悬浮单位使用)。
+     */
+    public boolean customBackLegs = false;
+    /** 后腿脚部贴图: atlas[name + "-foot-back"] */
+    public TextureRegion footBackRegion;
+    /** 后腿小腿贴图: atlas[name + "-leg-back"] */
+    public TextureRegion legBackRegion;
+    /** 后腿大腿贴图: atlas[name + "-leg-base-back"] */
+    public TextureRegion legBaseBackRegion;
 
     /** 对象化引擎 (PU132): 非 null 时 drawEngine 走 Engine.draw 而非原版标量字段。 */
     public Engine engine;
@@ -103,10 +124,16 @@ public class UnityUnitType extends UnitType{
             abilityRegions[type.ordinal()] = Core.atlas.find(regionName, (arc.graphics.g2d.TextureRegion)null);
         }
         
-        // 加载自定义后腿贴图
-        if(customBackLegs == null){
-            customBackLegs = Core.atlas.find(name + "-backlegs", (arc.graphics.g2d.TextureRegion)null);
+        // 加载自定义后腿贴图 (旧 backlegs 单张贴图, 保留兼容)
+        if(backLegsRegion == null){
+            backLegsRegion = Core.atlas.find(name + "-backlegs", (arc.graphics.g2d.TextureRegion)null);
         }
+
+        // ★ PU132: 加载后腿三件套贴图 (customBackLegs 渲染用),
+        //   命名约定与原版一致: excelsus-leg-back / excelsus-leg-base-back / excelsus-foot-back
+        legBackRegion = Core.atlas.find(name + "-leg-back");
+        legBaseBackRegion = Core.atlas.find(name + "-leg-base-back");
+        footBackRegion = Core.atlas.find(name + "-foot-back");
         
         if(decorations.size > 0){
             boolean decorEntity = constructor != null && constructor.get() instanceof DecorationUnitEntity;
@@ -147,6 +174,94 @@ public class UnityUnitType extends UnitType{
                 if(decor.type.top) decor.type.draw(unit, decor);
             }
         }
+    }
+
+    /**
+     * 腿部绘制 (PU132 unity.type.UnityUnitType.drawLegs 完整移植)。
+     *
+     * <p>customBackLegs = false: 走原版渲染。</p>
+     *
+     * <p>customBackLegs = true: 后腿改用独立贴图三件套
+     * (foot-back/leg-back/leg-base-back) 渲染并放在前腿底层,
+     * 形成"前后双层腿"遮挡效果 —— 前腿用常规贴图且后绘制 (盖住后腿),
+     * 后腿用 back 系列贴图且先绘制。贴图通过 load() 的
+     * {@code name + "-foot-back" / "-leg-back" / "-leg-base-back"} 命名约定加载
+     * (与 PU132 原版完全一致, excelsus 贴图已就位)。</p>
+     *
+     * <p>★ v160.1 差异: 原版 visualElevation 字段已移除,
+     * 移动中腿的"抬升投影" (shadowTX/shadowTY 偏移阴影) 省略,
+     * 仅保留 Drawf.shadow 落地阴影, 视觉差异极小。</p>
+     */
+    @Override
+    public <T extends Unit & Legsc> void drawLegs(T unit){
+        // 未启用后腿翻转: 直接走原版渲染
+        if(!customBackLegs){
+            super.drawLegs(unit);
+            return;
+        }
+
+        applyColor(unit);
+
+        Leg[] legs = unit.legs();
+        // 脚部阴影尺寸 (PU132: footRegion 宽度 × 1.5)
+        float ssize = footRegion.width * Draw.scl * 1.5f;
+        float rotation = unit.baseRotation();
+
+        // 先画所有腿的落地阴影
+        for(Leg leg : legs){
+            Drawf.shadow(leg.base.x, leg.base.y, ssize);
+        }
+
+        // 腿按 j 从后往前绘制: j 大 (前腿) 后画 → 盖住后腿, 形成前后遮挡
+        for(int j = legs.length - 1; j >= 0; j--){
+            // 交错还原真实腿索引 (与原版 drawLegs 一致)
+            int i = (j % 2 == 0 ? j / 2 : legs.length - 1 - j / 2);
+            Leg leg = legs[i];
+            // ★ v160.1 差异: legAngle 只需腿索引 (旋转已含 baseRotation)
+            float angle = unit.legAngle(i);
+            // 腿索引过半 → 该腿需要左右翻转
+            boolean flip = i >= legs.length / 2f;
+            // 最后绘制的两条腿 (j = length-1, length-2) 是前腿, 其余为后腿
+            boolean back = j < legs.length - 2;
+            int flips = Mathf.sign(flip);
+
+            // 后腿用 back 三件套, 前腿用常规贴图
+            TextureRegion fr = back ? footRegion : footBackRegion;
+            TextureRegion lr = back ? legRegion : legBackRegion;
+            TextureRegion lbr = back ? legBaseRegion : legBaseBackRegion;
+
+            // 腿根位置: 从单位中心沿腿角度偏移 legBaseOffset
+            Vec2 position = new Vec2().trns(angle, legBaseOffset).add(unit.x, unit.y);
+            // 大腿连接处向关节方向的延伸偏移 (PU132 legExtension 负值 → 贴图反向)
+            Vec2 ext = new Vec2().set(leg.base).sub(leg.joint).inv().setLength(legExtension);
+
+            // 脚部贴图 (朝向腿根 → 脚底方向)
+            Draw.rect(fr, leg.base.x, leg.base.y, position.angleTo(leg.base));
+
+            // 小腿: 腿根 → 膝盖关节
+            Lines.stroke(lr.height * Draw.scl * flips);
+            Lines.line(lr, position.x, position.y, leg.joint.x, leg.joint.y, false);
+
+            // 大腿: 膝盖关节 → 脚底 (经延伸偏移修正)
+            Lines.stroke(lbr.height * Draw.scl * flips);
+            Lines.line(lbr, leg.joint.x + ext.x, leg.joint.y + ext.y, leg.base.x, leg.base.y, false);
+
+            // 膝盖关节贴图
+            if(jointRegion.found()){
+                Draw.rect(jointRegion, leg.joint.x, leg.joint.y);
+            }
+            // 腿根贴图 (随身体旋转)
+            if(baseJointRegion.found()){
+                Draw.rect(baseJointRegion, position.x, position.y, rotation);
+            }
+        }
+
+        // 身体底座
+        if(baseRegion.found()){
+            Draw.rect(baseRegion, unit.x, unit.y, rotation - 90);
+        }
+
+        Draw.reset();
     }
 
     @Override

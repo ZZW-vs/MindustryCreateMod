@@ -56,7 +56,13 @@ public class ExpNode extends ExpTank {
     @Override
     public void setBars(){
         super.setBars();
-        addBar("links", (ExpNodeBuild entity) -> new Bar(() -> Core.bundle.format("bar.reloading", (int)(100 * Mathf.clamp(entity.reload / reloadTime))), () -> Pal.accent, () -> Mathf.clamp(entity.reload / reloadTime)));
+        // 装填进度条: 装满时显示"已就绪", 让玩家一眼看出节点能否分配经验
+        addBar("links", (ExpNodeBuild entity) -> new Bar(
+            () -> entity.reload >= reloadTime
+                ? Core.bundle.get("bar.expready")
+                : Core.bundle.format("bar.reloading", (int)(100 * Mathf.clamp(entity.reload / reloadTime))),
+            () -> Pal.accent,
+            () -> Mathf.clamp(entity.reload / reloadTime)));
     }
 
     @Override

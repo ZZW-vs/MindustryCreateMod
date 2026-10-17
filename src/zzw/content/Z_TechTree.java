@@ -215,13 +215,18 @@ public class Z_TechTree{
     }
 
     /**
-     * ★ 兜底解锁 (用户要求: PU 内容必须能在普罗塞世界直接使用):
-     * 遍历全部本模组内容统一 alwaysUnlocked — 普罗塞战役里无需研究即可建造/生产。
+     * ★ 兜底解锁 (研究制下的有限兜底, 2026-10 起):
+     * 科技树已启用研究制 — 挂了科技节点的内容 ({@code techNode != null}) 不再强制
+     * alwaysUnlocked, 由玩家在普罗塞战役里按树研究解锁。
      *
-     * ★ 修复 (2026-09): 之前只解锁 techNode==null 的内容, 但经验系等自制内容
-     *   挂了科技节点 (techNode != null) 被跳过 → Serpulo 战役里未研究就锁定、
-     *   无法建造 (用户反馈: 经验墙炮台等"默认不显示、无法建造")。
-     *   现在无论是否挂科技节点, 所有 create- 前缀本模组内容一律立即解锁。
+     * <p>仍走兜底直接解锁的内容 (techNode == null, 未挂树): 扭矩/坩埚系统方块、
+     * 经验系方块、除巨石外的单位派系等。这些内容在 PU132 原版里同样不在树上
+     * (PU 通过沙盒/区块解锁), 保持一致并保证普罗塞战役直接可用。</p>
+     *
+     * <p>★ 全环境可见: 强制覆盖 envEnabled, 避免 PU 移植方块因环境位不含
+     * Env.terrestrial 而在 Serpulo(陆地块) 中被 hidden 过滤掉、只在
+     * Erekir/太空(EasicEnvironment/space) 显示 (用户实测: 埃里克尔可见,
+     * 赛普罗缺很多方块). Serpulo/Erekir/太空任意行星均显示。</p>
      */
     private static void unlockRemaining(){
         int[] count = {0};
@@ -230,19 +235,17 @@ public class Z_TechTree{
             if(!u.name.startsWith("create-")) return;
             // 段身等 hidden 内容保持隐藏
             if(u instanceof mindustry.type.UnitType ut && ut.hidden) return;
-            // ★ 全环境可见: 强制覆盖 envEnabled, 避免 PU 移植方块因环境位不
-            //   含 Env.terrestrial 而在 Serpulo(陆地块) 中被 hidden 过滤掉、只在
-            //   Erekir/太空(EasicEnvironment/space) 显示 (用户实测: 埃里克尔可见,
-            //   赛普罗缺很多方块). Serpulo/Erekir/太空任意行星均显示.
             if(u instanceof mindustry.world.Block blk && blk.envEnabled != mindustry.world.meta.Env.any){
                 blk.envEnabled = mindustry.world.meta.Env.any;
             }
+            // 研究制: 已挂树的内容交给科技树研究解锁, 不强制 alwaysUnlocked
+            if(u.techNode != null) return;
             if(!u.alwaysUnlocked){
                 u.alwaysUnlocked = true;
                 count[0]++;
             }
         });
-        arc.util.Log.info("[techtree] 兜底解锁 @ 个本模组内容 (普罗塞可直接建造)", count[0]);
+        arc.util.Log.info("[techtree] 兜底解锁 @ 个未挂树的本模组内容 (其余按科技树研究解锁)", count[0]);
     }
 
     private static void node(UnlockableContent content){

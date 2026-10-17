@@ -228,6 +228,20 @@ public class TestMod extends Mod{
         //   直升机(schistocerca)/EMP(discharge)/巨石(stele) 系列的生产与升级配方
         zzw.content.Z_Overwriter.load();
 
+        // ★ 原版炮台弹药扩展: 向原版 ItemTurret 注入模组物品弹药 (必须在原版
+        //   init() 之前, 使 limitRange 与统计面板自动纳入新弹药)
+        zzw.content.Z_VanillaAmmo.load();
+
+        // ★ 原版体验调优: 存储/传送带/卸载器数值微调 (只改字段, 不改行为)
+        zzw.content.Z_VanillaQoL.load();
+
+        // ★ 原版方块联动: 熔岩接入原版液体炮台 + 模组可燃物接入原版发电机燃料体系
+        zzw.content.Z_VanillaLink.load();
+
+        // ★ 原版炮台接入经验系统: 替换 13 个原版 ItemTurret 的 buildType 为经验化
+        //   实现类 (经验球/经验塔自动覆盖), 经验走独立 CustomChunk 存档
+        zzw.content.exp.vanilla.VanillaExp.load();
+
         // ===== PU132 天气 / 科技树 =====
         // ★ 行星系统已移除 (用户要求): PU 内容改为在原版普罗塞 (Serpulo) 世界显示/可用,
         //   科技树节点全部挂在原版树上; Z_Planets/Z_SectorPresets 保留代码不再调用
@@ -243,7 +257,11 @@ public class TestMod extends Mod{
         blackHoleSFX.load();
 
         // ★ 科技树 (必须最后: 把全部 PU 内容挂到原版科技树, 引用所有内容类)
-        //Z_TechTree.load();
+        // 研究制 (2026-10): 挂树内容需研究解锁; 扭矩/坩埚/经验系等未挂树内容兜底直接解锁
+        Z_TechTree.load();
+
+        // ★ 剧情系统 (PU132 Cutscene/Speeches/StoryNode 移植): 地图标签 create-nodes 驱动
+        zzw.content.Z_Story.load();
 
         Z_Other.load();
     }

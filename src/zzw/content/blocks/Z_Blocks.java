@@ -539,8 +539,9 @@ public class Z_Blocks {
      * 递归重构器 recursive-reconstructor (PU132 UnityBlocks L332-360, SelectableReconstructor)
      * <p>T6/T7 合用: 配置按钮切换档位, T6 档按 upgrades (T5→T6),
      * T7 档按 otherUpgrades (T6→T7)。
-     * ★ PU132 原版部分升级目标 (rex/excelsus/monument/colossus/bastion 等
-     * Scar/Monolith 系列单位) 尚未移植, 配方先写入已移植的单位, 后续移植后再补。</p>
+     * <p>★ PU132 原版升级配方已全部补齐: T6 档含 rex→excelsus
+     * (Scar T5→T6) 与 monument→colossus (Monolith T5→T6),
+     * T7 档含 colossus→bastion (Monolith T6→T7)。</p>
      */
     private static void createRecursiveReconstructor() {
         recursiveReconstructor = new SelectableReconstructor("recursive-reconstructor") {{
@@ -549,8 +550,8 @@ public class Z_Blocks {
             liquidCapacity = 360f;
             constructTime = 20000f;
             minTier = 6;
-            // T5 → T6 (PU132 原版: reign→citadel, toxopid→araneidae, corvus→cygnus;
-            //   rex→excelsus/monument→colossus 因 Scar/Monolith 系列未移植暂缺)
+            // T5 → T6 (PU132 原版: reign→citadel, toxopid→araneidae, corvus→cygnus,
+            //   rex→excelsus, monument→colossus — Scar/Monolith 系列均已移植并写入)
             upgrades.addAll(
                 new mindustry.type.UnitType[]{Z_Units.lepidoptera, Z_Units.mantodea},
 
@@ -571,8 +572,8 @@ public class Z_Blocks {
                 // ★ Scar 系列 T5 → T6: rex 升华为 excelsus
                 new mindustry.type.UnitType[]{Z_ScarUnits.rex, Z_ScarUnits.excelsus}
             );
-            // T6 → T7 (PU132 原版: citadel→empire, araneidae→theraphosidae, colossus→bastion;
-            //   rex/excelsus 等未移植的单位暂缺, 已移植的 T6→T7 全部写入)
+            // T6 → T7 (PU132 原版: citadel→empire, araneidae→theraphosidae, colossus→bastion —
+            //   已移植的 T6→T7 全部写入)
             otherUpgrades.addAll(
                 new mindustry.type.UnitType[]{Z_MonolithUnits.colossus, Z_MonolithUnits.bastion},
 

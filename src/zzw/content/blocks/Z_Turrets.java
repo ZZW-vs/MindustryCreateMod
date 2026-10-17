@@ -447,8 +447,8 @@ public class Z_Turrets {
             shootType = new SparkingContinuousLaserBulletType(310f) {{
                 length = 340f;
                 width = 14f;  // ★ 激光粗细分级: catastrophe (fallout 8 < calamity 11 < catastrophe 14 < extinction 18)
-                // TODO PU132: strokes = 默认值 ×1.4 (光束四层粗细) — v158 原生
-                // ContinuousLaserBulletType 无 strokes 字段, 需给 Sparking 类加 draw 支持后启用
+                // PU132: 四层光束描边 = 基类默认 {2, 1.5, 1, 0.3} × 1.4
+                strokes = new float[]{2 * 1.4f, 1.5f * 1.4f, 1 * 1.4f, 0.3f * 1.4f};
                 incendSpread = 7f;
                 incendAmount = 2;
             }};
@@ -480,7 +480,9 @@ public class Z_Turrets {
             shootType = new SparkingContinuousLaserBulletType(750f) {{
                 length = 450f;
                 width = 11f;  // ★ 激光粗细分级: calamity (fallout 8 < calamity 11 < catastrophe 14 < extinction 18)
-                // PU132: strokes ×1.7 + spaceMag=70 (TODO: v158 原生类无 strokes/spaceMag 字段)
+                // PU132: 四层光束描边 = {2, 1.5, 1, 0.3} × 1.7, 层间距 70
+                strokes = new float[]{2 * 1.7f, 1.5f * 1.7f, 1 * 1.7f, 0.3f * 1.7f};
+                spaceMag = 70f;
                 lightStroke = 70f;
                 fromBlockChance = 0.5f;
                 fromBlockDamage = 34f;
@@ -520,11 +522,14 @@ public class Z_Turrets {
             coolant = consume(new ConsumeLiquidFilter(l -> l == mindustry.content.Liquids.water || l == mindustry.content.Liquids.cryofluid, 1f));
             shootType = new SparkingContinuousLaserBulletType(1000f) {{
                 length = 560f;
-                // PU132: strokes ×2.2 + spaceMag=70 (TODO: v158 原生类无 strokes/spaceMag 字段)
+                // PU132: 四层光束描边 = {2, 1.5, 1, 0.3} × 2.2, 层间距 70
+                strokes = new float[]{2f * 2.2f, 1.5f * 2.2f, 2.2f, 0.3f * 2.2f};
+                spaceMag = 70f;
                 lightStroke = 90f;
                 width = 18f;  // ★ 激光粗细分级: extinction 最粗 (fallout 8 < calamity 11 < catastrophe 14 < extinction 18)
                 fromBlockChance = 0.5f;
                 fromBlockDamage = 76f;
+                fromBlockAmount = 4;  // ★ 补齐 PU132: extinction 一次从炮口引 4 道闪电
                 fromLaserChance = 0.8f;
                 fromLaserDamage = 46f;
                 fromLaserAmount = 4;

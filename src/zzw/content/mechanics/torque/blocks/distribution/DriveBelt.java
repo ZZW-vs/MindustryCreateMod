@@ -277,6 +277,9 @@ public class DriveBelt extends GraphBlock{
         }
     }
 
+    /** 皮带齿纹绘制的专用临时向量 (arc Tmp 只有 v1~v6, 这里自备一个避免每帧分配) */
+    private static final Vec2 beltTmp = new Vec2();
+
     /**
      * 绘制两条带之间的皮带 (原版 drawBelt 移植): 两段切线 + 两个皮带轮圆弧 + 沿全程移动的齿纹。
      *
@@ -316,10 +319,11 @@ public class DriveBelt extends GraphBlock{
         if(total < 0.001f) return;
 
         // 沿皮带全程均匀布置移动齿纹 (相位随轮子旋转推进)
+        // ★ 复用静态临时向量, 避免每帧每条皮带 new 两个 Vec2 (GC 压力)
         r = r * size1 * (Mathf.pi / 180f);
         Lines.stroke(1f, team.color);
-        Vec2 prev = new Vec2();
-        Vec2 cur = new Vec2();
+        Vec2 prev = Tmp.v6;
+        Vec2 cur = beltTmp;
         for(int i = 0; i < 10; i++){
             float len = i * 0.1f * total;
             beltPoint(cur, len - r, total, l1, l2, f, na, a, a2, x1, y1, x2, y2, size1, size2);
