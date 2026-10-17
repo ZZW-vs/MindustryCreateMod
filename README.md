@@ -449,6 +449,7 @@
 - 新增螺旋石油钻井（oil-derrick）：扭矩驱动的石油抽取器（`SolidPump`，`result=Liquids.oil`、`attribute=Attribute.oil`，需建在油层上），绘制为螺旋钻杆样式（类 `zzw.content.mechanics.torque.blocks.production.OilDerrick`）
 
 ## 更新日志
+- **修复：bastion 系列 (Monolith 灵魂单位) 不能动也不能攻击**：`UnityUnitType` 补移植 PU132 `create(Team)` 出厂钩子——灵魂单位 (SoulLegsUnit/SoulMechUnit/SoulDecorationUnit) 出厂时自带 1 只灵魂 (`Soul.join()`)。此前单位出生 0 灵魂，立即被 `disabled` 瘫痪状态 (移速归零+缴械) 锁死；核心直接召唤的单位受 `canJoin()` (maxSouls=0) 保护不受影响，与 PU132 原版行为一致
 - **历史简化移植重写收尾**（三处旧"简化/TODO"全部升级为 PU132 完整机制）：
   - **dark 系四连激光四层光束渲染**：`SparkingContinuousLaserBulletType` 补上 PU132 改版基类的 `strokes[]`（四层描边宽度）+ `tscales[]`（闪烁）+ `lenscales[]`（层长递增）+ `spaceMag`（层间距）字段与配套 `draw()` 覆盖（v160.1 原生 `ContinuousLaserBulletType` 无这些字段，经 javap 验证后自行复刻，绘制逻辑与本项目 Saber 激光同源）；三个炮台按 PU132 原值启用——catastrophe 描边 ×1.4、calamity ×1.7 + 层间距 70、extinction ×2.2 + 层间距 70 + 一次引 4 道炮口闪电（`fromBlockAmount=4` 此前遗漏，一并补齐）
   - **excelsus 后腿独立贴图翻转渲染**：`UnityUnitType` 移植 PU132 `customBackLegs`（boolean 语义，旧 TextureRegion 字段改名 `backLegsRegion` 避让）与 `drawLegs` 覆盖——后腿用 `foot-back / leg-back / leg-base-back` 三张独立贴图先绘制、前腿后绘制盖住后腿，形成"前后双层腿"遮挡效果（贴图 excelsus-leg-back 系列早已就位）；v160.1 差异：`legAngle` 只需腿索引、`visualElevation` 已移除故省略移动中腿的抬升投影

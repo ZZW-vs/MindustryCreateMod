@@ -11,6 +11,7 @@ import mindustry.ctype.*;
 import mindustry.entities.Leg;
 import mindustry.entities.abilities.*;
 import mindustry.entities.units.*;
+import mindustry.game.Team;
 import mindustry.gen.*;
 import mindustry.graphics.*;
 import mindustry.type.*;
@@ -107,6 +108,34 @@ public class UnityUnitType extends UnitType{
         outlines = false;
         // v155.4 适配: PU132 通过注解处理器自动设置, 简化版需手动指定默认构造器
         constructor = mindustry.gen.UnitEntity::create;
+    }
+
+    /**
+     * 单位出厂钩子 (PU132 unity.type.UnityUnitType.create 完整移植)。
+     *
+     * <p>PU132 原版: {@code Monolithc} 灵魂单位通过 {@code create(Team)} 出厂时
+     * 自带 1 只灵魂 ({@code e.join()}) —— 否则单位出生时 0 灵魂,
+     * 会被 MonolithComp/SoulLegsUnit 立即施加 disabled 瘫痪状态
+     * (移速归零 + 缴械), 表现为"不能动也不能攻击"。</p>
+     *
+     * <p>★ 与 PU132 差异: PU132 用 {@code Monolithc} 实体接口判断,
+     * 本模组改用 {@link zzw.content.units.soul.Soul} 接口 (SoulLegsUnit/
+     * SoulMechUnit/SoulDecorationUnit 均实现它)。</p>
+     *
+     * <p>核心直接召唤的单位 (spawnedByCore = true) 无需处理:
+     * {@code join()} 受 {@code canJoin()} 保护, 而核心单位 maxSouls = 0,
+     * 灵魂不会被接纳; 后续 add() 钩子也会再清零一次。</p>
+     */
+    @Override
+    public Unit create(Team team){
+        Unit unit = super.create(team);
+        // 步骤 1: 灵魂单位出厂自带 1 只灵魂 (PU132 原版注释掉了随机数量方案,
+        //   只保留 e.join() 单灵魂注入; canJoin() 保证容量已满/为 0 时无效)
+        if(unit instanceof zzw.content.units.soul.Soul s){
+            s.join();
+        }
+        // 步骤 2: 返回创建的单位 (工厂/波次生成等调用方继续走各自流程)
+        return unit;
     }
 
     /**
