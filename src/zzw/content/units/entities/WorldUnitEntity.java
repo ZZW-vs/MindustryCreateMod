@@ -4,6 +4,7 @@ import zzw.content.units.ZEntityRegister;
 import zzw.content.type.WorldUnitType;
 
 import arc.Core;
+import arc.math.Angles;
 import arc.math.geom.Point2;
 import arc.math.geom.Rect;
 import arc.math.geom.Vec2;
@@ -22,10 +23,12 @@ import arc.util.io.Reads;
 import arc.math.Mathf;
 import mindustry.Vars;
 import mindustry.content.Blocks;
+import mindustry.content.Fx;
 import mindustry.core.World;
 import mindustry.game.EventType.BlockBuildBeginEvent;
 import mindustry.game.EventType.BlockBuildEndEvent;
 import mindustry.game.EventType.BuildRotateEvent;
+import mindustry.game.EventType.UnitUnloadEvent;
 import mindustry.game.Team;
 import mindustry.game.Teams.TeamData;
 import mindustry.gen.Building;
@@ -41,8 +44,11 @@ import mindustry.world.blocks.ConstructBlock.ConstructBuild;
 import mindustry.world.blocks.defense.turrets.BaseTurret.BaseTurretBuild;
 import mindustry.world.blocks.defense.turrets.ReloadTurret.ReloadTurretBuild;
 import mindustry.world.blocks.defense.turrets.Turret.TurretBuild;
+import mindustry.world.blocks.payloads.PayloadBlock;
+import mindustry.world.blocks.payloads.UnitPayload;
 import mindustry.world.blocks.power.PowerNode.PowerNodeBuild;
 import mindustry.world.blocks.storage.CoreBlock.CoreBuild;
+import mindustry.entities.Units;
 import zzw.content.blocks.units.TerraCore;
 
 import java.io.ByteArrayInputStream;
@@ -111,6 +117,18 @@ public class WorldUnitEntity extends UnitEntity {
     public transient Building mainCore;
     /** 建造模式: 点击主核心按钮激活, 激活后才能对子世界建造/拆除 (边缘虚线框提示) */
     public transient boolean buildMode = false;
+
+    // ===== 平台单位系统 (甲板上的陆军, 随平台移动/旋转, 走出平台掉回主地图) =====
+
+    /** 平台携带的单位 (陆军; 空军自由飞不携带, 海军不存在于平台) */
+    public transient Seq<Unit> subUnits = new Seq<>(8);
+    /** 上帧位姿 (携带单位刚体跟随的位移差/旋转差来源, update() 开头捕获) */
+    protected transient float lastCarryX, lastCarryY, lastCarryRot;
+
+    /** 曾走出平台掉回主地图的单位 id —— 禁止再次登上任何子世界平台 (会话级 + 存档 v4 持久化) */
+    static final IntSet fallOffBanned = new IntSet();
+    /** 坐标换算缓冲 (携带/包含判定专用, 与 update() 复用的 vec 隔离) */
+    static final Vec2 carryVec = new Vec2();
 
     /** 当前正被子世界单位更新的主世界 (供子世界内建筑查询主世界地形, 如海军找水域生成; 无子世界更新时为 null) */
     public static World mainWorld = null;
@@ -223,6 +241,11 @@ public class WorldUnitEntity extends UnitEntity {
         //   本体中心周围全是越界 tile → 每帧被推出 → 单向永久乱窜。
         healWorldLeak();
 
+        // ★ 捕获本帧移动前的位姿 (平台携带单位的刚体跟随差值来源)
+        lastCarryX = x;
+        lastCarryY = y;
+        lastCarryRot = rotation;
+
         // ★ 先执行正常的 Unit 更新 (移动/物理/武器等), 对应 PU132 中 @MethodPriority(100) 晚于默认优先级
         super.update();
 
@@ -298,6 +321,164 @@ public class WorldUnitEntity extends UnitEntity {
             popWorld();
             TimeReflect.resetRuns();
         }
+
+        // ===== 平台单位系统 (必须在主世界上下文执行) =====
+
+        // ★ 接管 payload 出口弹射: 子世界上下文里地面单位永远过不了 UnitPayload.dump
+        //   的 solidity/重叠检查 (详见 ejectStuckPayloads), 这里在主世界替它完成投放
+        ejectStuckPayloads();
+
+        // ★ 平台携带: 跟随移动/旋转, 走出平台掉回主地图, 注册新登船单位
+        updateSubUnits();
+    }
+
+    // ===== 平台单位系统 (甲板上的陆军) =====
+
+    /**
+     * 主世界坐标是否落在平台范围 (子世界平台矩形, 严格边界无半格容差).
+     * <p>用于携带单位的登船/掉落判定 —— 单位中心走出平台矩形即视为掉落。</p>
+     */
+    public boolean containsWorldPoint(float wx, float wy) {
+        if (unitWorld == null || platW <= 0f) return false;
+        carryVec.set(wx - x, wy - y).rotate(-(rotation - 90f)).add(subCX(), subCY());
+        return carryVec.x >= 0f && carryVec.x < platW && carryVec.y >= 0f && carryVec.y < platH;
+    }
+
+    /**
+     * 接管子世界 payload 块的出口弹射 (修复平台上工厂"生产了单位却永远出不来"的问题).
+     *
+     * <p>根因: 子世界建筑 update 期间 Vars.world = 8x18 子世界 (建筑逻辑依赖它查
+     * world.build/tile), 此时 {@code UnitPayload.dump()} 的两个主世界检查必然失败:
+     * <ul>
+     *   <li>solidity 检查: 用主世界平台坐标查 {@code Vars.world.tile()} → 越界 →
+     *       视为实心 → 地面/海军单位永远弹不出去 (卡在出口处阻塞工厂);</li>
+     *   <li>重叠检查: terra 本体 isGrounded 且与产物同 allowLegStep 分组 → 恒计 1 个重叠。</li>
+     * </ul>
+     * 空军单位两检查都跳过, 原本就能正常出厂 (dump 成功后工厂自行清空 payload, 本方法跳过)。</p>
+     *
+     * <p>接管条件: payload 的 payVector 已到达出口位置 (即工厂自身的 moveOutPayload
+     * 动画走完、只剩 dump 检查卡住) —— 加工中/运输中的 payload 不受影响,
+     * 重构工厂加工期间 payload 在中心位置, 不会被误弹射。</p>
+     */
+    protected void ejectStuckPayloads() {
+        for (int i = 0; i < buildings.size; i++) {
+            Building b = buildings.get(i);
+            if (!(b instanceof PayloadBlock.PayloadBlockBuild pb)) continue;
+            if (!(pb.payload instanceof UnitPayload up)) continue;
+            Unit u = up.unit;
+            if (u == null || u.type == null) {
+                pb.payload = null;
+                continue;
+            }
+
+            // 只接管"已到达出口"的 payload (payVector 距出口 < 0.5px 视为到位)
+            float exitDst = pb.block.size * Vars.tilesize / 2f;
+            float ex = Angles.trnsx(pb.rotdeg(), exitDst), ey = Angles.trnsy(pb.rotdeg(), exitDst);
+            if (!pb.payVector.within(ex, ey, 0.5f)) continue;
+
+            if (u.type.naval) {
+                // ★ 海军: 平台是金属地板无水域, 海军无法存在 → 拒绝出厂 (生成不了)
+                pb.payload = null;
+                Fx.pulverize.at(u.x, u.y, u.hitSize / 8f);
+                continue;
+            }
+
+            // 单位上限检查 (与原版 dump 一致): 上限满时留在厂里等待
+            if (!Units.canCreate(u.team, u.type)) continue;
+
+            // 自定义投放 (复刻 UnitPayload.dump 的末段, 跳过平台语境下必然失败的
+            // solidity/重叠检查 —— 甲板上允许单位重叠, 出口地面即平台)
+            u.vel.add(Mathf.range(0.5f), Mathf.range(0.5f));
+            u.add();
+            u.unloaded();
+            arc.Events.fire(new UnitUnloadEvent(u));
+            Units.notifyUnitSpawn(u);
+            pb.payload = null;
+        }
+    }
+
+    /**
+     * 平台携带单位更新 (主世界上下文, update() 末尾调用):
+     * <ol>
+     *   <li><b>刚体跟随</b>: 单位位置绕旧中心旋转 drot 再平移 (dx, dy) ——
+     *       与子世界建筑的跟随变换完全一致, 平台移动/旋转时甲板单位像站在
+     *       空中平台上一样整体搬运; 单位朝向同步加 drot。</li>
+     *   <li><b>出界掉落</b>: 单位中心走出平台矩形 → 从携带列表移除 + 加入禁登名单
+     *       (禁止重新登上任何子世界平台), 单位掉回主地图照常行动。</li>
+     *   <li><b>起飞放行</b>: 单位起飞 (boost/天然飞行) → 移出携带列表自由飞,
+     *       不算掉落不进禁登名单 (飞回来落在甲板上仍可再次被携带)。</li>
+     *   <li><b>注册登船</b>: 扫描主地图单位, 位于平台矩形内的地面非海军单位
+     *       自动登船 (覆盖工厂出厂/沙盒生成/读档恢复等所有来源);
+     *       禁登名单中的单位不接纳。</li>
+     * </ol>
+     */
+    protected void updateSubUnits() {
+        float dx = x - lastCarryX, dy = y - lastCarryY, drot = rotation - lastCarryRot;
+
+        // 1) 携带跟随 + 出界掉落 (倒序遍历, 边遍历边删)
+        for (int i = subUnits.size - 1; i >= 0; i--) {
+            Unit u = subUnits.get(i);
+            if (!u.isAdded() || u.dead) {
+                subUnits.remove(i);
+                continue;
+            }
+            if (u.isFlying()) {
+                // 起飞 → 自由飞行 (空军正常飞出来)
+                subUnits.remove(i);
+                continue;
+            }
+
+            // ★ 先刚体跟随再判出界: 平台移动/旋转时单位随平台整体搬运,
+            //   相对位置不变 → 变换后仍在矩形内不会误判掉落;
+            //   平台静止时此步跳过, 单位自己走出边界照样判掉
+            if (dx != 0f || dy != 0f || drot != 0f) {
+                float relx = u.x - lastCarryX, rely = u.y - lastCarryY;
+                if (drot != 0f) {
+                    carryVec.set(relx, rely).rotate(drot);
+                    relx = carryVec.x;
+                    rely = carryVec.y;
+                    u.rotation += drot;
+                }
+                u.set(lastCarryX + relx + dx, lastCarryY + rely + dy);
+            }
+
+            if (!containsWorldPoint(u.x, u.y)) {
+                // 走出子世界 → 掉回主地图, 禁止重新登船
+                subUnits.remove(i);
+                fallOffBanned.add(u.id);
+                if (fallOffBanned.size > 4096) fallOffBanned.clear(); // 防无限增长 (id 不复用)
+                Fx.pulverize.at(u.x, u.y, u.hitSize / 8f);
+                continue;
+            }
+        }
+
+        // 2) 注册登船 (工厂出厂的陆军在 ejectStuckPayloads 后已在 Groups 中,
+        //    这里按位置自动收编; 倒序遍历删除后此列表无残留死单位)
+        for (Unit u : Groups.unit) {
+            if (u == this || u.dead || u.type == null) continue;
+            if (u.isFlying() || u.type.naval) continue;
+            if (subUnits.contains(u)) continue;
+            if (fallOffBanned.contains(u.id)) continue;
+            if (!containsWorldPoint(u.x, u.y)) continue;
+            subUnits.add(u);
+        }
+    }
+
+    /**
+     * ★ 碰撞隔离: terra 不参与单位物理碰撞 (PhysicsProcess 对 layer < 0 的物理体直接跳过).
+     *
+     * <p>根因: terra 悬停在地表 (hovering, isGrounded=true → grounded 物理层),
+     * 平台上生成的地面单位同为 grounded 层 —— PhysicsProcess 会对同层重叠的
+     * 物理体互相施加冲量和位移分离: 小单位被巨型碰撞箱弹飞, terra 被挤动漂移
+     * (历史上"大地乱窜"的放大器之一)。平台携带单位走的是逐帧刚体跟随,
+     * 无需物理挤压参与。</p>
+     *
+     * <p>layer=-1 在 PhysicsProcess 的插入与碰撞两个循环里都被 {@code layer < 0} 跳过,
+     * 安全无副作用; terra 与主地图单位之间不再有任何物理互推。</p>
+     */
+    @Override
+    public int collisionLayer() {
+        return -1;
     }
 
     // ===== setup / absorb (召唤初始化 + 吸收建筑到子世界) =====
@@ -1015,15 +1196,16 @@ public class WorldUnitEntity extends UnitEntity {
     /**
      * 世界单位存档区块 (注册到 SaveVersion 的 CustomChunk).
      * <p>区块名 "zzw-world-units", 存档格式:
-     * [版本=3][单位数量] + 每个单位 {@link #writeSubWorld} 的输出。</p>
+     * [版本=4][单位数量] + 每个单位 {@link #writeSubWorld} 的输出 + 禁登船名单。</p>
      * <p>读档时按 unitId 在 Groups.unit 中找回单位 (此时单位已全部加载),
      * 找不到则按长度前缀跳过该单位的全部建筑数据。</p>
      * <p>版本字节兼容: v1 (无版本前缀) 首字节是"单位数量 int"的高字节, 恒为 0;
-     * v2 = deployed 部署状态; v3 = 建筑数据追加精确 x/y 坐标 (修复读档错位)。</p>
+     * v2 = deployed 部署状态; v3 = 建筑数据追加精确 x/y 坐标 (修复读档错位);
+     * v4 = 追加禁登船单位名单 (走出平台掉落的单位禁止重新登船, 跨存档保留)。</p>
      */
     public static class SaveChunk implements SaveVersion.CustomChunk {
-        /** 当前存档格式版本 (3: 建筑数据追加精确 x/y) */
-        static final byte VERSION = 3;
+        /** 当前存档格式版本 (3: 建筑数据追加精确 x/y; 4: 追加"禁登船单位名单" fallOffBanned) */
+        static final byte VERSION = 4;
 
         @Override
         public boolean shouldWrite() {
@@ -1050,6 +1232,12 @@ public class WorldUnitEntity extends UnitEntity {
             write.i(list.size);
             for (WorldUnitEntity w : list) {
                 w.writeSubWorld(write);
+            }
+
+            // v4: 禁登船单位名单 (走出平台掉回主地图的单位, 禁止重新登船)
+            write.i(fallOffBanned.size);
+            for (IntSet.IntSetIterator it = fallOffBanned.iterator(); it.hasNext; ) {
+                write.i(it.next());
             }
         }
 
@@ -1132,6 +1320,14 @@ public class WorldUnitEntity extends UnitEntity {
                     continue;
                 }
                 target.readSubWorld(read, count, ver);
+            }
+
+            // v4+: 禁登船单位名单 (v1~v3 存档无此段, 跳过)
+            if (ver >= 4) {
+                int banned = read.i();
+                for (int i = 0; i < banned; i++) {
+                    fallOffBanned.add(read.i());
+                }
             }
         }
     }

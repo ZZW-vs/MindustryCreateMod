@@ -271,6 +271,14 @@
 - **电力连线**：渲染期间切换 Vars.world 到子世界，PowerNode 电力连线正常显示
 - **子弹跟随**：子世界炮台发射的子弹（含蓄力激光）每帧跟随单位平移+旋转，不再停留在发射位置
 - **视觉**：影子贴近本体（shadowElevation=0.1f）；子世界炮台不再显示开火红温光效
+- **平台单位系统**（空中平台：甲板上可正常驻留/移动/攻击单位）
+  - **碰撞隔离**：terra 覆写 `collisionLayer()` 返回 -1，PhysicsProcess 完全跳过其物理体 —— 平台碰撞箱不再把甲板上的单位挤飞，单位也不再挤动 terra（彻底根治"产出单位导致漂移"类问题）
+  - **携带跟随**：甲板上的地面单位每帧做刚体跟随（绕旧中心旋转 drot + 平移 dx,dy），随平台移动/旋转整体搬运，像空中平台一样
+  - **出厂修复**：平台工厂弹射地面单位时 `UnitPayload.dump` 的 solidity/重叠检查在子世界上下文必然失败（卡死工厂），由 `WorldUnitEntity.ejectStuckPayloads` 在主世界上下文接管出口投放；`ModularConstructor` 产出的单位直接出生在甲板上（移除旧的"推到平台外"方案）
+  - **出界掉落**：陆军走出平台矩形 → 掉回主地图正常行动，并加入**禁登名单**（不能再登上任何子世界平台，名单随存档 v4 持久化）；单位起飞则正常放行（不算掉落，飞回甲板仍可再被携带）
+  - **海军拒绝**：平台上无法生产海军（金属地板无水域）—— 工厂出口的海军 payload 直接拒绝出厂，`ModularConstructor` 对海军暂缓生产
+  - **空军自由**：空军不受携带、可自由飞进飞出平台；甲板上的地面单位起飞（boost）同样放行
+  - **渲染**：地面单位自然渲染层（groundUnit=60）低于甲板（darkness+1=81），由 `drawBody` 在甲板之上补绘；读档后按位置自动重新收编携带单位
 
 ### 防作弊系统架构
 - **EndLegsUnit extends UnitEntity**：仅用于 End 阵营飞行单位（enigma/voidVessel/chronos/opticaecus），无腿
@@ -304,7 +312,7 @@
   - **对齐 PU132 原版定位根因**：PU 的 terra（`UnityUnitTypes.java:2387`）是纯地面单位，仅设 `speed/health/worldWidth/worldHeight`；端口此前把它额外改成了低空飞行 + 整平台碰撞箱 + `physics=false` + 极低阻力（`accel=0.08`、`drag=0.03`），其中极低阻力是漂移的放大器——任何一次微小挤动产生的速度几乎不衰减，terra 便朝一个方向持续滑行。
   - **修掉漂移放大器**：恢复默认 `accel`/`drag`（不再覆写），位移会迅速衰减；`physics=false`（实测无效）一并移除，恢复默认 `physics=true`。
   - **保留平台特性**：`hovering`/`lowAltitude`、`hitSize=144` 整平台碰撞箱与悬停建筑信息面板等玩法不变；`WorldUnitType` 的空控制器继续保证未附身时平台不自行移动。
-  - **子世界产出落点**：`ModularConstructor` 产出时先把单位落点推到平台包围盒外（避免与平台重叠），并临时 `popWorld()` 回到主世界再 `spawn()`，使新单位完全以主世界为基准生成。
+  - **平台单位系统**（后续版本重做，详见上方「平台单位系统」章节）：单位直接出生在甲板上由平台收编携带；terra 的碰撞隔离由 `collisionLayer()=-1` 根治，不再依赖产出落点规避。
 - 全系列（End 除外）单位护甲加强：对照原版 v160 护甲曲线，T3 以上单位全部补齐/提升护甲，护甲为 0 的单位一律补上，**无任何削弱**（血量 / 速度 / 武器均未改动）：
   - **T6/T7 扩展单位**：citadel 20→32、empire 22→36、cygnus 10→24、sagittarius 12→26、araneidae 15→20、theraphosidae 17→28、mantle 15→20、aphelion 17→28、sedec 20→30、trigintaduo 22→34、deviation 12→20、anomaly 18→26
   - **直升机 T1-T6**：caelifera 1（不变）、schistocerca 2→4、anthophila 3→6、vespula 4→9、lepidoptera 5→14、mantodea 6→20

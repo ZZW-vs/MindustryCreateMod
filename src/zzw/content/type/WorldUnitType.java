@@ -365,6 +365,16 @@ public class WorldUnitType extends UnityUnitType {
                 Core.camera.update();
                 Draw.proj(proj);
                 Core.batch = old;
+
+                // ★ 平台携带单位: 地面单位的自然渲染层 (groundUnit=60) 低于甲板
+                //   (terra groundLayer=darkness+1=81), 会被甲板贴图完全盖住 ——
+                //   在甲板之上手动补绘 (相机已还原, 单位坐标即主世界坐标, 无需投影变换)
+                for (int i = 0; i < w.subUnits.size; i++) {
+                    Unit u = w.subUnits.get(i);
+                    if (u.dead || !u.isAdded()) continue;
+                    Draw.z(Layer.darkness + 1.2f);
+                    u.draw();
+                }
             });
         }
 

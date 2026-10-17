@@ -388,36 +388,23 @@ public class ModularConstructor extends Block{
                         float sx = x, sy = y;
                         boolean spawnable = true;
 
-                        // ★ 子世界内产出的单位直接出生到主世界: 平台上的构造器把单位"送到"
-                        //   平台之外的主世界地面, 而不是生成在平台内部与世界单位重叠.
-                        //   (子世界建筑更新时 x/y 已被投影到主世界坐标, 但仍落在平台碰撞箱内)
+                        // ★ 平台单位系统: 子世界构造器产出的单位直接出生在甲板上
+                        //   (子世界建筑更新时 x/y 已是投影后的主世界坐标), 由
+                        //   WorldUnitEntity.updateSubUnits 自动收编为平台携带单位,
+                        //   随平台移动/旋转, 像空中平台一样运作。
+                        //   (旧方案把落点推到平台外防止碰撞箱挤压 —— 现已通过
+                        //   WorldUnitEntity.collisionLayer()=-1 物理隔离 + 刚体跟随解决,
+                        //   单位不再被平台挤走, 也不再引发本体漂移)
                         WorldUnitEntity owner = WorldUnitType.findSubOwner(this);
-                        if(owner != null){
-                            // 由平台中心指向建筑投影点, 沿该方向把落点推到平台包围盒之外
-                            float dx = x - owner.x, dy = y - owner.y;
-                            float len = Mathf.len(dx, dy);
-                            if(len < 0.001f){
-                                // 建筑恰在平台正中: 沿单位朝向向外推
-                                dx = Mathf.cosDeg(owner.rotation);
-                                dy = Mathf.sinDeg(owner.rotation);
-                                len = 1f;
-                            }
-                            float nx = dx / len, ny = dy / len;
-                            // 平台旋转后的轴对齐包围盒半径 (与 WorldUnitEntity.hitbox 公式一致)
-                            float rad = (owner.rotation - 90f) * Mathf.degRad;
-                            float c = Math.abs(Mathf.cos(rad)), s = Math.abs(Mathf.sin(rad));
-                            float halfW = (owner.platW() * c + owner.platH() * s) / 2f;
-                            float halfH = (owner.platW() * s + owner.platH() * c) / 2f;
-                            // 沿 (nx,ny) 到包围盒边界的距离 (取两轴较小值 = 射线先碰到的边)
-                            float ex = Math.abs(nx) < 1e-5f ? Float.MAX_VALUE : halfW / Math.abs(nx);
-                            float ey = Math.abs(ny) < 1e-5f ? Float.MAX_VALUE : halfH / Math.abs(ny);
-                            float dist = Math.min(ex, ey) + plan.unit.hitSize / 2f + 4f;
-                            sx = owner.x + nx * dist;
-                            sy = owner.y + ny * dist;
+                        if(owner != null && plan.unit.naval){
+                            // ★ 海军: 平台是金属地板无水域, 海军无法存在 → 拒绝生产
+                            //   (与原版"附近无水域暂缓生产"同型, progress 停在满值等待)
+                            spawnable = false;
                         }
 
-                        // 海军单位必须生成在水域: 落在陆地上的海军无法移动 (表现为"无法生成")
-                        if(plan.unit.naval){
+                        // 海军单位必须生成在水域 (仅主世界构造器; 平台上的海军已被上面拒绝):
+                        // 落在陆地上的海军无法移动 (表现为"无法生成")
+                        if(plan.unit.naval && owner == null){
                             Tile water = findNavalSpawn(sx, sy);
                             if(water != null){
                                 sx = water.worldx();
