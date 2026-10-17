@@ -384,6 +384,15 @@
   - **重写「科技树模板.java」**：补上 VE 核心写法 `planet.techTree = nodeRoot(...)`（自定义星球整棵树），并移植本项目 `Z_TechTree` 的 `attach`/`node`/`nodeProduce` 辅助方法（160 无 `TechTree.get(parent)`，改用 `content.techNode` 字段）；补充 `Objectives` 清单与 VE 倒金字塔布局 `InvertedPyramidTreeLayout` 说明
   - 更新「Mod主类模板.java」加载顺序为 `物品 → 液体 → 状态 → 子弹 → 方块 → 单位 → 星球 → 科技树`，并在 `loadContent()` 方法体补上星球加载步骤
 ## 更新日志
+- **CombatFx 特效形态多样化重写**（解决"所有特效都是扩散圆、只差颜色大小"的同质化问题，12 个特效重写为不同形态语言）：
+  - `laserHit` → 旋转十字光线 + 菱形碎片散射（十字星形态）
+  - `laserHitBlast` → 双填充三角反向旋转展开成六芒星 + 放射三角碎片
+  - `bulletHit` → 沿弹道锥形散射的旋转方形碎片 + 弹色迎面斜切线
+  - `bulletHitSmall` → 短线火花 + 弹色方形小芯；`bulletHitBig` → 方形碎片全向飞散 + 四向冲击三角
+  - `beamHit` → 呼吸脉动菱形；`empSpark` / `bulletHitSmall` 白/圆芯改方形芯；`liquidHit` 白芯改弹色芯
+  - `flakBlast` → 旋转方形闪爆；`blastExplosion` 冲击环 → 旋转六边形冲击波
+  - `massiveExplosion` 双圆环 → 四段旋转弧线 + 六边形副冲击波；`sapExplosion` 外环 → 旋转六边形、暗滴 → 菱形滴
+  - 保留经验激光炮台（Z_Exp，按 PU132 原版不变）与时停 shockwave（一次性大招观感）不动
 - 去除 bastion / colossus 光环能量球的白圆：拖尾特效原为 `CombatFx.laserHit`（白色大圆芯）且调用时未传颜色（默认白色）高频刷屏，命中特效同为圆形系——新增 `CombatFx.energyTrail`（旋转菱形碎片拖尾）与 `CombatFx.starHit`（四向十字星芒命中）两个非圆形、弹色参数化特效替换；aphelion 闪电弹本体残留的同款白芯 `laserHit` 命中特效一并移除（视觉由闪电本体承担）
 - 修复 theraphosidae / araneidae 磁轨炮最后炸开特效变白：命中特效颜色（hitColor）未设置时默认传白色给特效，现显式设为 `Pal.sapBullet` 紫色（主炮弹 + 破片弹共 4 处）
 - 修复 aphelion 沿途闪电的白色圆圈特效：原版 scepter 子弹拷贝自带的 `intervalBullet.hitEffect = Fx.hitLancerLow`（白色圆圈）改为 `Fx.none`

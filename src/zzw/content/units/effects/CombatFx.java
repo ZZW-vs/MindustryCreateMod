@@ -186,19 +186,24 @@ public class CombatFx{
     /**
      * 激光命中 (14f) —— 替代原版 {@code Fx.hitLancer}。
      *
-     * <p>命中圈 + 放射线火花 + 白芯 + 短光源, 四层叠加。</p>
+     * <p>★ 重写为十字星形态: 四向旋转主光线 + 斜向菱形碎片散射 +
+     * 极小白芯, 告别"扩散圆环"。</p>
      */
     laserHit = new Effect(14f, e -> {
-        color(Color.white, e.color, e.fin());
-        stroke(e.fout() * 1.5f + 0.3f);
-        arc.graphics.g2d.Lines.circle(e.x, e.y, e.finpow() * 11f);
+        color(e.color, Color.white, e.fin());
+        for(int i = 0; i < 4; i++){
+            stroke(e.fout() * 1.5f + 0.3f);
+            lineAngle(e.x, e.y, e.rotation + 90f * i + e.finpow() * 80f, e.finpow() * 14f);
+        }
 
-        randLenVectors(e.id, 5, e.finpow() * 15f, (x, y) ->
-            lineAngle(e.x + x, e.y + y, Mathf.angle(x, y), e.fout() * 4.5f + 1f)
-        );
+        randLenVectors(e.id, 4, e.finpow() * 15f, (x, y) -> {
+            float a = Mathf.angle(x, y);
+            color(e.color, Color.white, e.fout());
+            poly(e.x + x, e.y + y, 4, e.fout() * 2.2f + 0.5f, a + e.fin() * 60f);
+        });
 
         color(Color.white);
-        circle(e.x, e.y, e.fout() * 3f);
+        circle(e.x, e.y, e.fout() * 2f);
 
         Drawf.light(e.x, e.y, e.fout() * 15f, e.color, 0.7f);
     }),
@@ -207,27 +212,22 @@ public class CombatFx{
      * 激光爆裂命中 (20f) —— 替代原版 {@code Fx.hitLaser} /
      * {@code Fx.hitLaserBlast}。
      *
-     * <p>{@link #laserHit} 的加强版: 双层扩散环 + 四向三角尖刺 +
-     * 全向火花, 适合大威力激光的命中反馈。</p>
+     * <p>★ 重写为六芒星形态: 两个填充三角形反向旋转展开成六芒星 +
+     * 放射三角碎片 + 弹色芯, 取代原"双层扩散圆环"。</p>
      */
     laserHitBlast = new Effect(20f, e -> {
-        color(e.color, Color.white, e.fout());
-        stroke(e.fout() * 2f + 0.4f);
-        arc.graphics.g2d.Lines.circle(e.x, e.y, e.finpow() * 20f);
+        color(e.color, Color.white, e.fin());
+        poly(e.x, e.y, 3, e.finpow() * 18f + 1f, e.rotation + e.finpow() * 120f);
+        poly(e.x, e.y, 3, e.finpow() * 18f + 1f, e.rotation + 180f - e.finpow() * 120f);
 
-        stroke(e.fout() * 1.2f);
-        arc.graphics.g2d.Lines.circle(e.x, e.y, e.finpow() * 12f);
+        randLenVectors(e.id, 7, e.finpow() * 20f, (x, y) -> {
+            float a = Mathf.angle(x, y);
+            color(e.color, Color.white, e.fout());
+            Drawf.tri(e.x + x, e.y + y, 2.4f * e.fout(), 5f * e.fout(), a);
+        });
 
-        for(int i = 0; i < 4; i++){
-            Drawf.tri(e.x, e.y, 3.5f * e.fout(), 14f * e.fout(), e.rotation + 90f * i + e.finpow() * 80f);
-        }
-
-        randLenVectors(e.id, 7, e.finpow() * 20f, (x, y) ->
-            lineAngle(e.x + x, e.y + y, Mathf.angle(x, y), e.fout() * 5f + 1.5f)
-        );
-
-        color(Color.white);
-        circle(e.x, e.y, e.fout() * 4.5f);
+        color(e.color);
+        circle(e.x, e.y, e.fout() * 3f);
 
         Drawf.light(e.x, e.y, e.fout() * 24f, e.color, 0.75f);
     }),
@@ -235,42 +235,51 @@ public class CombatFx{
     /**
      * 子弹命中 (14f) —— 替代原版 {@code Fx.hitBulletColor}。
      *
-     * <p>白→弹色渐变的放射线火花 + 白芯圆, 经典命中反馈加强版。</p>
+     * <p>★ 重写: 沿弹道方向锥形散射的旋转方形碎片 + 弹色迎面斜切线,
+     * 白→弹色渐变, 无扩散环。</p>
      */
     bulletHit = new Effect(14f, e -> {
-        color(Color.white, e.color, e.fin());
-        stroke(e.fout() * 1.2f + 0.4f);
-        randLenVectors(e.id, 6, e.finpow() * 17f, (x, y) ->
-            lineAngle(e.x + x, e.y + y, Mathf.angle(x, y), e.fin() * 4f + 1f)
-        );
-        circle(e.x, e.y, e.fout() * 3f);
+        randLenVectors(e.id, 6, e.finpow() * 17f, e.rotation, 55f, (x, y) -> {
+            float a = Mathf.angle(x, y);
+            color(Color.white, e.color, e.fin());
+            square(e.x + x, e.y + y, e.fout() * 2f + 0.4f, a + e.fin() * 90f);
+        });
+        color(e.color, Color.white, e.fout());
+        stroke(e.fout() * 1.3f + 0.3f);
+        lineAngle(e.x, e.y, e.rotation + 90f, e.fout() * 7f);
     }),
 
     /**
      * 小口径子弹命中 (10f) —— 替代原版 {@code Fx.hitBulletSmall}。
+     *
+     * <p>★ 重写: 三条短线火花 + 弹色方形小芯 (替代圆芯)。</p>
      */
     bulletHitSmall = new Effect(10f, e -> {
         color(Color.white, e.color, e.fin());
         stroke(e.fout() * 0.9f + 0.3f);
-        randLenVectors(e.id, 4, e.finpow() * 10f, (x, y) ->
+        randLenVectors(e.id, 3, e.finpow() * 9f, (x, y) ->
             lineAngle(e.x + x, e.y + y, Mathf.angle(x, y), e.fin() * 3f + 0.8f)
         );
-        circle(e.x, e.y, e.fout() * 2f);
+        color(e.color);
+        square(e.x, e.y, e.fout() * 1.6f, e.rotation);
     }),
 
     /**
      * 大口径子弹命中 (16f) —— 替代原版 {@code Fx.hitBulletBig}。
      *
-     * <p>{@link #bulletHit} 加强: 更多火花 + 冲击环 + 光源。</p>
+     * <p>★ 重写: 方形碎片全向旋转飞散 + 四向冲击三角 + 光源,
+     * 取代原"圆环 + 线状火花 + 圆芯"。</p>
      */
     bulletHitBig = new Effect(16f, e -> {
-        color(Color.white, e.color, e.fin());
-        stroke(e.fout() * 1.5f + 0.4f);
-        arc.graphics.g2d.Lines.circle(e.x, e.y, e.finpow() * 14f);
-        randLenVectors(e.id, 9, e.finpow() * 22f, (x, y) ->
-            lineAngle(e.x + x, e.y + y, Mathf.angle(x, y), e.fin() * 5f + 1.5f)
-        );
-        circle(e.x, e.y, e.fout() * 4f);
+        randLenVectors(e.id, 7, e.finpow() * 22f, (x, y) -> {
+            float a = Mathf.angle(x, y);
+            color(Color.white, e.color, e.fin());
+            square(e.x + x, e.y + y, e.fout() * 2.4f + 0.5f, a + e.fin() * 120f);
+        });
+        color(e.color, Color.white, e.fout());
+        for(int i = 0; i < 4; i++){
+            Drawf.tri(e.x, e.y, 3f * e.fout(), 10f * e.finpow(), e.rotation + 90f * i + e.finpow() * 50f);
+        }
         Drawf.light(e.x, e.y, e.fout() * 18f, e.color, 0.6f);
     }),
 
@@ -303,18 +312,19 @@ public class CombatFx{
             circle(e.x + x, e.y + y, s);
             circle(e.x + x * 0.6f, e.y + y * 0.6f, s * 0.5f);
         });
-        color(Color.white);
+        color(e.color);
         circle(e.x, e.y, e.fout() * 2.5f);
     }),
 
     /**
      * 射线命中 (14f) —— 替代原版 {@code Fx.hitBeam}。
      *
-     * <p>持续光束的命中点反馈: 收缩白芯 + 短放射线。</p>
+     * <p>★ 重写: 呼吸菱形 (absin 脉动) + 短放射线, 适合持续光束
+     * 的命中点, 无白圆芯。</p>
      */
     beamHit = new Effect(14f, e -> {
-        color(Color.white, e.color, e.fout());
-        circle(e.x, e.y, e.fout() * 4f);
+        color(e.color, Color.white, e.fout());
+        poly(e.x, e.y, 4, (0.6f + e.fout() * 3.4f) * (1f + Mathf.absin(4f, 0.25f)), 45f + e.fin() * 30f);
         stroke(e.fout() * 1f + 0.3f);
         randLenVectors(e.id, 4, e.fout() * 10f, (x, y) ->
             lineAngle(e.x + x, e.y + y, Mathf.angle(x, y), e.fout() * 4f)
@@ -334,7 +344,8 @@ public class CombatFx{
             lineAngle(e.x + x, e.y + y, a, e.fout() * 4f + 1f);
             lineAngle(e.x + x, e.y + y, a + 180f, e.fout() * 2.5f);
         });
-        circle(e.x, e.y, e.fout() * 2.6f);
+        color(e.color);
+        square(e.x, e.y, e.fout() * 2.2f, 45f);
         Drawf.light(e.x, e.y, e.fout() * 12f, e.color, 0.7f);
     }),
 
@@ -343,11 +354,11 @@ public class CombatFx{
     /**
      * 榴弹爆炸 (18f) —— 替代原版 {@code Fx.flakExplosion}。
      *
-     * <p>小型空爆: 白闪 + 弹色火球 + 八向三角火花。</p>
+     * <p>★ 白闪改为旋转方形闪爆 + 八向三角火花, 空爆观感更锋利。</p>
      */
     flakBlast = new Effect(18f, e -> {
         color(Color.white, e.color, e.fout());
-        circle(e.x, e.y, 1.5f + e.fout() * 8f);
+        square(e.x, e.y, 2f + e.fout() * 9f, e.fin() * 45f);
 
         randLenVectors(e.id, 8, e.finpow() * 18f, (x, y) -> {
             float a = Mathf.angle(x, y);
@@ -361,8 +372,8 @@ public class CombatFx{
     /**
      * 标准爆炸 (28f) —— 替代原版 {@code Fx.blastExplosion}。
      *
-     * <p>三层结构: 内圈白闪 (子特效) → 弹色火球 + 暗边 →
-     * 冲击环 + 十向火花 → 大范围光源。</p>
+     * <p>★ 冲击波重写为六边形轮廓 (旋转扩散) 取代圆形环:
+     * 白闪子特效 → 弹色火球 + 暗边 → 六边形冲击波 + 十向火花 → 光源。</p>
      */
     blastExplosion = new Effect(28f, 140f, e -> {
         e.scaled(14f, s -> {
@@ -377,7 +388,7 @@ public class CombatFx{
 
         color(e.color, Color.white, e.fout());
         stroke(e.fout() * 2.4f + 0.3f);
-        arc.graphics.g2d.Lines.circle(e.x, e.y, e.finpow() * 25f);
+        arc.graphics.g2d.Lines.poly(e.x, e.y, 6, e.finpow() * 25f + 1f, 30f + e.fin() * 20f);
 
         randLenVectors(e.id, 10, e.finpow() * 26f, (x, y) -> {
             float a = Mathf.angle(x, y);
@@ -391,8 +402,8 @@ public class CombatFx{
     /**
      * 巨型爆炸 (40f) —— 替代原版 {@code Fx.massiveExplosion}。
      *
-     * <p>{@link #blastExplosion} 的巨型版: 双冲击环 + 更大火球 +
-     * 碎片方块粒子 + 强光源。</p>
+     * <p>★ 冲击波重写: 四段 90° 弧线 (旋转扩散, 方向交替) +
+     * 六边形副冲击波, 取代原"双圆形环"。保留火球 + 碎片方块 + 强光源。</p>
      */
     massiveExplosion = new Effect(40f, 220f, e -> {
         e.scaled(20f, s -> {
@@ -407,9 +418,11 @@ public class CombatFx{
 
         color(e.color, Color.white, e.fout());
         stroke(e.fout() * 3f + 0.4f);
-        arc.graphics.g2d.Lines.circle(e.x, e.y, e.finpow() * 42f);
+        for(int i = 0; i < 4; i++){
+            arc.graphics.g2d.Lines.arc(e.x, e.y, e.finpow() * 42f + 1f, 0.35f, 90f * i + e.fin() * 30f);
+        }
         stroke(e.fout() * 1.6f);
-        arc.graphics.g2d.Lines.circle(e.x, e.y, e.finpow() * 30f);
+        arc.graphics.g2d.Lines.poly(e.x, e.y, 6, e.finpow() * 30f + 1f, 45f - e.fin() * 25f);
 
         randLenVectors(e.id, 14, e.finpow() * 40f, (x, y) -> {
             float a = Mathf.angle(x, y);
@@ -427,8 +440,8 @@ public class CombatFx{
     /**
      * 暗蚀爆炸 (24f) —— 替代原版 {@code Fx.sapExplosion}。
      *
-     * <p>Sap 系标志性视觉: 黑芯 + 弹色描边 + 内缩的暗紫环 +
-     * 下坠暗滴, 表现"被吸干"的暗蚀感。</p>
+     * <p>★ 重写: 黑芯圆 + 弹色描边保留 (Sap 标志性), 外圈扩散环改为
+     * 旋转六边形轮廓, 下坠暗滴改为菱形滴, 形态与圆形系区分。</p>
      */
     sapExplosion = new Effect(24f, e -> {
         color(Color.black);
@@ -439,11 +452,11 @@ public class CombatFx{
 
         color(Color.black, e.color, e.fin());
         stroke(e.fout() * 1.2f);
-        arc.graphics.g2d.Lines.circle(e.x, e.y, e.finpow() * 22f);
+        arc.graphics.g2d.Lines.poly(e.x, e.y, 6, e.finpow() * 22f + 1f, e.fin() * 45f);
 
         randLenVectors(e.id, 8, e.finpow() * 18f, (x, y) -> {
             color(Color.black, e.color, e.fout());
-            circle(e.x + x, e.y + y, 1.2f + e.fout() * 3f);
+            poly(e.x + x, e.y + y, 4, 1.2f + e.fout() * 3f, Mathf.angle(x, y));
         });
 
         Drawf.light(e.x, e.y, e.finpow() * 30f, e.color, 0.65f);
