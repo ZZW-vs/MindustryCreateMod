@@ -508,6 +508,38 @@ public class CombatFx{
         circle(e.x, e.y, e.fout() * 2.2f);
 
         Drawf.light(e.x, e.y, e.fout() * 18f, e.color, 0.7f);
+    }),
+
+    /**
+     * terminum 专属命中爆炸 (30f, 220f) —— banshee 顶档弹药专用。
+     * 黑芯 + 红色六芒星炸开 (双三角反向旋转) + 放射三角长钉 + 六向细光线 + 红光。
+     */
+    terminumBlast = new Effect(30f, 220f, e -> {
+        color(Color.black);
+        circle(e.x, e.y, e.foutpowdown() * 16f);
+
+        // 六芒星: 两个填充三角轮廓反向旋转展开
+        color(Color.valueOf("f53036"), Color.white, e.fout());
+        stroke(e.fout() * 2.2f + 0.3f);
+        for(int i : Mathf.signs){
+            arc.graphics.g2d.Lines.poly(e.x, e.y, 3, e.finpow() * 34f + 2f, e.fin() * 90f * i);
+        }
+
+        // 放射三角长钉
+        randLenVectors(e.id, 10, e.finpow() * 52f, (x, y) -> {
+            float a = Mathf.angle(x, y);
+            color(Color.valueOf("ff5a4a"), Color.white, e.fout());
+            Drawf.tri(e.x + x, e.y + y, e.fout() * 4f, 10f * e.fout() + 2f, a);
+        });
+
+        // 六向细光线
+        color(Color.valueOf("ffb0a0"));
+        stroke(e.fout() * 1.2f);
+        for(int i = 0; i < 6; i++){
+            lineAngle(e.x, e.y, 60f * i + e.finpow() * 40f, e.finpow() * 44f);
+        }
+
+        Drawf.light(e.x, e.y, e.finpow() * 65f, Color.valueOf("f53036"), 0.8f);
     });
 
     private CombatFx(){

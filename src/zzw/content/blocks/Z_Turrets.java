@@ -307,7 +307,7 @@ public class Z_Turrets {
         banshee = new BarrelsItemTurret("banshee") {{
             size = 12;
             health = 22000;
-            range = 530f;  // ★ 用户调整: 范围 +20 格 (原 370f, 供 create-terminum 顶档弹使用)
+            range = 466f;  // ★ 用户调整: create-terminum 弹攻击范围 +12 格 (原 370f), 全弹药弹程已延长覆盖
             reload = 12f;
             coolantMultiplier = 0.5f;
             inaccuracy = 3f;
@@ -327,7 +327,7 @@ public class Z_Turrets {
             // ★ 已恢复 PU 原版伤害 (去掉之前额外加的 +40 偏移)
             ammo(Items.graphite, new BasicBulletType(7.5f * 1.3f, 145) {{
                 // standardDenseMassive (石墨弹)
-                lifetime = 40f * 1.1f;
+                lifetime = 40f * 1.1f * 1.3f;  // ★ 用户调整: 存活时间加长 ×1.3, 保证 466px 射程全程覆盖
                 // ★ 用户调整: 子弹整体尺寸稍微加大 (×1.15)
                 width = 15f * 1.34f * 1.15f;
                 height = 21f * 1.34f * 1.15f;
@@ -341,7 +341,7 @@ public class Z_Turrets {
                 frontColor = Pal.graphiteAmmoFront;
             }}, Items.silicon, new BasicBulletType(7.5f * 1.3f, 125) {{
                 // standardHomingMassive (硅弹, 追踪型)
-                lifetime = 40f * 1.1f;
+                lifetime = 40f * 1.1f * 1.3f;  // ★ 用户调整: 存活时间加长 ×1.3, 保证 466px 射程全程覆盖
                 width = 15f * 1.21f * 1.15f;
                 height = 21f * 1.21f * 1.15f;
                 hitSize = 4.8f;
@@ -355,7 +355,7 @@ public class Z_Turrets {
                 frontColor = Pal.graphiteAmmoFront;
             }}, Items.pyratite, new BasicBulletType(7f * 1.3f, 193) {{
                 // standardIncendiaryMassive (火成岩弹, 燃烧型)
-                lifetime = 40f * 1.1f;
+                lifetime = 40f * 1.1f * 1.3f;  // ★ 用户调整: 存活时间加长 ×1.3, 保证 466px 射程全程覆盖
                 width = 16f * 1.34f * 1.15f;
                 height = 21f * 1.34f * 1.15f;
                 hitSize = 5f;
@@ -373,7 +373,7 @@ public class Z_Turrets {
                 splashDamageRadius = 25f;
             }}, Items.thorium, new BasicBulletType(8f * 1.3f, 213) {{
                 // standardThoriumMassive (钍弹, 穿透型)
-                lifetime = 40f * 1.1f;
+                lifetime = 40f * 1.1f * 1.3f;  // ★ 用户调整: 存活时间加长 ×1.3, 保证 466px 射程全程覆盖
                 width = 16f * 1.34f * 1.15f;
                 height = 23f * 1.34f * 1.15f;
                 hitSize = 5f;
@@ -384,22 +384,21 @@ public class Z_Turrets {
                 backColor = hitColor = trailColor = Pal.thoriumAmmoBack;
                 frontColor = Pal.thoriumAmmoFront;
             }}, Z_Items.terminum, new BasicBulletType(7.5f * 1.3f * 1.3f, 6666.6f) {{
-                // ★★ create-terminum 顶档弹药 (用户定制):
-                //    6666.6 伤害/发 · 6x 穿透 · 4x 装填时间 · 强追踪 (~320°/s, 12 格索敌)
-                lifetime = 60f;  // 弹速 12.675 × 60 ≈ 760px, 完整覆盖 530 (66格) 射程
+                // ★★ create-terminum 顶档弹药 (用户定制, 全炮台最强):
+                //    6666.6 伤害/发 · 6x 穿透 · 无射速削减 · 强追踪 (~320°/s, 12 格索敌) · 专属命中特效
+                lifetime = 75f;  // ★ 用户调整: 存活时间加长 (弹速 12.675 × 75 ≈ 950px, 完整覆盖 466px 射程)
                 width = 18f;
                 height = 27f;
                 hitSize = 6f;
                 shootEffect = CombatFx.muzzleFlash;
                 ammoMultiplier = 4;
-                reloadMultiplier = 0.25f;   // ★ 4x 装填时间 (装填速度 25%)
                 homingPower = 0.09f;        // ★ 强追踪 ≈320°/s (moveToward 速度 = homingPower × 60°/tick)
                 homingRange = 96f;          // ★ 追踪索敌 12 格
                 pierce = true;
                 pierceCap = 6;              // ★ 6x 穿透
                 pierceBuilding = true;
                 knockback = 1.2f;
-                hitEffect = despawnEffect = CombatFx.bulletHitBig;
+                hitEffect = despawnEffect = CombatFx.terminumBlast;  // ★ 专属特效
                 hitColor = backColor = trailColor = Color.valueOf("f53036");  // terminum 红
                 frontColor = Color.valueOf("ff8a75");
             }});
@@ -563,13 +562,16 @@ public class Z_Turrets {
         }};
 
         // ★ 迪里姆弹药扩展 (思路同 Z_VanillaAmmo 对 spectre 的注入):
-        //   3 座物品炮台 (apparition/ghost/banshee) 各注入「自身最强弹药」×1.35 的
-        //   create-dirium 顶档弹药 —— dark 派系自定义 Large/Heavy 子弹体系无固定模板,
-        //   走 injectStrongest 自动扫描; fallout 及以下 4 座为连续激光炮台, 无弹药表,
-        //   不适用物品弹药注入。
+        //   apparition/ghost 走 injectStrongest 自动扫描「自身最强弹药」×1.35 注入;
+        //   banshee 因弹药表含 create-terminum 超模弹 (用户定制), 改用 injectFrom 显式
+        //   指定钍弹为模板 (保持"无追踪、常规伤害"的老注入行为);
+        //   fallout 及以下 4 座为连续激光炮台, 无弹药表, 不适用物品弹药注入。
         Z_VanillaAmmo.injectStrongest(apparition, Z_Items.dirium, 1.35f, 3);
         Z_VanillaAmmo.injectStrongest(ghost, Z_Items.dirium, 1.35f, 3);
-        Z_VanillaAmmo.injectStrongest(banshee, Z_Items.dirium, 1.35f, 3);
+        // ★ banshee 显式指定钍弹为注入模板: injectStrongest 自动选伤害最高弹,
+        //   现在最高是 create-terminum (6666.6, 带追踪/穿透/特效) —— 拷贝它会让
+        //   dirium 注入弹继承全部强化属性且颜色异常; 老行为模板应为钍弹 (无追踪, 213×1.35)
+        Z_VanillaAmmo.injectFrom(banshee, Z_Items.dirium, Items.thorium, 1.35f, 3);
     }
 
     /** light 派系 12 个炮台 (PU132 顺序: photon, graviton, electron, proton, neutron, gluon, w-boson, z-boson, higgs-boson, singularity, muon, ephemeron) */
