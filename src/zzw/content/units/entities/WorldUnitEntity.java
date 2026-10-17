@@ -5,6 +5,7 @@ import zzw.content.type.WorldUnitType;
 
 import arc.Core;
 import arc.math.Angles;
+import arc.math.geom.Geometry;
 import arc.math.geom.Point2;
 import arc.math.geom.Rect;
 import arc.math.geom.Vec2;
@@ -404,6 +405,19 @@ public class WorldUnitEntity extends UnitEntity {
             float exitDst = pb.block.size * Vars.tilesize / 2f;
             float ex = Angles.trnsx(pb.rotdeg(), exitDst), ey = Angles.trnsy(pb.rotdeg(), exitDst);
             if (!pb.payVector.within(ex, ey, 0.5f)) continue;
+
+            // ★ 出口前方若存在能接收该 payload 的升级工厂 (重构器/其他 payload 方块),
+            //   则不要接管弹出 —— 让子世界内 moveOutPayload→movePayload 自然把单位
+            //   传送进去完成升级。否则本方法的 0.5px 接管容差比 moveOutPayload 的
+            //   0.001px 更早触发, 会抢在升级之前把单位直接弹到甲板/水域 (无法升级)。
+            int ntrns = pb.block.size / 2 + 1;
+            Building front = unitWorld.build(
+                pb.tile.x + Geometry.d4(pb.rotation).x * ntrns,
+                pb.tile.y + Geometry.d4(pb.rotation).y * ntrns
+            );
+            if (front != null && front.acceptPayload(pb, up)) {
+                continue;
+            }
 
             if (u.type.naval) {
                 // ★ 海军: 只有当大地下方主世界是水域时才能投放, 否则停在工厂等待
