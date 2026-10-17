@@ -21,8 +21,8 @@ import static mindustry.Vars.*;
  * queuePoint 的延迟任务 (对应原版 queue.post), 再 snap 全部光并 cast。</p>
  */
 public class LightProcess {
-    /** 光命中建筑处理队列 (原版 TaskQueue.post, 同步化) */
-    public final Seq<Runnable> queue = new Seq<>();
+    /** 光命中建筑处理队列 (原版 TaskQueue.post, 同步化); 必须传 Runnable.class, 否则 items 是 Object[] 强转会 ClassCastException */
+    public final Seq<Runnable> queue = new Seq<>(Runnable.class);
     /** 世界中全部光 */
     public final Seq<Light> all = new Seq<>(Light.class);
     /** 光的四叉树 (终点查找已有光合并父子) */

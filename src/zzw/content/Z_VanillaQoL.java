@@ -45,5 +45,31 @@ public class Z_VanillaQoL{
 
         // ===== 卸载器 =====
         if(mindustry.content.Blocks.unloader instanceof mindustry.world.blocks.storage.Unloader u) u.speed = 60f / 9f;
+
+        // ★ 调试: 记录应用后的实际值 (排查"改动没生效"问题)
+        debugDump("loadContent");
+    }
+
+    /**
+     * 调试: 输出原版方块当前实际值, 同时写入 Mindustry 数据目录的 create-debug.txt。
+     *
+     * <p>用途: 在 loadContent (应用改动时) 和 init (全部内容初始化完成后) 各调用一次,
+     * 若两次值都正确但游戏里仍是原版数值, 说明有更晚的机制在改写; 若 init 时值被改回,
+     * 说明有其他模组在覆盖。文件路径: %APPDATA%\Mindustry\create-debug.txt</p>
+     *
+     * @param phase 调用阶段标记 (如 "loadContent" / "init")
+     */
+    public static void debugDump(String phase){
+        try{
+            String line = "[Create] 原版QoL @" + phase + ": 容器=" + mindustry.content.Blocks.container.itemCapacity
+                + ", 仓库=" + mindustry.content.Blocks.vault.itemCapacity
+                + ", 液罐=" + (int)mindustry.content.Blocks.liquidTank.liquidCapacity
+                + ", 铜带速度=" + (mindustry.content.Blocks.conveyor instanceof mindustry.world.blocks.distribution.Conveyor c ? c.speed : -1f)
+                + ", 卸载器=" + (mindustry.content.Blocks.unloader instanceof mindustry.world.blocks.storage.Unloader u ? u.speed : -1f);
+            arc.util.Log.info(line);
+            arc.Core.settings.getDataDirectory().child("create-debug.txt").writeString(line + "\n", true);
+        }catch(Throwable t){
+            arc.util.Log.err("[Create] 原版QoL调试输出失败", t);
+        }
     }
 }
