@@ -308,6 +308,7 @@
 - 移除方块 `create-cooling-heater`（制冷机，暂不再使用）及其注册、bundle 文案与 `CoolingHeater` 类。
 - 修复 Android 平台崩溃 `NoClassDefFoundError: java.util.Comparator$-CC`（拆除机械方块/管道时触发）：`BaseGraph.isAtriculationPoint` 使用了 `Comparator.comparingInt(...)`，其字节码会引用 javac 生成的 companion class `java.util.Comparator$-CC`，该类在 Android/ART 上不存在。改用普通 lambda + `Integer.compare`，Desktop / Android 全平台兼容。
 - 修复热管 (heat-pipe)「实际已连接但贴图仍显示未连接」：`HeatPipeBuild` 原先只在 `onNeighboursChanged()` 里按邻居位掩码算一次贴图变体，图重建过程中的增量注册/提前 return 可能漏发该通知，导致掩码残留旧值。现在 `draw()` 每帧按当前真实邻居重算掩码，彻底避免残留。
+- 修复加载崩溃：`Z_TechTree.node` 挂 `Z_Other.smite` 时字段为 null（`TestMod.loadContent` 里 `Z_Other.load()` 排在 `Z_TechTree.load()` 之后，雷光系炮台尚未创建 → `content.researchRequirements()` NPE）；调整加载顺序，`Z_Other.load()` 提前到科技树之前。
 - 修复加载崩溃：`Z_VanillaAmmo.tintBullet` 递归染色附生弹时未判 null，原版部分弹药的 `fragBullet`/`intervalBullet` 为 null，内容加载阶段 NPE 崩溃（`Cannot read field "hitColor" because "b" is null`）；入口处补 null 守卫。
 - 修复「大地」(terra) 在子世界内产出单位时漂移/乱窜：
   - **对齐 PU132 原版定位根因**：PU 的 terra（`UnityUnitTypes.java:2387`）是纯地面单位，仅设 `speed/health/worldWidth/worldHeight`；端口此前把它额外改成了低空飞行 + 整平台碰撞箱 + `physics=false` + 极低阻力（`accel=0.08`、`drag=0.03`），其中极低阻力是漂移的放大器——任何一次微小挤动产生的速度几乎不衰减，terra 便朝一个方向持续滑行。

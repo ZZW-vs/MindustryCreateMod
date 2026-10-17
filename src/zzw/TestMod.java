@@ -238,9 +238,8 @@ public class TestMod extends Mod{
         // ★ 原版方块联动: 熔岩接入原版液体炮台 + 模组可燃物接入原版发电机燃料体系
         zzw.content.Z_VanillaLink.load();
 
-        // ★ 原版炮台接入经验系统: 替换 13 个原版 ItemTurret 的 buildType 为经验化
-        //   实现类 (经验球/经验塔自动覆盖), 经验走独立 CustomChunk 存档
-        zzw.content.exp.vanilla.VanillaExp.load();
+        // 原版炮台经验系统已移除 (用户要求): 原版炮台升级效果不明显, 恢复原版 buildType。
+        //   VanillaExp 类保留但不再调用, 13 个原版 ItemTurret 回归原版行为。
 
         // ===== PU132 天气 / 科技树 =====
         // ★ 行星系统已移除 (用户要求): PU 内容改为在原版普罗塞 (Serpulo) 世界显示/可用,
@@ -256,14 +255,17 @@ public class TestMod extends Mod{
         // ★ 加载黑洞后处理系统 (必须在所有内容加载之后, 确保纹理已加载)
         blackHoleSFX.load();
 
+        // ★ 雷光系炮台升级线 (smite/rift/rift_pro/fracture)
+        //   必须在 Z_TechTree.load() 之前: 科技树会引用这些字段挂树,
+        //   若在挂树之后才创建, 字段还是 null → 加载期 NPE 崩溃
+        Z_Other.load();
+
         // ★ 科技树 (必须最后: 把全部 PU 内容挂到原版科技树, 引用所有内容类)
         // 研究制 (2026-10): 挂树内容需研究解锁; 扭矩/坩埚/经验系等未挂树内容兜底直接解锁
         Z_TechTree.load();
 
         // ★ 剧情系统 (PU132 Cutscene/Speeches/StoryNode 移植): 地图标签 create-nodes 驱动
         zzw.content.Z_Story.load();
-
-        Z_Other.load();
     }
     
     /**
