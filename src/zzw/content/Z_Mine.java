@@ -1,7 +1,9 @@
 package zzw.content;
 
+import mindustry.content.Planets;
 import mindustry.world.Block;
 import mindustry.world.blocks.environment.OreBlock;
+import zzw.map.gen.SerpuloOreGenerator;
 
 /**
  * 自定义矿物与钻头注册 - 镍/铟/铝/熔核等矿石
@@ -41,5 +43,10 @@ public class Z_Mine {
             oreScale = 23.77f;
             oreThreshold = 0.807f;
         }};
+
+        // ★ 普罗塞星球接入模组矿物随机生成 (2026-10-18):
+        //   用扩展子类替换原版生成器, 在原版矿物基础上追加模组矿脉 (不覆盖原版矿)。
+        //   必须在本方法末尾执行 —— 此时 oreXxx 字段已赋值, 子类的矿物表才能拿到实例。
+        Planets.serpulo.generator = new SerpuloOreGenerator();
     }
 }

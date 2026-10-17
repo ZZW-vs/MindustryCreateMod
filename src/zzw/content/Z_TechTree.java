@@ -57,29 +57,7 @@ public class Z_TechTree{
             node(Z_Factory.sparkAlloyForge, Seq.with(new Research(Z_Items.sparkAlloy)));
         });
 
-        // ★ 压板机系列 (铁/金/铜 + 大型) 挂原版石墨压缩机 (同类压制设备) 之后; 板材/黄铜/锌一并入树
-        attach(Blocks.graphitePress, () -> {
-            node(Z_Factory.Plate_Maker_Iron, () -> {
-                node(Z_Factory.Large_Plate_Maker_Iron, () -> {
-                    nodeProduce(Z_Items.Iron_Sheet);
-                });
-            });
-
-            node(Z_Factory.Plate_Maker_Gold, () -> {
-                node(Z_Factory.Large_Plate_Maker_Gold, () -> {
-                    nodeProduce(Z_Items.Gold_Sheet);
-                });
-            });
-
-            node(Z_Factory.Plate_Maker_Copper, () -> {
-                node(Z_Factory.Large_Plate_Maker_Copper, () -> {
-                    nodeProduce(Z_Items.Copper_Sheet);
-                });
-            });
-
-            nodeProduce(Z_Items.Brass);
-            nodeProduce(Z_Items.Zinc);
-        });
+        // ★ 压板机 6 台 + 板材/黄铜/锌不入树 (用户指定 2026-10-18): 走兜底直接解锁
 
         // ★ 工厂链: 硅冶炼厂 → 钢炉 → 致密合金炉 → 燃烧熔炼 → 迪里姆坩埚 → End 派系 (挂最深处, 用户指定)
         attach(Blocks.siliconSmelter, () -> {
@@ -88,17 +66,9 @@ public class Z_TechTree{
                     node(Z_Factory.liquifier, () -> {
                         node(Z_Factory.solidifier);
                         node(Z_Factory.diriumCrucible, () -> {
-                            node(Z_Factory.endForge, () -> {
-                                nodeProduce(Z_Items.advanceAlloy, () -> {
-                                    nodeProduce(Z_Items.lightAlloy, () -> {
-                                        nodeProduce(Z_Items.luminum);
-                                    });
-                                });
-                            });
+                            node(Z_Factory.endForge);
 
-                            node(Z_Factory.terminalCrucible, () -> {
-                                node(Z_Factory.holdingCrucible);
-                            });
+                            node(Z_Factory.terminalCrucible);
                         });
                     });
                 });
@@ -189,8 +159,6 @@ public class Z_TechTree{
 
         attach(Blocks.laserDrill, () -> {
             node(Z_Torque.augerDrill);
-            nodeProduce(Z_Items.Iron);
-            nodeProduce(Z_Items.Gold);
         });
 
         attach(Blocks.oilExtractor, () -> {
@@ -199,21 +167,16 @@ public class Z_TechTree{
 
         attach(Blocks.pneumaticDrill, () -> {
             node(Z_Distribution.distributionDrill);
-            node(Z_Factory.coalExtractor);
         });
 
         attach(Blocks.cultivator, () -> {
-            node(Z_Factory.sporeFarm, () -> {
-                node(Z_Factory.sporePyrolyser, () -> {
-                    nodeProduce(Z_Items.contagium);
-                });
-            });
+            node(Z_Factory.sporeFarm);
+        });
 
-            node(Z_Factory.Pumpkin_Drill, () -> {
-                nodeProduce(Z_Items.Pumpkin_Seeds, () -> {
-                    nodeProduce(Z_Items.Pulp);
-                });
-            });
+        // ★ 孢子热解机 + 煤炭提取器挂原版孢子压缩机之后 (用户指定 2026-10-18)
+        attach(Blocks.sporePress, () -> {
+            node(Z_Factory.sporePyrolyser);
+            node(Z_Factory.coalExtractor);
         });
 
         // ★ orb 系列按实力挂原版 salvo 之后 (用户指定); shielder 例外单独挂 force-projector
@@ -283,7 +246,8 @@ public class Z_TechTree{
             node(Z_Blocks.superCharger, Seq.with(new Research(Z_Factory.irradiator)));
         });
 
-        attach(Blocks.surgeTower, () -> {
+        // ★ absorber 吸收器挂原版 mend-projector 之后, 在经验力场链之后 (用户指定 2026-10-18)
+        attach(Blocks.mendProjector, () -> {
             node(Z_Turrets.absorber, Seq.with(new Research(Z_Factory.sparkAlloyForge)));
         });
 
@@ -418,7 +382,14 @@ public class Z_TechTree{
                 nodeProduce(Z_Items.denseAlloy, () -> {
                     nodeProduce(Z_Items.steel, () -> {
                         nodeProduce(Z_Liquids.lava, () -> {
-                            nodeProduce(Z_Items.dirium);
+                            nodeProduce(Z_Items.dirium, () -> {
+                                // End 派系物品挂物品链最深处: 迪里姆 → 先进合金 → 轻质合金 → 流明合金
+                                nodeProduce(Z_Items.advanceAlloy, () -> {
+                                    nodeProduce(Z_Items.lightAlloy, () -> {
+                                        nodeProduce(Z_Items.luminum);
+                                    });
+                                });
+                            });
                         });
                     });
                 });
@@ -427,8 +398,15 @@ public class Z_TechTree{
 
         attach(Items.thorium, () -> {
             nodeProduce(Z_Items.archDebris, Seq.with(new Research(Z_Items.monolite)), () -> {
-                nodeProduce(Z_Items.monolithAlloy);
+                nodeProduce(Z_Items.monolithAlloy, () -> {
+                    nodeProduce(Z_Items.darkAlloy);
+                });
             });
+        });
+
+        // ★ 感染原挂原版孢子荚 (同源生物材料) 之后 (用户指定 2026-10-18)
+        attach(Items.sporePod, () -> {
+            nodeProduce(Z_Items.contagium);
         });
 
         attach(Items.surgeAlloy, () -> {
@@ -516,7 +494,9 @@ public class Z_TechTree{
                     node(Z_Torque.cruciblePump);
                 });
                 node(Z_Torque.castingMold);
-                node(Z_Torque.modularCrucible);
+                node(Z_Torque.modularCrucible, () -> {
+                    node(Z_Factory.holdingCrucible);
+                });
             });
         });
 
