@@ -103,7 +103,7 @@ public class Z_Weathers{
             if(Mathf.chanceDelta(state.intensity * spawnChance)){
                 float x = Mathf.random(world.unitWidth()), y = Mathf.random(world.unitHeight());
                 Fx.smoke.at(x, y);
-                Fx.blastExplosion.at(x, y);
+                zzw.content.units.effects.CombatFx.blastExplosion.at(x, y);
                 Damage.damage(x, y, Mathf.random(minSplashRadius, maxSplashRadius), Mathf.random(minDamage, maxDamage));
             }
             Groups.unit.each(u -> {

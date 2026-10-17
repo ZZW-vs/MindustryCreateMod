@@ -25,6 +25,7 @@ import zzw.content.units.bullets.EndBasicBulletType;
 import zzw.content.units.bullets.EndContinuousLaserBulletType;
 import zzw.content.units.bullets.EndCutterLaserBulletType;
 import zzw.content.units.bullets.VoidFractureBulletType;
+import zzw.content.units.effects.CombatFx;
 import zzw.content.units.effects.HitEffect;
 import zzw.content.units.effects.ShootEffect;
 import zzw.content.units.effects.UnityDrawf;
@@ -220,8 +221,8 @@ public class Z_EndUnits {
                     homingPower = 0.08f;
                     weaveScale = 6f;
                     weaveMag = 1.2f;
-                    hitEffect = Fx.blastExplosion;
-                    despawnEffect = Fx.blastExplosion;
+                    hitEffect = CombatFx.blastExplosion;
+                    despawnEffect = CombatFx.blastExplosion;
 
                     ratioStart = 56000f;
                     ratioDamage = 1f / 150f;

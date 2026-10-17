@@ -382,6 +382,12 @@
   - **重写「科技树模板.java」**：补上 VE 核心写法 `planet.techTree = nodeRoot(...)`（自定义星球整棵树），并移植本项目 `Z_TechTree` 的 `attach`/`node`/`nodeProduce` 辅助方法（160 无 `TechTree.get(parent)`，改用 `content.techNode` 字段）；补充 `Objectives` 清单与 VE 倒金字塔布局 `InvertedPyramidTreeLayout` 说明
   - 更新「Mod主类模板.java」加载顺序为 `物品 → 液体 → 状态 → 子弹 → 方块 → 单位 → 星球 → 科技树`，并在 `loadContent()` 方法体补上星球加载步骤
 ## 更新日志
+- 全模组战斗特效加强（新建颜色参数化特效集 `CombatFx`，PU132 ShootFx 手法 + 饱和火力 / FlameOut / Vanilla-Expansion 的绘制技巧，替代原版 `Fx.*`）：
+  - **炮口开火**：`muzzleFlash`（火焰三角+白芯+扩散环+火花+动态光源）替代 `Fx.shootBig`；`muzzleFlashSmoke` / `muzzleFlashSmokeBig`（火光+延迟硝烟+后坐冲击环）替代 `Fx.shootBigSmoke` / `shootBigSmoke2` / `Fx.thoriumShoot`；`laserShoot`（PU132 laserChargeShoot 四向旋转白芯三角）替代 `Fx.lancerLaserShoot`；`railShoot`（磁轨炮双侧对开大三角+白色冲击环）替代 `Fx.instShoot`；`lightningShoot`（三向电弧三角+环绕电火花）替代 `Fx.lightningShoot`
+  - **弹道命中**：`laserHit` / `laserHitBlast`（命中圈+放射线火花+四向尖刺+光源）替代 `Fx.hitLancer` / `hitLaser` / `hitLaserBlast`；`bulletHit` / `bulletHitSmall` / `bulletHitBig`（白→弹色渐变火花）替代 `Fx.hitBulletColor` / `hitBulletSmall` / `hitBulletBig`；另有 `fireHitSpark`（火舌+烟团）、`liquidHit`（液滴四溅）、`beamHit`（持续光束命中点）、`empSpark`（高频折线电弧）、`pointBeam`（定点射线）分别替代对应原版特效
+  - **爆炸**：`blastExplosion`（白闪子特效+弹色火球+冲击环+十向三角火花+大范围光源）替代 `Fx.blastExplosion`；`massiveExplosion`（双冲击环+碎片方块粒子）替代 `Fx.massiveExplosion`；`flakBlast` 替代 `Fx.flakExplosion`；`sapExplosion`（黑芯+弹色描边+内缩暗环，Sap 系标志性视觉）替代 `Fx.sapExplosion`
+  - **搬回 PU132 原特效**：虚空容器 / 虚空弹丸的命中与消散特效由 v158 简化的 `Fx.hitLancer` 换回 PU132 原版 `HitFx.voidHit`（模组已有移植 `HitEffect.voidHit`）
+  - **应用范围**：Z_Units（全部单位武器 ~60 处）、Z_Turrets / Z_AdvTurrets / Z_SoulTurrets（炮台弹药）、Z_MonolithUnits / Z_ScarUnits / Z_KoruhUnits / Z_EndUnits、Z_Other（雷光/破空系列）、Z_Bullets、Z_Weathers（陨石天气）及 VoidFracture / VoidPellet / PointBlast / EndPointBlastLaser（改用 `HitEffect.endHitRedBig`）/ Sagittarius / TimeStop / UnityBullets 等弹体类；经验激光炮台（Z_Exp）按 PU132 原版保持不变
 - 修复 kami（神）出生即自毁：目标失效或场内暂无可追踪玩家时不再 `unit.kill()`，改为对齐 PU132 原版——清空目标 (`target = null`) 并在下一帧重新索敌，无玩家时仅待机等待
 - End 系列 desolation / apocalypse 触手动画与武器数量还原 PU132 原版：
   - **触手待机动画**：移除此前"无目标不摆动"的优化，恢复 PU132 原版——待机时触手持续甩动（`TentacleAbility` 默认 `swayMag` 0.08→0.6），攻击时停止摆动并追踪目标

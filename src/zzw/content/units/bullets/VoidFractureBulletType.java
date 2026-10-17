@@ -71,7 +71,7 @@ public class VoidFractureBulletType extends AntiCheatBulletTypeBase {
         pierce = true;
         despawnEffect = Fx.none;
         smokeEffect = Fx.none;
-        hitEffect = Fx.hitLancer;  // PU132: HitFx.voidHit, v158 用 Fx.hitLancer 替代
+        hitEffect = zzw.content.units.effects.HitEffect.voidHit;  // PU132: HitFx.voidHit (搬回原版特效)
         // ★ 关键: lifetime 必须 > delay, 否则子弹在 Phase 1 悬停阶段就消失
         lifetime = 60f;
     }

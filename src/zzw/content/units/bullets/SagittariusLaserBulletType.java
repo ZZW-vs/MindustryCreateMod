@@ -36,7 +36,7 @@ public class SagittariusLaserBulletType extends BulletType {
         hittable = false;
         absorbable = false;
 
-        hitEffect = Fx.hitBulletSmall;
+        hitEffect = zzw.content.units.effects.CombatFx.bulletHitSmall;
         hitColor = Pal.heal;
     }
 

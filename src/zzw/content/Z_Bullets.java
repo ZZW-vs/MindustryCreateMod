@@ -575,8 +575,8 @@ public class Z_Bullets {
             frontColor = Color.valueOf("ffffff");
             width = 4.75f;
             height = 4f;
-            hitEffect = Fx.hitLancer;
-            despawnEffect = Fx.hitLancer;
+            hitEffect = zzw.content.units.effects.CombatFx.laserHit;
+            despawnEffect = zzw.content.units.effects.CombatFx.laserHit;
             shootEffect = Fx.none;
             smokeEffect = Fx.none;
         }
@@ -609,7 +609,7 @@ public class Z_Bullets {
             super(0.001f, damage);
             // ★ 分裂放射小球存在时间: 与 PU132 原版一致 (360f = 6 秒, 对撞后消失, 实测约 2~3 秒)
             lifetime = 360f;
-            hitEffect = Fx.hitLancer;
+            hitEffect = zzw.content.units.effects.CombatFx.laserHit;
             despawnEffect = Fx.none;
             hitSize = 8f;
             drag = 0.015f;
@@ -880,7 +880,7 @@ public class Z_Bullets {
             super(0.001f, damage);
             pierce = pierceBuilding = true;
             hitEffect = Fx.none;
-            despawnEffect = Fx.blastExplosion;
+            despawnEffect = zzw.content.units.effects.CombatFx.blastExplosion;
             hitSize = 19f;
             lifetime = 3.5f * 60f;
         }

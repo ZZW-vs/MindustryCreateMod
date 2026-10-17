@@ -48,7 +48,7 @@ public class EndContinuousLaserBulletType extends AntiCheatBulletTypeBase {
     public EndContinuousLaserBulletType(float damage) {
         this.damage = damage;
         this.speed = 0f;
-        this.hitEffect = mindustry.content.Fx.hitBeam;
+        this.hitEffect = zzw.content.units.effects.CombatFx.beamHit;
         this.despawnEffect = mindustry.content.Fx.none;
         this.hitSize = 4;
         this.drawSize = 420f;

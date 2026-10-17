@@ -60,7 +60,7 @@ public class Z_Other {
                     ammoMultiplier = 5f ; // 弹药倍率
                     width = 13f ; // 激光宽度
                     toColor = Pal.thoriumPink; // 颜色
-                    shootEffect = smokeEffect = Fx.thoriumShoot; // 特效
+                    shootEffect = smokeEffect = zzw.content.units.effects.CombatFx.muzzleFlashSmoke; // 特效
                 }},
                 Items.surgeAlloy, new ShrapnelBulletType(){{
                     length = 105f ; // 激光长度
@@ -87,7 +87,7 @@ public class Z_Other {
                     // 添加持续伤害效果，让整个激光长度都有伤害
                     statusDuration = 60f ; // 状态持续时间
                     buildingDamageMultiplier = 1f ; // 对建筑正常伤害
-                    hitEffect = Fx.hitLaser ; // 击中特效
+                    hitEffect = zzw.content.units.effects.CombatFx.laserHitBlast ; // 击中特效
                 }}
             );
             // 存储冷却时间
@@ -134,7 +134,7 @@ public class Z_Other {
                     ammoMultiplier = 5f ; // 弹药倍率
                     width = 34f ; // 激光宽度
                     toColor = Pal.thoriumPink; // 颜色
-                    shootEffect = smokeEffect = Fx.thoriumShoot; // 特效
+                    shootEffect = smokeEffect = zzw.content.units.effects.CombatFx.muzzleFlashSmoke; // 特效
                 }},
                 Items.surgeAlloy, new ShrapnelBulletType(){{
                     length = 150f ; // 激光长度
@@ -161,7 +161,7 @@ public class Z_Other {
                     // 添加持续伤害效果，让整个激光长度都有伤害
                     statusDuration = 60f ; // 状态持续时间
                     buildingDamageMultiplier = 1f ; // 对建筑正常伤害
-                    hitEffect = Fx.hitLaser ; // 击中特效
+                    hitEffect = zzw.content.units.effects.CombatFx.laserHitBlast ; // 击中特效
                 }}
             );
             // 存储冷却时间
@@ -208,7 +208,7 @@ public class Z_Other {
                     ammoMultiplier = 5f ; // 弹药倍率
                     width = 18f ; // 激光宽度
                     toColor = Pal.thoriumPink; // 颜色
-                    shootEffect = smokeEffect = Fx.thoriumShoot; // 特效
+                    shootEffect = smokeEffect = zzw.content.units.effects.CombatFx.muzzleFlashSmoke; // 特效
                 }},
                 Items.surgeAlloy, new ShrapnelBulletType(){{
                     length = 120f ; // 激光长度
@@ -235,7 +235,7 @@ public class Z_Other {
                     // 添加持续伤害效果，让整个激光长度都有伤害
                     statusDuration = 60f ; // 状态持续时间
                     buildingDamageMultiplier = 1f ; // 对建筑正常伤害
-                    hitEffect = Fx.hitLaser ; // 击中特效
+                    hitEffect = zzw.content.units.effects.CombatFx.laserHitBlast ; // 击中特效
                 }}
             );
             // 存储冷却时间
@@ -282,7 +282,7 @@ public class Z_Other {
                     ammoMultiplier = 5f ; // 弹药倍率
                     width = 30f ; // 激光宽度
                     toColor = Pal.thoriumPink; // 颜色
-                    shootEffect = smokeEffect = Fx.thoriumShoot; // 特效
+                    shootEffect = smokeEffect = zzw.content.units.effects.CombatFx.muzzleFlashSmoke; // 特效
                 }},
                 Items.surgeAlloy, new ShrapnelBulletType(){{
                     length = 160f ; // 激光长度
@@ -309,7 +309,7 @@ public class Z_Other {
                     // 添加持续伤害效果，让整个激光长度都有伤害
                     statusDuration = 60f ; // 状态持续时间
                     buildingDamageMultiplier = 1f ; // 对建筑正常伤害
-                    hitEffect = Fx.hitLaser ; // 击中特效
+                    hitEffect = zzw.content.units.effects.CombatFx.laserHitBlast ; // 击中特效
                 }}
             );
             // 存储冷却时间

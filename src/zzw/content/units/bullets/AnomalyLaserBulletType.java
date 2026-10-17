@@ -51,7 +51,7 @@ public class AnomalyLaserBulletType extends BulletType{
     public AnomalyLaserBulletType(float damage){
         super(0f, damage); // 速度 0: 激光原地一次成型
         despawnEffect = Fx.none;
-        hitEffect = Fx.lancerLaserShoot;
+        hitEffect = zzw.content.units.effects.CombatFx.laserShoot;
         keepVelocity = false;
         lifetime = 20f;
     }

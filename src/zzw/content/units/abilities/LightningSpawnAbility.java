@@ -57,8 +57,8 @@ public class LightningSpawnAbility extends Ability {
     protected Color backColor = UnityPal.monolithDark.cpy().a(0.5f);
     protected Color frontColor = UnityPal.monolithLight.cpy().a(0.5f);
     protected mindustry.entities.Effect damageEffect = Fx.chainLightning;
-    protected mindustry.entities.Effect hitEffect = Fx.hitLaserBlast;
-    protected mindustry.entities.Effect trailEffect = Fx.hitLancer;
+    protected mindustry.entities.Effect hitEffect = zzw.content.units.effects.CombatFx.laserHitBlast;
+    protected mindustry.entities.Effect trailEffect = zzw.content.units.effects.CombatFx.laserHit;
 
     protected float timer, reload;
 

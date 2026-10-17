@@ -57,7 +57,7 @@ public class ChargeShotgunWeapon extends Weapon{
     /** 每装填一发子弹时的特效。 */
     public Effect addEffect = Fx.lancerLaserCharge;
     /** 一发子弹装填完成时的特效。 */
-    public Effect addedEffect = Fx.lightningShoot;
+    public Effect addedEffect = zzw.content.units.effects.CombatFx.lightningShoot;
     /** 开火 (开始释放全部子弹) 时的特效。 */
     public Effect releaseEffect = Fx.none;
 

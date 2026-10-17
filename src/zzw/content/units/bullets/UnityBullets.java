@@ -90,7 +90,7 @@ public class UnityBullets{
             trailSpacing = 35f;
             shootEffect = MonolithFx.monumentShoot;
             despawnEffect = MonolithFx.monumentDespawn;
-            smokeEffect = Fx.blastExplosion;
+            smokeEffect = zzw.content.units.effects.CombatFx.blastExplosion;
             trailEffect = MonolithFx.monumentTrail;
         }};
     }

@@ -156,7 +156,7 @@ public class Z_SoulTurrets {
                 height = 20f;
                 frontColor = Color.valueOf("4a5866");  // UnityPal.monolith
                 backColor = Color.valueOf("2c3640");    // UnityPal.monolithDark
-                hitEffect = despawnEffect = Fx.blastExplosion;
+                hitEffect = despawnEffect = zzw.content.units.effects.CombatFx.blastExplosion;
                 splashDamage = 90f;
                 splashDamageRadius = 3.2f * tilesize;
             }

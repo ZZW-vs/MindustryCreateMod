@@ -20,8 +20,8 @@ public class TimeStopBulletType extends AntiCheatBulletTypeBase {
 
     public TimeStopBulletType(float speed, float damage) {
         super(speed, damage);
-        despawnEffect = Fx.hitLancer;
-        hitEffect = Fx.hitLancer;
+        despawnEffect = zzw.content.units.effects.CombatFx.laserHit;
+        hitEffect = zzw.content.units.effects.CombatFx.laserHit;
         trailColor = Color.valueOf("f53036");
         trailLength = 10;
         trailWidth = 4f;

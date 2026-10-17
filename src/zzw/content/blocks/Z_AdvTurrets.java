@@ -43,6 +43,7 @@ import zzw.content.units.bullets.PointBlastLaserBulletType;
 import zzw.content.units.bullets.WavefrontLaserBulletType;
 import zzw.content.units.effects.ChargeEffect;
 import zzw.content.units.effects.ChargeFx;
+import zzw.content.units.effects.CombatFx;
 import zzw.util.ZObjs;
 
 /**
@@ -310,7 +311,7 @@ public class Z_AdvTurrets {
             shootType = new LightningBulletType() {{
                 lightningLength = 25;
                 damage = 192f;
-                shootEffect = Fx.lightningShoot;
+                shootEffect = CombatFx.lightningShoot;
             }};
             requireSoul = false;
             maxSouls = 7;
@@ -327,7 +328,7 @@ public class Z_AdvTurrets {
                 sideAngle = 45f;
                 inaccuracy = 8f;
                 colors = new Color[]{Pal.lancerLaser.cpy().a(0.4f), Pal.lancerLaser, Color.white};
-                hitEffect = Fx.hitLancer;
+                hitEffect = CombatFx.laserHit;
                 hitSize = 4;
                 lifetime = 16f;
                 drawSize = 400f;
@@ -335,7 +336,7 @@ public class Z_AdvTurrets {
             }};
             subShots = 3;             // PU_V8 原版 subShots=3
             subBurstSpacing = 1f;     // PU_V8 原版 subBurstSpacing=1
-            subShootEffect = Fx.hitLancer;  // PU_V8 原版 Fx.hitLancer
+            subShootEffect = CombatFx.laserHit;  // PU_V8 原版 CombatFx.laserHit
             subShootSound = Sounds.shootLancer;  // PU_V8 原版 Sounds.laser 简化替代
             subShootSoundVolume = 1f;
         }};
@@ -392,7 +393,7 @@ public class Z_AdvTurrets {
             targetAir = true;
             consumePower(8f);
             shootSound = Sounds.shootScatter;  // v155.4 无 Sounds.shotgun, 用 shootScatter 替代
-            shootEffect = Fx.hitLaserBlast;
+            shootEffect = CombatFx.laserHitBlast;
             object = ZObjs.prism;
             prismOffset = 6f;
             // PU_V8 原版灵魂系统字段 (progression.linear 等效于 SoulTurretPowerTurret.updateSoulDamage)
@@ -404,7 +405,7 @@ public class Z_AdvTurrets {
                 lifetime = 50f;
                 pierce = true;
                 pierceBuilding = true;
-                hitEffect = Fx.hitLancer;
+                hitEffect = CombatFx.laserHit;
                 despawnEffect = Fx.none;
                 hittable = false;
             }};
@@ -475,7 +476,7 @@ public class Z_AdvTurrets {
                         Pal.lancerLaser.cpy(),
                         Color.white
                     };
-                    hitEffect = Fx.hitLancer;
+                    hitEffect = CombatFx.laserHit;
                     hitSize = 8f;
                     lifetime = 16f;
                     drawSize = 600f;

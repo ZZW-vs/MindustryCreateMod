@@ -41,6 +41,7 @@ import zzw.content.units.bullets.RicochetBulletType;
 import zzw.content.units.bullets.UnityBullets;
 import zzw.content.units.bullets.HelixLaserBulletType;
 import zzw.content.units.abilities.LightningSpawnAbility;
+import zzw.content.units.effects.CombatFx;
 import zzw.content.units.effects.MonolithFx;
 import zzw.content.units.effects.ParticleFx;
 import zzw.content.units.effects.UnityDrawf;
@@ -167,7 +168,7 @@ public class Z_MonolithUnits{
                     trailColor = UnityPal.monolithGreen;
                     hitEffect = despawnEffect = MonolithFx.soulConcentrateHit;
                     shootEffect = MonolithFx.soulConcentrateShoot;
-                    smokeEffect = Fx.lightningShoot;
+                    smokeEffect = CombatFx.lightningShoot;
                 }};
             }});
         }};
@@ -344,8 +345,8 @@ public class Z_MonolithUnits{
 
                         trailChance = 0.25f;
                         trailEffect = MonolithFx.ricochetTrailBig;
-                        shootEffect = Fx.hitLaserBlast;
-                        smokeEffect = Fx.lightningShoot;
+                        shootEffect = CombatFx.laserHitBlast;
+                        smokeEffect = CombatFx.lightningShoot;
                         hitEffect = despawnEffect = MonolithFx.monolithHitBig;
                     }
 
@@ -393,8 +394,8 @@ public class Z_MonolithUnits{
 
                         trailChance = 0.25f;
                         trailEffect = MonolithFx.ricochetTrailBig;
-                        shootEffect = Fx.hitLaserBlast;
-                        smokeEffect = Fx.lightningShoot;
+                        shootEffect = CombatFx.laserHitBlast;
+                        smokeEffect = CombatFx.lightningShoot;
                         hitEffect = despawnEffect = MonolithFx.monolithHitBig;
                     }};
                 }
@@ -499,7 +500,7 @@ public class Z_MonolithUnits{
                         trailWidth = 1f;
                         trailChance = 0.33f;
 
-                        shootEffect = Fx.hitLaserBlast;
+                        shootEffect = CombatFx.laserHitBlast;
                         smokeEffect = MonolithFx.tendenceShoot;
                         hitEffect = despawnEffect = MonolithFx.monolithHitBig;
 
@@ -562,7 +563,7 @@ public class Z_MonolithUnits{
                                         target.damage(damage);
 
                                         Fx.chainLightning.at(b.x, b.y, 0f, UnityPal.monolithLight, target);
-                                        Fx.hitLancer.at(target);
+                                        CombatFx.laserHit.at(target);
                                     }
 
                                     if(len > 0) hitSound.at(b);
@@ -944,8 +945,8 @@ public class Z_MonolithUnits{
                 frontColor = UnityPal.monolithLight;
                 backColor = UnityPal.monolith;
                 trailColor = UnityPal.monolithDark;
-                shootEffect = Fx.lancerLaserShoot;
-                smokeEffect = Fx.hitLancer;
+                shootEffect = CombatFx.laserShoot;
+                smokeEffect = CombatFx.laserHit;
                 hitEffect = despawnEffect = MonolithFx.monolithHitSmall;
 
                 splashDamage = 60f;
@@ -1016,8 +1017,8 @@ public class Z_MonolithUnits{
                         frontColor = Color.white;
                         backColor = UnityPal.monolithLight;
                         trailColor = UnityPal.monolith;
-                        shootEffect = Fx.lancerLaserShoot;
-                        smokeEffect = Fx.hitLancer;
+                        shootEffect = CombatFx.laserShoot;
+                        smokeEffect = CombatFx.laserHit;
                         hitEffect = despawnEffect = MonolithFx.monolithHitBig;
 
                         lightning = 3;
@@ -1147,8 +1148,8 @@ public class Z_MonolithUnits{
                         trailWidth = 2f;
                         trailLength = 12;
 
-                        shootEffect = Fx.lightningShoot;
-                        hitEffect = despawnEffect = Fx.hitLancer;
+                        shootEffect = CombatFx.lightningShoot;
+                        hitEffect = despawnEffect = CombatFx.laserHit;
                     }
 
                     @Override

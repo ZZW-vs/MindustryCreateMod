@@ -54,7 +54,7 @@ public class PointBlastLaserBulletType extends BulletType {
     public PointBlastLaserBulletType(float damage) {
         speed = 0f;
         this.damage = damage;
-        hitEffect = Fx.hitLancer;
+        hitEffect = zzw.content.units.effects.CombatFx.laserHit;
         despawnEffect = Fx.none;
         shootEffect = Fx.none;
         smokeEffect = Fx.none;

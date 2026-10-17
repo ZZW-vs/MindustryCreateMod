@@ -34,6 +34,7 @@ import zzw.content.units.anticheat.AbilityDamageModule;
 import zzw.content.units.anticheat.ForceFieldDamageModule;
 import zzw.content.Z_Sounds;
 import zzw.content.Z_StatusEffects;
+import zzw.content.units.effects.CombatFx;
 import zzw.content.units.bullets.AcceleratingLaserBulletType;
 import zzw.content.units.bullets.AntiBulletFlakBulletType;
 import zzw.content.units.bullets.ArrowBulletType;
@@ -62,6 +63,7 @@ import zzw.content.units.bullets.VoidFractureBulletType;
 import zzw.content.units.bullets.VoidPelletBulletType;
 import zzw.content.units.bullets.VoidPortalBulletType;
 import zzw.content.units.effects.ChargeEffect;
+import zzw.content.units.effects.CombatFx;
 import zzw.content.units.effects.HitEffect;
 import zzw.content.units.effects.WormDecal;
 import zzw.content.units.entities.CopterUnitEntity;
@@ -249,7 +251,7 @@ public class Z_Units {
                 bullet = new mindustry.entities.bullet.BombBulletType(27f, 250f) {{  // 25 + 250
                     width = 10f;
                     height = 14f;
-                    hitEffect = mindustry.content.Fx.flakExplosion;
+                    hitEffect = zzw.content.units.effects.CombatFx.flakBlast;
                     shootEffect = mindustry.content.Fx.none;
                     smokeEffect = mindustry.content.Fx.none;
                     // ★ 修复 "段身投弹打不到人":
@@ -530,8 +532,8 @@ public class Z_Units {
                     drag = -0.01f;
                     splashDamage = 30f;
                     splashDamageRadius = 35f;
-                    hitEffect = mindustry.content.Fx.blastExplosion;
-                    despawnEffect = mindustry.content.Fx.blastExplosion;
+                    hitEffect = zzw.content.units.effects.CombatFx.blastExplosion;
+                    despawnEffect = zzw.content.units.effects.CombatFx.blastExplosion;
                 }};
             }});
             weapons.add(new Weapon("create-small-plague-launcher") {{
@@ -547,8 +549,8 @@ public class Z_Units {
                     drag = -0.01f;
                     splashDamage = 30f;
                     splashDamageRadius = 35f;
-                    hitEffect = mindustry.content.Fx.blastExplosion;
-                    despawnEffect = mindustry.content.Fx.blastExplosion;
+                    hitEffect = zzw.content.units.effects.CombatFx.blastExplosion;
+                    despawnEffect = zzw.content.units.effects.CombatFx.blastExplosion;
                 }};
             }});
         }};
@@ -1531,7 +1533,7 @@ public class Z_Units {
                     width = 30f;
                     length = 390f;
                     largeHit = true;
-                    hitEffect = mindustry.content.Fx.hitLancer;
+                    hitEffect = zzw.content.units.effects.CombatFx.laserHit;
                 }};
             }});
 
@@ -1560,7 +1562,7 @@ public class Z_Units {
                     weaveMag = 2f;
                     width *= 1.6f;
                     height *= 2.1f;
-                    hitEffect = mindustry.content.Fx.hitLancer;
+                    hitEffect = zzw.content.units.effects.CombatFx.laserHit;
                 }};
             }});
         }};
@@ -1639,7 +1641,7 @@ public class Z_Units {
                     ratioStart = 12000f;
                     bleedDuration = 10f * 60f;
 
-                    hitEffect = mindustry.content.Fx.hitLancer;
+                    hitEffect = zzw.content.units.effects.CombatFx.laserHit;
 
                     laserColors = new Color[]{Color.valueOf("f5303690"), Color.valueOf("f53036"), Color.valueOf("ff786e"), Color.black};
 
@@ -1678,7 +1680,7 @@ public class Z_Units {
                     lightning = 5;
                     lightningLength = 10;
                     lightningLengthRand = 5;
-                    hitEffect = mindustry.content.Fx.hitLancer;
+                    hitEffect = zzw.content.units.effects.CombatFx.laserHit;
                 }};
             }});
 
@@ -1709,7 +1711,7 @@ public class Z_Units {
                     lightning = 5;
                     lightningLength = 10;
                     lightningLengthRand = 5;
-                    hitEffect = mindustry.content.Fx.hitLancer;
+                    hitEffect = zzw.content.units.effects.CombatFx.laserHit;
                 }};
             }});
 
@@ -1747,7 +1749,7 @@ public class Z_Units {
 
                     backColor = lightColor = Color.valueOf("f53036");
                     frontColor = Color.valueOf("ff786e");
-                    hitEffect = mindustry.content.Fx.hitLancer;
+                    hitEffect = zzw.content.units.effects.CombatFx.laserHit;
                 }};
             }});
 
@@ -1785,7 +1787,7 @@ public class Z_Units {
 
                     backColor = lightColor = Color.valueOf("f53036");
                     frontColor = Color.valueOf("ff786e");
-                    hitEffect = mindustry.content.Fx.hitLancer;
+                    hitEffect = zzw.content.units.effects.CombatFx.laserHit;
                 }};
             }});
         }};
@@ -1870,8 +1872,8 @@ public class Z_Units {
                     splashDamageRadius = 42f;  // ★ 加强 (原 30)
                     weaveScale = 8f;
                     weaveMag = 2f;
-                    hitEffect = mindustry.content.Fx.blastExplosion;
-                    despawnEffect = mindustry.content.Fx.blastExplosion;
+                    hitEffect = zzw.content.units.effects.CombatFx.blastExplosion;
+                    despawnEffect = zzw.content.units.effects.CombatFx.blastExplosion;
                 }};
             }});
 
@@ -1900,8 +1902,8 @@ public class Z_Units {
                     splashDamageRadius = 30f;
                     weaveScale = 8f;
                     weaveMag = 2f;
-                    hitEffect = mindustry.content.Fx.blastExplosion;
-                    despawnEffect = mindustry.content.Fx.blastExplosion;
+                    hitEffect = zzw.content.units.effects.CombatFx.blastExplosion;
+                    despawnEffect = zzw.content.units.effects.CombatFx.blastExplosion;
                 }};
             }});
 
@@ -1931,8 +1933,8 @@ public class Z_Units {
                     splashDamageRadius = 30f;
                     weaveScale = 8f;
                     weaveMag = 2f;
-                    hitEffect = mindustry.content.Fx.blastExplosion;
-                    despawnEffect = mindustry.content.Fx.blastExplosion;
+                    hitEffect = zzw.content.units.effects.CombatFx.blastExplosion;
+                    despawnEffect = zzw.content.units.effects.CombatFx.blastExplosion;
                 }};
             }});
 
@@ -1961,8 +1963,8 @@ public class Z_Units {
                     splashDamageRadius = 30f;
                     weaveScale = 8f;
                     weaveMag = 2f;
-                    hitEffect = mindustry.content.Fx.blastExplosion;
-                    despawnEffect = mindustry.content.Fx.blastExplosion;
+                    hitEffect = zzw.content.units.effects.CombatFx.blastExplosion;
+                    despawnEffect = zzw.content.units.effects.CombatFx.blastExplosion;
                 }};
             }});
 
@@ -2435,8 +2437,8 @@ public class Z_Units {
                     speed = 0f;  // 瞬时命中 (模拟光束)
                     backColor = lightColor = Color.valueOf("f53036");
                     frontColor = Color.valueOf("f53036");
-                    hitEffect = mindustry.content.Fx.hitLancer;
-                    shootEffect = mindustry.content.Fx.pointBeam;
+                    hitEffect = zzw.content.units.effects.CombatFx.laserHit;
+                    shootEffect = zzw.content.units.effects.CombatFx.pointBeam;
                 }};
             }});
 
@@ -2458,8 +2460,8 @@ public class Z_Units {
                     speed = 0f;
                     backColor = lightColor = Color.valueOf("f53036");
                     frontColor = Color.valueOf("f53036");
-                    hitEffect = mindustry.content.Fx.hitLancer;
-                    shootEffect = mindustry.content.Fx.pointBeam;
+                    hitEffect = zzw.content.units.effects.CombatFx.laserHit;
+                    shootEffect = zzw.content.units.effects.CombatFx.pointBeam;
                 }};
             }});
 
@@ -2486,7 +2488,7 @@ public class Z_Units {
                     backColor = lightColor = Color.valueOf("f53036");  // scarColor
                     frontColor = Color.black;
                     trailChance = 0.4f;
-                    hitEffect = mindustry.content.Fx.hitLancer;
+                    hitEffect = zzw.content.units.effects.CombatFx.laserHit;
 
                     overDamage = 2200000f;
                     ratioDamage = 1f / 170f;
@@ -2533,7 +2535,7 @@ public class Z_Units {
                     backColor = lightColor = Color.valueOf("f53036");
                     frontColor = Color.black;
                     trailChance = 0.4f;
-                    hitEffect = mindustry.content.Fx.hitLancer;
+                    hitEffect = zzw.content.units.effects.CombatFx.laserHit;
                     overDamage = 2200000f;
                     ratioDamage = 1f / 170f;
                     ratioStart = 4000f;
@@ -2577,7 +2579,7 @@ public class Z_Units {
                     backColor = lightColor = Color.valueOf("f53036");
                     frontColor = Color.black;
                     trailChance = 0.4f;
-                    hitEffect = mindustry.content.Fx.hitLancer;
+                    hitEffect = zzw.content.units.effects.CombatFx.laserHit;
                     overDamage = 2200000f;
                     ratioDamage = 1f / 170f;
                     ratioStart = 4000f;
@@ -2621,7 +2623,7 @@ public class Z_Units {
                     backColor = lightColor = Color.valueOf("f53036");
                     frontColor = Color.black;
                     trailChance = 0.4f;
-                    hitEffect = mindustry.content.Fx.hitLancer;
+                    hitEffect = zzw.content.units.effects.CombatFx.laserHit;
                     overDamage = 2200000f;
                     ratioDamage = 1f / 170f;
                     ratioStart = 4000f;
@@ -2674,8 +2676,8 @@ public class Z_Units {
                     splashDamageRadius = 80f;
                     width = 15f;
                     height = 21f;
-                    hitEffect = mindustry.content.Fx.hitLancer;
-                    shootEffect = mindustry.content.Fx.shootBig;
+                    hitEffect = zzw.content.units.effects.CombatFx.laserHit;
+                    shootEffect = zzw.content.units.effects.CombatFx.muzzleFlash;
                 }};
             }});
 
@@ -2707,8 +2709,8 @@ public class Z_Units {
                     splashDamageRadius = 80f;
                     width = 15f;
                     height = 21f;
-                    hitEffect = mindustry.content.Fx.hitLancer;
-                    shootEffect = mindustry.content.Fx.shootBig;
+                    hitEffect = zzw.content.units.effects.CombatFx.laserHit;
+                    shootEffect = zzw.content.units.effects.CombatFx.muzzleFlash;
                 }};
             }});
 
@@ -2741,8 +2743,8 @@ public class Z_Units {
                     splashDamageRadius = 80f;
                     width = 15f;
                     height = 21f;
-                    hitEffect = mindustry.content.Fx.hitLancer;
-                    shootEffect = mindustry.content.Fx.shootBig;
+                    hitEffect = zzw.content.units.effects.CombatFx.laserHit;
+                    shootEffect = zzw.content.units.effects.CombatFx.muzzleFlash;
                 }};
             }});
 
@@ -2774,8 +2776,8 @@ public class Z_Units {
                     splashDamageRadius = 80f;
                     width = 15f;
                     height = 21f;
-                    hitEffect = mindustry.content.Fx.hitLancer;
-                    shootEffect = mindustry.content.Fx.shootBig;
+                    hitEffect = zzw.content.units.effects.CombatFx.laserHit;
+                    shootEffect = zzw.content.units.effects.CombatFx.muzzleFlash;
                 }};
             }});
 
@@ -2803,7 +2805,7 @@ public class Z_Units {
         }};
 
         sapArtilleryFrag = new ArtilleryBulletType(2.3f, 30) {{
-            hitEffect = mindustry.content.Fx.sapExplosion;
+            hitEffect = zzw.content.units.effects.CombatFx.sapExplosion;
             knockback = 0.8f;
             lifetime = 70f;
             width = height = 20f;
@@ -2814,7 +2816,7 @@ public class Z_Units {
             frontColor = lightningColor = Pal.sapBullet;
             lightning = 2;
             lightningLength = 5;
-            smokeEffect = mindustry.content.Fx.shootBigSmoke2;
+            smokeEffect = zzw.content.units.effects.CombatFx.muzzleFlashSmokeBig;
             hitShake = 5f;
             lightRadius = 30f;
             lightColor = Pal.sap;
@@ -2828,7 +2830,7 @@ public class Z_Units {
             length = 150f;
             width = 25f;
             sideLength = sideWidth = 0f;
-            shootEffect = mindustry.content.Fx.lancerLaserShoot;
+            shootEffect = zzw.content.units.effects.CombatFx.laserShoot;
             hitColor = lightColor = lightningColor = Pal.sapBullet;
             status = mindustry.content.StatusEffects.sapped;
             statusDuration = 80f;
@@ -2844,9 +2846,9 @@ public class Z_Units {
             colors = new Color[]{Pal.sapBulletBack.cpy().a(0.3f), Pal.sapBullet.cpy().a(0.6f), Pal.sapBullet, Color.white};
             length = 190f;
             width = 5f;
-            shootEffect = mindustry.content.Fx.lancerLaserShoot;
+            shootEffect = zzw.content.units.effects.CombatFx.laserShoot;
             hitColor = lightColor = lightningColor = Pal.sapBullet;
-            hitEffect = mindustry.content.Fx.hitBulletSmall;
+            hitEffect = zzw.content.units.effects.CombatFx.bulletHitSmall;
             status = mindustry.content.StatusEffects.sapped;
             statusDuration = 80f;
             lifetime = 180f;
@@ -2890,8 +2892,8 @@ public class Z_Units {
                     trailSpacing = 25f;
                     splashDamage = 95f;
                     splashDamageRadius = 50f;
-                    hitEffect = mindustry.content.Fx.hitBulletBig;
-                    shootEffect = mindustry.content.Fx.instShoot;
+                    hitEffect = zzw.content.units.effects.CombatFx.bulletHitBig;
+                    shootEffect = zzw.content.units.effects.CombatFx.railShoot;
                     trailEffect = zzw.content.units.effects.TrailFx.coloredRailgunSmallTrail;   // PU_V8 TrailFx.coloredRailgunSmallTrail
                     width = 9f;
                     height = 17f;
@@ -3047,7 +3049,7 @@ public class Z_Units {
                 mirror = true;
                 shootSound = Sounds.shootArtillery;
                 bullet = new ArtilleryBulletType(3f, 38f) {{
-                    hitEffect = mindustry.content.Fx.blastExplosion;
+                    hitEffect = zzw.content.units.effects.CombatFx.blastExplosion;
                     knockback = 0.8f;
                     lifetime = 125f;
                     width = 14f;
@@ -3137,9 +3139,9 @@ public class Z_Units {
                     radius = 70f;
                     splashDamage = 5f;
                     splashDamageRadius = 70f;
-                    hitEffect = Fx.hitEmpSpark;
-                    shootEffect = Fx.hitEmpSpark;
-                    smokeEffect = Fx.shootBigSmoke2;
+                    hitEffect = CombatFx.empSpark;
+                    shootEffect = CombatFx.empSpark;
+                    smokeEffect = CombatFx.muzzleFlashSmokeBig;
                     backColor = mindustry.graphics.Pal.heal;
                     // PU_V8: 治疗绿拖尾
                     trailLength = 15;
@@ -3330,7 +3332,7 @@ public class Z_Units {
                     lifetime = 20f;
                     splashDamageRadius = 90f;
                     splashDamage = 90f;
-                    hitEffect = mindustry.content.Fx.sapExplosion;
+                    hitEffect = zzw.content.units.effects.CombatFx.sapExplosion;
                     ammoMultiplier = 4f;
                     trailEffect = zzw.content.units.effects.TrailFx.coloredRailgunSmallTrail;   // PU_V8 TrailFx.coloredRailgunSmallTrail
                     trailSpacing = 15f;
@@ -3338,7 +3340,7 @@ public class Z_Units {
                     frontColor = lightningColor = mindustry.graphics.Pal.sapBullet;
                     lightning = 3;
                     lightningLength = 20;
-                    smokeEffect = mindustry.content.Fx.shootBigSmoke2;
+                    smokeEffect = zzw.content.units.effects.CombatFx.muzzleFlashSmokeBig;
                     hitShake = 10f;
                     lightRadius = 40f;
                     lightColor = mindustry.graphics.Pal.sap;
@@ -3354,7 +3356,7 @@ public class Z_Units {
                     fragLifeMin = 0.3f;
                     fragBullets = 4;
                     fragBullet = new ArtilleryBulletType(2.3f, 30f) {{
-                        hitEffect = mindustry.content.Fx.sapExplosion;
+                        hitEffect = zzw.content.units.effects.CombatFx.sapExplosion;
                         knockback = 0.8f;
                         lifetime = 70f;
                         width = 20f;
@@ -3366,7 +3368,7 @@ public class Z_Units {
                         frontColor = lightningColor = mindustry.graphics.Pal.sapBullet;
                         lightning = 2;
                         lightningLength = 5;
-                        smokeEffect = mindustry.content.Fx.shootBigSmoke2;
+                        smokeEffect = zzw.content.units.effects.CombatFx.muzzleFlashSmokeBig;
                         hitShake = 5f;
                         lightRadius = 30f;
                         lightColor = mindustry.graphics.Pal.sap;
@@ -3431,8 +3433,8 @@ public class Z_Units {
                     drag = -0.01f;
                     splashDamageRadius = 30f;
                     splashDamage = 55f;
-                    hitEffect = Fx.blastExplosion;
-                    despawnEffect = Fx.blastExplosion;
+                    hitEffect = CombatFx.blastExplosion;
+                    despawnEffect = CombatFx.blastExplosion;
                     backColor = trailColor = mindustry.graphics.Pal.sapBulletBack;
                     frontColor = lightningColor = lightColor = mindustry.graphics.Pal.sapBullet;
                     trailLength = 13;
@@ -3497,7 +3499,7 @@ public class Z_Units {
                     lifetime = 23f;
                     splashDamageRadius = 110f;
                     splashDamage = 90f;
-                    hitEffect = mindustry.content.Fx.sapExplosion;
+                    hitEffect = zzw.content.units.effects.CombatFx.sapExplosion;
                     ammoMultiplier = 4f;
                     trailEffect = zzw.content.units.effects.TrailFx.coloredRailgunSmallTrail;   // PU_V8 TrailFx.coloredRailgunSmallTrail
                     trailSpacing = 15f;
@@ -3505,7 +3507,7 @@ public class Z_Units {
                     frontColor = lightningColor = mindustry.graphics.Pal.sapBullet;
                     lightning = 3;
                     lightningLength = 20;
-                    smokeEffect = Fx.shootBigSmoke2;
+                    smokeEffect = CombatFx.muzzleFlashSmokeBig;
                     hitShake = 10f;
                     lightRadius = 40f;
                     lightColor = mindustry.graphics.Pal.sap;
@@ -3521,7 +3523,7 @@ public class Z_Units {
                     fragLifeMin = 0.3f;
                     fragBullets = 4;
                     fragBullet = new ArtilleryBulletType(2.3f, 30f) {{
-                        hitEffect = mindustry.content.Fx.sapExplosion;
+                        hitEffect = zzw.content.units.effects.CombatFx.sapExplosion;
                         knockback = 0.8f;
                         lifetime = 70f;
                         width = 20f;
@@ -3533,7 +3535,7 @@ public class Z_Units {
                         frontColor = lightningColor = mindustry.graphics.Pal.sapBullet;
                         lightning = 2;
                         lightningLength = 5;
-                        smokeEffect = mindustry.content.Fx.shootBigSmoke2;
+                        smokeEffect = zzw.content.units.effects.CombatFx.muzzleFlashSmokeBig;
                         hitShake = 5f;
                         lightRadius = 30f;
                         lightColor = mindustry.graphics.Pal.sap;
@@ -3665,7 +3667,7 @@ public class Z_Units {
             aphelionBullet.lightningType = new BulletType(0f, 10f){
                 {
                     lifetime = mindustry.content.Fx.lightning.lifetime;
-                    hitEffect = mindustry.content.Fx.hitLancer;
+                    hitEffect = zzw.content.units.effects.CombatFx.laserHit;
                     despawnEffect = Fx.none;
                     status = mindustry.content.StatusEffects.shocked;
                     statusDuration = 60f;
@@ -4170,8 +4172,8 @@ public class Z_Units {
                     lifetime = 30f;
                     width = 16f;
                     height = 20f;
-                    shootEffect = mindustry.content.Fx.shootBig;
-                    smokeEffect = mindustry.content.Fx.shootBigSmoke;
+                    shootEffect = zzw.content.units.effects.CombatFx.muzzleFlash;
+                    smokeEffect = zzw.content.units.effects.CombatFx.muzzleFlashSmoke;
                 }};
             }});
 
@@ -4239,8 +4241,8 @@ public class Z_Units {
                     lifetime = 30f;
                     width = 16f;
                     height = 20f;
-                    shootEffect = Fx.shootBig;
-                    smokeEffect = Fx.shootBigSmoke;
+                    shootEffect = CombatFx.muzzleFlash;
+                    smokeEffect = CombatFx.muzzleFlashSmoke;
                 }};
             }});
 
@@ -4259,8 +4261,8 @@ public class Z_Units {
                     width = 10f;
                     height = 13f;
                     lifetime = 60f;
-                    shootEffect = mindustry.content.Fx.shootBig;
-                    smokeEffect = mindustry.content.Fx.shootBigSmoke;
+                    shootEffect = zzw.content.units.effects.CombatFx.muzzleFlash;
+                    smokeEffect = zzw.content.units.effects.CombatFx.muzzleFlashSmoke;
                 }};
             }});
 
@@ -4322,8 +4324,8 @@ public class Z_Units {
                     lifetime = 30f;
                     width = 18f;
                     height = 22f;
-                    shootEffect = mindustry.content.Fx.shootBig;
-                    smokeEffect = mindustry.content.Fx.shootBigSmoke;
+                    shootEffect = zzw.content.units.effects.CombatFx.muzzleFlash;
+                    smokeEffect = zzw.content.units.effects.CombatFx.muzzleFlashSmoke;
                 }};
             }});
 
@@ -4531,8 +4533,8 @@ public class Z_Units {
                     splashDamage = 30f;
                     lifetime = 62f;
                     trailColor = mindustry.graphics.Pal.missileYellowBack;
-                    hitEffect = mindustry.content.Fx.blastExplosion;
-                    despawnEffect = mindustry.content.Fx.blastExplosion;
+                    hitEffect = zzw.content.units.effects.CombatFx.blastExplosion;
+                    despawnEffect = zzw.content.units.effects.CombatFx.blastExplosion;
                     weaveScale = 8f;
                     weaveMag = 2f;
                 }};
@@ -4558,8 +4560,8 @@ public class Z_Units {
                     splashDamage = 30f;
                     lifetime = 62f;
                     trailColor = mindustry.graphics.Pal.missileYellowBack;
-                    hitEffect = mindustry.content.Fx.blastExplosion;
-                    despawnEffect = mindustry.content.Fx.blastExplosion;
+                    hitEffect = zzw.content.units.effects.CombatFx.blastExplosion;
+                    despawnEffect = zzw.content.units.effects.CombatFx.blastExplosion;
                     weaveScale = 8f;
                     weaveMag = 2f;
                 }};
@@ -4585,10 +4587,10 @@ public class Z_Units {
                     splashDamage = 160f;
                     trailWidth = 7f;
                     trailColor = mindustry.graphics.Pal.bulletYellowBack;
-                    hitEffect = mindustry.content.Fx.massiveExplosion;
+                    hitEffect = zzw.content.units.effects.CombatFx.massiveExplosion;
                     lifetime = 65f;
                     fragBullet = new mindustry.entities.bullet.ArtilleryBulletType(3f, 20f) {{
-                        hitEffect = mindustry.content.Fx.flakExplosion;
+                        hitEffect = zzw.content.units.effects.CombatFx.flakBlast;
                         knockback = 0.8f;
                         lifetime = 80f;
                         width = 11f;
@@ -4648,7 +4650,7 @@ public class Z_Units {
                     hitSize = 5f;
                     width = 16f;
                     height = 23f;
-                    shootEffect = Fx.shootBig;
+                    shootEffect = CombatFx.muzzleFlash;
                     pierceCap = 2;
                     pierceBuilding = true;
                     knockback = 0.7f;
@@ -4673,7 +4675,7 @@ public class Z_Units {
                     hitSize = 5f;
                     width = 16f;
                     height = 23f;
-                    shootEffect = Fx.shootBig;
+                    shootEffect = CombatFx.muzzleFlash;
                     pierceCap = 2;
                     pierceBuilding = true;
                     knockback = 0.7f;
@@ -4713,8 +4715,8 @@ public class Z_Units {
                     splashDamage = 45f;
                     lifetime = 65f;
                     trailColor = Pal.missileYellowBack;
-                    hitEffect = Fx.blastExplosion;
-                    despawnEffect = Fx.blastExplosion;
+                    hitEffect = CombatFx.blastExplosion;
+                    despawnEffect = CombatFx.blastExplosion;
                 }};
             }}, new GuidedMissileWeapon(name + "-side-silo") {{
                 top = false;
@@ -4746,8 +4748,8 @@ public class Z_Units {
                     splashDamage = 45f;
                     lifetime = 65f;
                     trailColor = Pal.missileYellowBack;
-                    hitEffect = Fx.blastExplosion;
-                    despawnEffect = Fx.blastExplosion;
+                    hitEffect = CombatFx.blastExplosion;
+                    despawnEffect = CombatFx.blastExplosion;
                 }};
             }});
 
@@ -4777,8 +4779,8 @@ public class Z_Units {
                     splashDamage = 30f;
                     lifetime = 62f;
                     trailColor = Pal.missileYellowBack;
-                    hitEffect = Fx.blastExplosion;
-                    despawnEffect = Fx.blastExplosion;
+                    hitEffect = CombatFx.blastExplosion;
+                    despawnEffect = CombatFx.blastExplosion;
                     weaveScale = 8f;
                     weaveMag = 2f;
                 }};
@@ -4902,7 +4904,7 @@ public class Z_Units {
                     height = 14f;
                     width = 11f;
                     trailWidth = (width / 2f) / 2f;
-                    hitEffect = Fx.hitLancer;
+                    hitEffect = CombatFx.laserHit;
                     hitColor = mindustry.graphics.Pal.lancerLaser;
                     trailColor = backColor = lightColor = mindustry.graphics.Pal.lancerLaser;
                     frontColor = Color.white;
@@ -4947,7 +4949,7 @@ public class Z_Units {
                     height = 16f;
                     width = 12f;
                     trailWidth = (width / 2f) / 2f;
-                    hitEffect = Fx.hitLancer;
+                    hitEffect = CombatFx.laserHit;
                     hitColor = mindustry.graphics.Pal.lancerLaser;
                     trailColor = backColor = lightColor = mindustry.graphics.Pal.lancerLaser;
                     frontColor = Color.white;
@@ -4992,7 +4994,7 @@ public class Z_Units {
                     height = 13f;
                     width = 10f;
                     trailWidth = (width / 2f) / 2f;
-                    hitEffect = Fx.hitLancer;
+                    hitEffect = CombatFx.laserHit;
                     hitColor = mindustry.graphics.Pal.lancerLaser;
                     trailColor = backColor = lightColor = mindustry.graphics.Pal.lancerLaser;
                     frontColor = Color.white;
@@ -5022,7 +5024,7 @@ public class Z_Units {
                     height = 17f;
                     width = 13f;
                     trailWidth = (width / 2f) / 2f;
-                    hitEffect = Fx.hitLancer;
+                    hitEffect = CombatFx.laserHit;
                     hitColor = mindustry.graphics.Pal.lancerLaser;
                     trailColor = backColor = lightColor = mindustry.graphics.Pal.lancerLaser;
                     frontColor = Color.white;
@@ -5073,7 +5075,7 @@ public class Z_Units {
                     height = 12f;
                     width = 9f;
                     trailWidth = (width / 2f) / 2f;
-                    hitEffect = Fx.hitLancer;
+                    hitEffect = CombatFx.laserHit;
                     hitColor = mindustry.graphics.Pal.lancerLaser;
                     trailColor = backColor = lightColor = mindustry.graphics.Pal.lancerLaser;
                     frontColor = Color.white;
@@ -5104,7 +5106,7 @@ public class Z_Units {
                     height = 12f;
                     width = 9f;
                     trailWidth = (width / 2f) / 2f;
-                    hitEffect = Fx.hitLancer;
+                    hitEffect = CombatFx.laserHit;
                     hitColor = mindustry.graphics.Pal.lancerLaser;
                     trailColor = backColor = lightColor = mindustry.graphics.Pal.lancerLaser;
                     frontColor = Color.white;
@@ -5134,7 +5136,7 @@ public class Z_Units {
                     height = 18f;
                     width = 14f;
                     trailWidth = (width / 2f) / 2f;
-                    hitEffect = Fx.hitLancer;
+                    hitEffect = CombatFx.laserHit;
                     hitColor = mindustry.graphics.Pal.lancerLaser;
                     trailColor = backColor = lightColor = mindustry.graphics.Pal.lancerLaser;
                     frontColor = Color.white;
@@ -5178,7 +5180,7 @@ public class Z_Units {
                 height = 14f;
                 width = 10f;
                 trailWidth = (width / 2f) / 2f;
-                hitEffect = Fx.hitLancer;
+                hitEffect = CombatFx.laserHit;
                 trailColor = backColor = lightColor = hitColor = Pal.lancerLaser;
                 frontColor = Color.white;
                 empRange = 120f;
@@ -5290,7 +5292,7 @@ public class Z_Units {
                     height = 19f;
                     width = 14.5f;
                     trailWidth = (width / 2f) / 2f;
-                    hitEffect = Fx.hitLancer;
+                    hitEffect = CombatFx.laserHit;
                     trailColor = backColor = lightColor = hitColor = Pal.lancerLaser;
                     frontColor = Color.white;
                     empRange = 175f;

@@ -113,7 +113,7 @@ public class Z_ScarUnits {
                     // PU132: updateEffect = UnityFx.scarRailTrail → pointEffect
                     pointEffect = ScarFx.scarRailTrail;
                     pierceEffect = ScarFx.scarRailHit;
-                    hitEffect = Fx.massiveExplosion;
+                    hitEffect = zzw.content.units.effects.CombatFx.massiveExplosion;
                     pierceDamageFactor = 0.3f;
                 }};
             }});
@@ -150,7 +150,7 @@ public class Z_ScarUnits {
                     pointEffectSpace = 59f;
                     pointEffect = ScarFx.scarRailTrail;
                     pierceEffect = ScarFx.scarRailHit;
-                    hitEffect = Fx.massiveExplosion;
+                    hitEffect = zzw.content.units.effects.CombatFx.massiveExplosion;
                     pierceDamageFactor = 0.3f;
                 }};
             }}, new Weapon("create-scar-missile-launcher"){{
@@ -209,7 +209,7 @@ public class Z_ScarUnits {
                         pointEffectSpace = 60f;
                         pointEffect = ScarFx.scarRailTrail;
                         pierceEffect = ScarFx.scarRailHit;
-                        hitEffect = Fx.massiveExplosion;
+                        hitEffect = zzw.content.units.effects.CombatFx.massiveExplosion;
                         pierceDamageFactor = 0.2f;
                     }};
                 }}, new BlankWeapon() {{
@@ -225,7 +225,7 @@ public class Z_ScarUnits {
                         pointEffectSpace = 40f;
                         pointEffect = ScarFx.scarRailTrail;
                         pierceEffect = ScarFx.scarRailHit;
-                        hitEffect = Fx.massiveExplosion;
+                        hitEffect = zzw.content.units.effects.CombatFx.massiveExplosion;
                         pierceDamageFactor = 0.5f;
                     }};
                 }}, new Weapon("create-scar-missile-launcher"){{
@@ -306,7 +306,7 @@ public class Z_ScarUnits {
                     pointEffectSpace = 61f;
                     pointEffect = ScarFx.scarRailTrail;
                     pierceEffect = ScarFx.scarRailHit;
-                    hitEffect = Fx.massiveExplosion;
+                    hitEffect = zzw.content.units.effects.CombatFx.massiveExplosion;
                     pierceDamageFactor = 0.2f;
                 }};
             }});
@@ -361,7 +361,7 @@ public class Z_ScarUnits {
                     pointEffectSpace = 61f;
                     pointEffect = ScarFx.scarRailTrail;
                     pierceEffect = ScarFx.scarRailHit;
-                    hitEffect = Fx.massiveExplosion;
+                    hitEffect = zzw.content.units.effects.CombatFx.massiveExplosion;
                     pierceDamageFactor = 0.35f;
 
                     // PU132 在此处手动重写 init() 补分段特效;

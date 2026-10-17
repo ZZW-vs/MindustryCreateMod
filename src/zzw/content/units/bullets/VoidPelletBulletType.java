@@ -27,8 +27,8 @@ public class VoidPelletBulletType extends AntiCheatBulletTypeBase {
         trailColor = Color.black;
         trailLength = 16;
         trailWidth = 2f;
-        despawnEffect = Fx.hitLancer;  // PU132: HitFx.voidHit, v158 用 Fx.hitLancer 替代
-        hitEffect = Fx.hitLancer;     // PU132: HitFx.voidHit, v158 用 Fx.hitLancer 替代
+        despawnEffect = zzw.content.units.effects.HitEffect.voidHit;  // PU132: HitFx.voidHit (搬回原版特效)
+        hitEffect = zzw.content.units.effects.HitEffect.voidHit;      // PU132: HitFx.voidHit (搬回原版特效)
         homingPower = 0.01f;
         homingRange = 50f;
         homingDelay = 20f;

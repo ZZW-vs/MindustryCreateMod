@@ -12,6 +12,7 @@ import mindustry.Vars;
 import mindustry.entities.Units;
 import mindustry.gen.Bullet;
 import mindustry.graphics.Drawf;
+import zzw.content.units.effects.HitEffect;
 
 /**
  * PU132 EndPointBlastLaserBulletType 移植版 (简化)
@@ -47,7 +48,7 @@ public class EndPointBlastLaserBulletType extends AntiCheatBulletTypeBase {
     public EndPointBlastLaserBulletType(float damage) {
         speed = 0f;
         this.damage = damage;
-        hitEffect = mindustry.content.Fx.hitLancer;
+        hitEffect = HitEffect.endHitRedBig;
         despawnEffect = mindustry.content.Fx.none;
         shootEffect = mindustry.content.Fx.none;
         smokeEffect = mindustry.content.Fx.none;

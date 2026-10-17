@@ -27,6 +27,7 @@ import zzw.content.Z_StatusEffects;
 import zzw.content.blocks.turrets.*;
 import zzw.content.units.bullets.ChangeTeamLaserBulletType;
 import zzw.content.units.effects.ChargeFx;
+import zzw.content.units.effects.CombatFx;
 import zzw.content.units.effects.HitEffect;
 import zzw.content.units.effects.ParticleFx;
 import zzw.content.units.effects.ShootEffect;
@@ -154,11 +155,11 @@ public class Z_Turrets {
                 width = 15f * 1.12f;
                 height = 21f * 1.12f;
                 hitSize = 4.8f;
-                shootEffect = Fx.shootBig;
+                shootEffect = CombatFx.muzzleFlash;
                 ammoMultiplier = 4;
                 reloadMultiplier = 1.7f;
                 knockback = 0.3f;
-                hitEffect = despawnEffect = Fx.hitBulletColor;
+                hitEffect = despawnEffect = CombatFx.bulletHit;
                 hitColor = backColor = trailColor = Pal.graphiteAmmoBack;
                 frontColor = Pal.graphiteAmmoFront;
             }}, Items.silicon, new BasicBulletType(7.5f * 1.1f, 50f * 1.23f) {{
@@ -167,12 +168,12 @@ public class Z_Turrets {
                 width = 15f * 1.12f;
                 height = 21f * 1.12f;
                 hitSize = 4.8f;
-                shootEffect = Fx.shootBig;
+                shootEffect = CombatFx.muzzleFlash;
                 ammoMultiplier = 4;
                 reloadMultiplier = 1.3f;
                 knockback = 0.3f;
                 homingPower = 0.09f;
-                hitEffect = despawnEffect = Fx.hitBulletColor;
+                hitEffect = despawnEffect = CombatFx.bulletHit;
                 hitColor = backColor = trailColor = Pal.graphiteAmmoBack;
                 frontColor = Pal.graphiteAmmoFront;
             }}, Items.pyratite, new BasicBulletType(7f * 1.1f, 70f * 1.4f) {{
@@ -181,11 +182,11 @@ public class Z_Turrets {
                 width = 16f * 1.12f;
                 height = 21f * 1.12f;
                 hitSize = 5f;
-                shootEffect = Fx.shootBig;
+                shootEffect = CombatFx.muzzleFlash;
                 frontColor = Pal.lightishOrange;
                 backColor = Pal.lightOrange;
                 status = mindustry.content.StatusEffects.burning;
-                hitEffect = new mindustry.entities.effect.MultiEffect(Fx.hitBulletSmall, Fx.fireHit);
+                hitEffect = new mindustry.entities.effect.MultiEffect(CombatFx.bulletHitSmall, CombatFx.fireHitSpark);
                 makeFire = true;
                 pierceCap = 2;
                 pierceBuilding = true;
@@ -199,7 +200,7 @@ public class Z_Turrets {
                 width = 16f * 1.12f;
                 height = 23f * 1.12f;
                 hitSize = 5f;
-                shootEffect = Fx.shootBig;
+                shootEffect = CombatFx.muzzleFlash;
                 pierceCap = 2;
                 pierceBuilding = true;
                 knockback = 0.7f;
@@ -240,11 +241,11 @@ public class Z_Turrets {
                 width = 15f * 1.32f;
                 height = 21f * 1.32f;
                 hitSize = 4.8f;
-                shootEffect = Fx.shootBig;
+                shootEffect = CombatFx.muzzleFlash;
                 ammoMultiplier = 4;
                 reloadMultiplier = 1.7f;
                 knockback = 0.3f;
-                hitEffect = despawnEffect = Fx.hitBulletColor;
+                hitEffect = despawnEffect = CombatFx.bulletHit;
                 hitColor = backColor = trailColor = Pal.graphiteAmmoBack;
                 frontColor = Pal.graphiteAmmoFront;
             }}, Items.silicon, new BasicBulletType(7.5f * 1.3f, 50f * 1.4f) {{
@@ -253,12 +254,12 @@ public class Z_Turrets {
                 width = 15f * 1.19f;
                 height = 21f * 1.19f;
                 hitSize = 4.8f;
-                shootEffect = Fx.shootBig;
+                shootEffect = CombatFx.muzzleFlash;
                 ammoMultiplier = 4;
                 reloadMultiplier = 1.3f;
                 knockback = 0.3f;
                 homingPower = 0.09f;
-                hitEffect = despawnEffect = Fx.hitBulletColor;
+                hitEffect = despawnEffect = CombatFx.bulletHit;
                 hitColor = backColor = trailColor = Pal.graphiteAmmoBack;
                 frontColor = Pal.graphiteAmmoFront;
             }}, Items.pyratite, new BasicBulletType(7f * 1.3f, 70f * 1.7f) {{
@@ -267,11 +268,11 @@ public class Z_Turrets {
                 width = 16f * 1.32f;
                 height = 21f * 1.32f;
                 hitSize = 5f;
-                shootEffect = Fx.shootBig;
+                shootEffect = CombatFx.muzzleFlash;
                 frontColor = Pal.lightishOrange;
                 backColor = Pal.lightOrange;
                 status = mindustry.content.StatusEffects.burning;
-                hitEffect = new mindustry.entities.effect.MultiEffect(Fx.hitBulletSmall, Fx.fireHit);
+                hitEffect = new mindustry.entities.effect.MultiEffect(CombatFx.bulletHitSmall, CombatFx.fireHitSpark);
                 makeFire = true;
                 pierceCap = 2;
                 pierceBuilding = true;
@@ -285,7 +286,7 @@ public class Z_Turrets {
                 width = 16f * 1.32f;
                 height = 23f * 1.32f;
                 hitSize = 5f;
-                shootEffect = Fx.shootBig;
+                shootEffect = CombatFx.muzzleFlash;
                 pierceCap = 2;
                 pierceBuilding = true;
                 knockback = 0.7f;
@@ -330,11 +331,11 @@ public class Z_Turrets {
                 width = 15f * 1.34f * 1.15f;
                 height = 21f * 1.34f * 1.15f;
                 hitSize = 4.8f;
-                shootEffect = Fx.shootBig;
+                shootEffect = CombatFx.muzzleFlash;
                 ammoMultiplier = 4;
                 reloadMultiplier = 1.7f;
                 knockback = 0.3f;
-                hitEffect = despawnEffect = Fx.hitBulletColor;
+                hitEffect = despawnEffect = CombatFx.bulletHit;
                 hitColor = backColor = trailColor = Pal.graphiteAmmoBack;
                 frontColor = Pal.graphiteAmmoFront;
             }}, Items.silicon, new BasicBulletType(7.5f * 1.3f, 125) {{
@@ -343,12 +344,12 @@ public class Z_Turrets {
                 width = 15f * 1.21f * 1.15f;
                 height = 21f * 1.21f * 1.15f;
                 hitSize = 4.8f;
-                shootEffect = Fx.shootBig;
+                shootEffect = CombatFx.muzzleFlash;
                 ammoMultiplier = 4;
                 reloadMultiplier = 1.3f;
                 knockback = 0.3f;
                 homingPower = 0.09f;
-                hitEffect = despawnEffect = Fx.hitBulletColor;
+                hitEffect = despawnEffect = CombatFx.bulletHit;
                 hitColor = backColor = trailColor = Pal.graphiteAmmoBack;
                 frontColor = Pal.graphiteAmmoFront;
             }}, Items.pyratite, new BasicBulletType(7f * 1.3f, 193) {{
@@ -357,11 +358,11 @@ public class Z_Turrets {
                 width = 16f * 1.34f * 1.15f;
                 height = 21f * 1.34f * 1.15f;
                 hitSize = 5f;
-                shootEffect = Fx.shootBig;
+                shootEffect = CombatFx.muzzleFlash;
                 frontColor = Pal.lightishOrange;
                 backColor = Pal.lightOrange;
                 status = mindustry.content.StatusEffects.burning;
-                hitEffect = new mindustry.entities.effect.MultiEffect(Fx.hitBulletSmall, Fx.fireHit);
+                hitEffect = new mindustry.entities.effect.MultiEffect(CombatFx.bulletHitSmall, CombatFx.fireHitSpark);
                 makeFire = true;
                 pierceCap = 2;
                 pierceBuilding = true;
@@ -375,7 +376,7 @@ public class Z_Turrets {
                 width = 16f * 1.34f * 1.15f;
                 height = 23f * 1.34f * 1.15f;
                 hitSize = 5f;
-                shootEffect = Fx.shootBig;
+                shootEffect = CombatFx.muzzleFlash;
                 pierceCap = 2;
                 pierceBuilding = true;
                 knockback = 0.7f;
@@ -397,7 +398,7 @@ public class Z_Turrets {
             consumePower(19f);
             shake = 3f;
             firingMoveFract = 0.2f;
-            shootEffect = Fx.shootBigSmoke2;
+            shootEffect = CombatFx.muzzleFlashSmokeBig;
             recoil = 4f;
             shootSound = Sounds.shootMeltdown;  // ★ 原版 Sounds.laserbig, v158 用 shootMeltdown 替代
             heatColor = Color.valueOf("e04300");
@@ -432,7 +433,7 @@ public class Z_Turrets {
             consumePower(39f);
             shake = 4f;
             firingMoveFract = 0.16f;
-            shootEffect = Fx.shootBigSmoke2;
+            shootEffect = CombatFx.muzzleFlashSmokeBig;
             recoil = 7f;
             heatColor = Color.white;
             rotateSpeed = 1.9f;
@@ -465,7 +466,7 @@ public class Z_Turrets {
             consumePower(87f);
             shake = 4f;
             firingMoveFract = 0.09f;
-            shootEffect = Fx.shootBigSmoke2;
+            shootEffect = CombatFx.muzzleFlashSmokeBig;
             recoil = 7f;
             heatColor = Color.white;
             rotateSpeed = 0.97f;
@@ -507,7 +508,7 @@ public class Z_Turrets {
             consumePower(175f);
             shake = 4f;
             firingMoveFract = 0.09f;
-            shootEffect = Fx.shootBigSmoke2;
+            shootEffect = CombatFx.muzzleFlashSmokeBig;
             recoil = 7f;
             heatColor = Color.white;
             rotateSpeed = 0.82f;
@@ -760,7 +761,7 @@ public class Z_Turrets {
                 shrinkY = 0f;
                 backColor = lightColor = hitColor = Pal.lancerLaser;
                 frontColor = Color.white;
-                hitEffect = Fx.hitLancer;
+                hitEffect = CombatFx.laserHit;
                 despawnEffect = Fx.none;
             }
 
@@ -794,7 +795,7 @@ public class Z_Turrets {
                 hittable = absorbable = collides = false;
                 backColor = trailColor = hitColor = lightColor = Pal.lancerLaser;
                 shootEffect = smokeEffect = Fx.none;
-                hitEffect = Fx.hitLancer;
+                hitEffect = CombatFx.laserHit;
                 despawnEffect = HitEffect.lightHitLarge;
                 frontColor = Color.white;
                 // PU132 decayEffect: 主弹沿途撒衰变小拖尾
@@ -809,7 +810,7 @@ public class Z_Turrets {
                     height = 9f;
                     width = 8f;
                     backColor = trailColor = hitColor = lightColor = Pal.lancerLaser;
-                    hitEffect = Fx.hitLancer;
+                    hitEffect = CombatFx.laserHit;
                     despawnEffect = HitEffect.wBosonDecayHit;
                     frontColor = Color.white;
                     hittable = false;
@@ -874,7 +875,7 @@ public class Z_Turrets {
                 lifetime = 27f;
                 hitSize = 8f;
                 shootEffect = smokeEffect = Fx.none;
-                hitEffect = Fx.hitLancer;
+                hitEffect = CombatFx.laserHit;
                 hittable = false;
             }};
         }};
@@ -1015,10 +1016,10 @@ public class Z_Turrets {
                 length = 330f;
                 width = 3.8f;
                 hitSize = 13f;
-                hitEffect = Fx.hitLancer;
+                hitEffect = CombatFx.laserHit;
                 despawnEffect = Fx.none;
                 drawSize = 460f;
-                shootEffect = Fx.lightningShoot;
+                shootEffect = CombatFx.lightningShoot;
                 smokeEffect = Fx.none;
             }};
         }};
@@ -1074,8 +1075,8 @@ public class Z_Turrets {
                 //   子弹寿命按"炮口到瞄准点距离 / 射程"缩放, 落点正好在瞄准点,
                 //   不会按 speed × lifetime 一路飞出射程圈 (攻击距离 = 速度 × 存在时间)。
                 scaleLife = true;
-                shootEffect = Fx.lightningShoot;
-                hitEffect = Fx.hitLancer;
+                shootEffect = CombatFx.lightningShoot;
+                hitEffect = CombatFx.laserHit;
                 despawnEffect = smokeEffect = Fx.none;
                 // v158 充能特效在 BulletType.chargeEffect 上 (原 PU_V8 block.chargeBeginEffect)
                 chargeEffect = ChargeFx.ephmeronCharge;
@@ -1195,7 +1196,7 @@ public class Z_Turrets {
                 status = mindustry.content.StatusEffects.shocked;
                 statusDuration = 3f * 60f;
                 beamWidth = 0.62f;
-                hitEffect = Fx.hitLiquid;
+                hitEffect = CombatFx.liquidHit;
                 castsLightning = true;
                 minLightningDamage = damage / 1.8f;
                 maxLightningDamage = damage / 1.2f;
@@ -1345,7 +1346,7 @@ public class Z_Turrets {
                 collidesAir = false;
                 lifetime = 70f;
                 despawnEffect = ParticleFx.surgeSplash;
-                hitEffect = Fx.massiveExplosion;
+                hitEffect = CombatFx.massiveExplosion;
                 keepVelocity = false;
                 // ★ 修复"炮弹只能射到射程最远处": 原先 collides=false 使炮弹不与任何目标碰撞,
                 //   只能飞到寿命尽头 (≈射程最远处) 才引爆, 射程内的单位/建筑全部穿过不受伤.
@@ -1400,7 +1401,7 @@ public class Z_Turrets {
                 collides = false;
                 hitSize = 0;
                 hittable = false;
-                hitEffect = Fx.hitLiquid;
+                hitEffect = CombatFx.liquidHit;
                 maxRadius = 10f;
                 shieldHealth = 3000f;
                 // breakSound = Sounds.wave; // TODO: PU132 原版护盾破碎音效, v158 无此音效
@@ -1431,7 +1432,7 @@ public class Z_Turrets {
                     lifetime = 120f;
                     pierce = true;
                     hittable = false;
-                    hitEffect = Fx.hitLancer;
+                    hitEffect = CombatFx.laserHit;
                     despawnEffect = Fx.none;
                 }
 
@@ -1471,7 +1472,7 @@ public class Z_Turrets {
                 hitSize = 4f;
                 shootEffect = Fx.none;
                 smokeEffect = Fx.none;
-                hitEffect = Fx.hitLiquid;
+                hitEffect = CombatFx.liquidHit;
                 despawnEffect = Fx.none;
                 collides = true;
                 collidesTiles = true;
@@ -1505,7 +1506,7 @@ public class Z_Turrets {
                 hitSize = 4f;
                 shootEffect = Fx.none;
                 smokeEffect = Fx.none;
-                hitEffect = Fx.hitLiquid;
+                hitEffect = CombatFx.liquidHit;
                 despawnEffect = Fx.none;
                 collides = true;
                 collidesTiles = true;
@@ -1592,7 +1593,7 @@ public class Z_Turrets {
             shootCone = 40f;
             consumePower(19f);
             shake = 3f;
-            shootEffect = Fx.shootBigSmoke2;
+            shootEffect = CombatFx.muzzleFlashSmokeBig;
             recoil = 8f;
             shootSound = Sounds.shootLancer;  // ★ v158 无 Sounds.laser, 用 shootLancer (激光炮射击) 替代
             loopSound = Z_Sounds.eclipseBeam;  // ★ 原版 UnitySounds.eclipseBeam (advance/eclipse-beam.ogg)
@@ -1650,7 +1651,7 @@ public class Z_Turrets {
                 lifetime = 18f;
                 shootEffect = Fx.none;
                 smokeEffect = Fx.none;
-                hitEffect = Fx.hitLancer;
+                hitEffect = CombatFx.laserHit;
                 incendChance = -1f;
                 lightColor = Color.valueOf("59a7ff");
                 conversionStatusEffect = mindustry.content.StatusEffects.none;

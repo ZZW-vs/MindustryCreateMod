@@ -50,7 +50,7 @@ public class SlowLightningType {
     public boolean continuous = false;
     /** ★ 优化：碰撞检测间隔，从5tick增加到10tick (仅影响伤害频率, 不影响视觉) */
     public float collideInterval = 10f;
-    public Effect hitEffect = mindustry.content.Fx.hitLancer;
+    public Effect hitEffect = CombatFx.laserHit;
 
     public SlowLightningEntity create(Team team, float x, float y, float rotation, Floatp liveDamage, Posc parent, Position target) {
         return create(team, null, x, y, rotation, liveDamage, parent, target);

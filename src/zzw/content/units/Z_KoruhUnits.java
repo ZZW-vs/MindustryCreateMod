@@ -60,10 +60,10 @@ public class Z_KoruhUnits{
                 shootSound = Sounds.shootArc;  // v155.4: spark -> shootArc
                 bullet = new LightningBulletType(){{
                     damage = 12;
-                    shootEffect = Fx.hitLancer;
+                    shootEffect = zzw.content.units.effects.CombatFx.laserHit;
                     smokeEffect = Fx.none;
                     despawnEffect = Fx.none;
-                    hitEffect = Fx.hitLancer;
+                    hitEffect = zzw.content.units.effects.CombatFx.laserHit;
                     keepVelocity = false;
                 }};
             }});
@@ -113,8 +113,8 @@ public class Z_KoruhUnits{
                     trailColor = Color.gray;
                     backColor = Pal.bulletYellowBack;
                     frontColor = Pal.bulletYellow;
-                    hitEffect = Fx.blastExplosion;
-                    despawnEffect = Fx.blastExplosion;
+                    hitEffect = zzw.content.units.effects.CombatFx.blastExplosion;
+                    despawnEffect = zzw.content.units.effects.CombatFx.blastExplosion;
                     weaveScale = 8f;
                     weaveMag = 2f;
                     status = StatusEffects.blasted;
@@ -162,8 +162,8 @@ public class Z_KoruhUnits{
                     splashDamage = 1f;
                     lifetime = 60;
                     trailColor = Color.valueOf("b6c6fd");
-                    hitEffect = Fx.blastExplosion;
-                    despawnEffect = Fx.blastExplosion;
+                    hitEffect = zzw.content.units.effects.CombatFx.blastExplosion;
+                    despawnEffect = zzw.content.units.effects.CombatFx.blastExplosion;
                     backColor = Pal.bulletYellowBack;
                     frontColor = Pal.bulletYellow;
                     weaveScale = 8f;
