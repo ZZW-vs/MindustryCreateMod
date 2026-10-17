@@ -449,6 +449,7 @@
 - 新增螺旋石油钻井（oil-derrick）：扭矩驱动的石油抽取器（`SolidPump`，`result=Liquids.oil`、`attribute=Attribute.oil`，需建在油层上），绘制为螺旋钻杆样式（类 `zzw.content.mechanics.torque.blocks.production.OilDerrick`）
 
 ## 更新日志
+- **雷光系炮台 (smite/rift/rift_pro/fracture) 新增迪里姆弹药**：4 座炮台弹药表末尾追加 `create-dirium` 顶档弹药（迪里姆浅绿激光）——伤害约为电镀弹的 1.5 倍（雷罚 175 / 破空 380 / 破空Pro 210 / 裂电 560，全档最高），弹宽更粗、弹药倍率 8（最高）、麻痹持续 1.5 倍时间，对建筑减伤 80%（对单位特化），重装倍率 1.3 与钍持平
 - **灵魂机制修正与可视化**：
   - 修复灵魂炮台 (ricochet/diviner/mage/blackout/shellshock/purge) **射速加成完全无效**的问题——旧实现在 `updateTile` 里 `efficiency *= soulEfficiency()` 且放在 `super.updateTile()` 之后，而 efficiency 每 tick 会被 updateConsumption 重算，乘算从未生效；改为覆写 `getProgressIncrease` 织入灵魂倍率（与制作方块侧做法一致，SoulItemTurret 同步修复）
   - 新增**灵魂进度条**：全部灵魂建筑（6 种灵魂炮台 + 灵魂灌注器/碎屑提取器/巨石锻造厂）显示 `bar.souls` 进度条（UnityPal.monolith 浅蓝），灵魂越满 → 装填越快 + 伤害越高（0 灵魂 ×0.8 → 满灵魂 ×1.5），供魂效果一目了然

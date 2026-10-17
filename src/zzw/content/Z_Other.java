@@ -12,6 +12,7 @@ import mindustry.world.blocks.defense.turrets.ItemTurret;
 import mindustry.world.meta.Env;
 import zzw.content.blocks.turrets.BoostItemTurret;
 import zzw.content.blocks.turrets.ShootBarrelSpread;
+import zzw.content.graphics.UnityPal;
 
 // 雷光系炮台升级线: Smite(雷罚) → Rift(破空) / RiftPro(破空Pro) → Fracture(裂电)
 // 全部使用 ShrapnelBulletType("3叉激光"), 由 ShootBarrelSpread 实现"多管 + 每管散射"
@@ -88,6 +89,18 @@ public class Z_Other {
                     statusDuration = 60f ; // 状态持续时间
                     buildingDamageMultiplier = 1f ; // 对建筑正常伤害
                     hitEffect = zzw.content.units.effects.CombatFx.laserHitBlast ; // 击中特效
+                }},
+                Z_Items.dirium, new ShrapnelBulletType(){{
+                    length = 105f ; // 激光长度 (同钢系)
+                    damage = 175f ; // 伤害 (全档最高, ~1.5× 电镀弹)
+                    ammoMultiplier = 8f ; // 弹药倍率 (最高)
+                    width = 14f ; // 激光宽度 (最粗)
+                    reloadMultiplier = 1.3f ; // 重装倍率 (与钍持平, 高伤换射速)
+                    toColor = UnityPal.dirium ; // 迪里姆浅绿
+                    shootEffect = smokeEffect = zzw.content.units.effects.CombatFx.muzzleFlashSmoke ; // 特效
+                    buildingDamageMultiplier = 0.2f ; // 对建筑减伤80% (对单位特化)
+                    status = StatusEffects.shocked ; // 附加麻痹效果
+                    statusDuration = 90f ; // 麻痹持续 1.5 倍时间
                 }}
             );
             // 存储冷却时间
@@ -162,6 +175,18 @@ public class Z_Other {
                     statusDuration = 60f ; // 状态持续时间
                     buildingDamageMultiplier = 1f ; // 对建筑正常伤害
                     hitEffect = zzw.content.units.effects.CombatFx.laserHitBlast ; // 击中特效
+                }},
+                Z_Items.dirium, new ShrapnelBulletType(){{
+                    length = 150f ; // 激光长度 (同钢系)
+                    damage = 380f ; // 伤害 (全档最高, ~1.5× 电镀弹)
+                    ammoMultiplier = 8f ; // 弹药倍率 (最高)
+                    width = 36f ; // 激光宽度 (最粗)
+                    reloadMultiplier = 1.3f ; // 重装倍率 (与钍持平, 高伤换射速)
+                    toColor = UnityPal.dirium ; // 迪里姆浅绿
+                    shootEffect = smokeEffect = zzw.content.units.effects.CombatFx.muzzleFlashSmoke ; // 特效
+                    buildingDamageMultiplier = 0.2f ; // 对建筑减伤80% (对单位特化)
+                    status = StatusEffects.shocked ; // 附加麻痹效果
+                    statusDuration = 90f ; // 麻痹持续 1.5 倍时间
                 }}
             );
             // 存储冷却时间
@@ -236,6 +261,18 @@ public class Z_Other {
                     statusDuration = 60f ; // 状态持续时间
                     buildingDamageMultiplier = 1f ; // 对建筑正常伤害
                     hitEffect = zzw.content.units.effects.CombatFx.laserHitBlast ; // 击中特效
+                }},
+                Z_Items.dirium, new ShrapnelBulletType(){{
+                    length = 120f ; // 激光长度 (同钢系)
+                    damage = 210f ; // 伤害 (全档最高, ~1.5× 电镀弹)
+                    ammoMultiplier = 8f ; // 弹药倍率 (最高)
+                    width = 19f ; // 激光宽度 (最粗)
+                    reloadMultiplier = 1.3f ; // 重装倍率 (与钍持平, 高伤换射速)
+                    toColor = UnityPal.dirium ; // 迪里姆浅绿
+                    shootEffect = smokeEffect = zzw.content.units.effects.CombatFx.muzzleFlashSmoke ; // 特效
+                    buildingDamageMultiplier = 0.2f ; // 对建筑减伤80% (对单位特化)
+                    status = StatusEffects.shocked ; // 附加麻痹效果
+                    statusDuration = 90f ; // 麻痹持续 1.5 倍时间
                 }}
             );
             // 存储冷却时间
@@ -310,6 +347,18 @@ public class Z_Other {
                     statusDuration = 60f ; // 状态持续时间
                     buildingDamageMultiplier = 1f ; // 对建筑正常伤害
                     hitEffect = zzw.content.units.effects.CombatFx.laserHitBlast ; // 击中特效
+                }},
+                Z_Items.dirium, new ShrapnelBulletType(){{
+                    length = 160f ; // 激光长度 (同钢系)
+                    damage = 560f ; // 伤害 (全档最高, ~1.5× 电镀弹)
+                    ammoMultiplier = 8f ; // 弹药倍率 (最高)
+                    width = 32f ; // 激光宽度 (最粗)
+                    reloadMultiplier = 1.3f ; // 重装倍率 (与钍持平, 高伤换射速)
+                    toColor = UnityPal.dirium ; // 迪里姆浅绿
+                    shootEffect = smokeEffect = zzw.content.units.effects.CombatFx.muzzleFlashSmoke ; // 特效
+                    buildingDamageMultiplier = 0.2f ; // 对建筑减伤80% (对单位特化)
+                    status = StatusEffects.shocked ; // 附加麻痹效果
+                    statusDuration = 90f ; // 麻痹持续 1.5 倍时间
                 }}
             );
             // 存储冷却时间
