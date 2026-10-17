@@ -5,6 +5,8 @@ import mindustry.entities.bullet.BulletType;
 import mindustry.type.Item;
 import mindustry.world.blocks.defense.turrets.ItemTurret;
 
+import java.util.function.Consumer;
+
 import static mindustry.content.Blocks.arc;
 import static mindustry.content.Blocks.cyclone;
 import static mindustry.content.Blocks.duo;
@@ -81,7 +83,12 @@ public class Z_VanillaAmmo{
         ammo(lancer, Z_Items.monolite, mindustry.content.Items.surgeAlloy, 1.3f, 3);
 
         // 前兆(狙击): 浪涌弹 ×1.25 → 灵岩穿甲弹
-        ammo(foreshadow, Z_Items.monolite, mindustry.content.Items.surgeAlloy, 1.25f, 5);
+        // ★ 特效重写: 直接复制浪涌弹的话, 命中/射击特效与巨浪合金完全同款 (染色
+        //   只影响弹色, 不影响特效), 这里改为灵岩专属的虚空系观感
+        ammo(foreshadow, Z_Items.monolite, mindustry.content.Items.surgeAlloy, 1.25f, 5, b -> {
+            b.hitEffect = zzw.content.units.effects.HitEffect.voidHit ; // 命中: 黑芯+弹色描边 (PU132 虚空系, 灵岩 = imber 时空系暗色石)
+            b.shootEffect = zzw.content.units.effects.CombatFx.muzzleFlashSmoke ; // 射击: 模组炮口闪
+        });
 
         // ===== 顶级: 迪里姆合金 =====
 
@@ -107,6 +114,23 @@ public class Z_VanillaAmmo{
      * @param ammoPerItem  单个物品装填出的弹药数 (ammoMultiplier)
      */
     private static void ammo(mindustry.world.Block block, Item modItem, Item baseItem, float dmgMul, int ammoPerItem){
+        ammo(block, modItem, baseItem, dmgMul, ammoPerItem, null);
+    }
+
+    /**
+     * 向一个原版 {@link ItemTurret} 注入模组弹药 (带特效自定义钩子)。
+     * <p>★ Blocks 中的字段声明为 Block 类型, 此处统一强转 (同 Z_Overwriter 的做法);
+     * 类型不符时静默跳过。</p>
+     *
+     * @param block        目标原版炮台 (声明为 Block, 内部强转 ItemTurret)
+     * @param modItem      注入的模组物品
+     * @param baseItem     作为模板的原版弹药物品 (取其子弹复制强化)
+     * @param dmgMul       伤害缩放系数 (伤害与溅射伤害同时乘)
+     * @param ammoPerItem  单个物品装填出的弹药数 (ammoMultiplier)
+     * @param custom       注入前的额外定制 (重写特效等), null 表示不定制;
+     *                     在颜色染色<b>之前</b>调用, 染色仍会作用于自定义后的特效弹色
+     */
+    private static void ammo(mindustry.world.Block block, Item modItem, Item baseItem, float dmgMul, int ammoPerItem, Consumer<BulletType> custom){
         if(!(block instanceof ItemTurret turret)) return;  // 原版改动导致类型变化时跳过
 
         // 目标炮台已注入过则跳过 (防重复调用叠加伤害)
@@ -132,6 +156,10 @@ public class Z_VanillaAmmo{
         //   拥有独立的附生弹 (也避免未来调整互相串改)。
         copy.fragBullet = strengthenChild(copy.fragBullet, dmgMul);
         copy.intervalBullet = strengthenChild(copy.intervalBullet, dmgMul);
+
+        // ★ 特效自定义: 在染色前调用, 允许个别弹药重写攻击特效
+        //   (染色只改弹色字段, 重写的特效若依赖 hitColor 仍会被染色)
+        if(custom != null) custom.accept(copy);
 
         // ★ 颜色区分: 原版炮台不同弹药本就有不同颜色 (如旋风的玻璃/塑钢/浪涌),
         //   注入弹药若与模板弹药同色, 视觉上无法区分装的是哪种。

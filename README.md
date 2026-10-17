@@ -458,6 +458,7 @@
 - 新增螺旋石油钻井（oil-derrick）：扭矩驱动的石油抽取器（`SolidPump`，`result=Liquids.oil`、`attribute=Attribute.oil`，需建在油层上），绘制为螺旋钻杆样式（类 `zzw.content.mechanics.torque.blocks.production.OilDerrick`）
 
 ## 更新日志
+- **前兆 (foreshadow) 灵岩弹药特效重写**：直接复制巨浪弹的注入方式导致灵岩穿甲弹的攻击特效与巨浪合金完全同款（染色只改弹色不改特效）——`Z_VanillaAmmo.ammo()` 新增特效自定义钩子（染色前调用），前兆的灵岩弹命中改 PU132 虚空系 `voidHit`（黑芯+弹色描边，灵岩 = imber 时空系暗色石的定位）、射击改模组炮口闪 `muzzleFlashSmoke`，与巨浪观感彻底区分
 - **雷光系弹药按材料属性分化效果**（smite/rift/rift_pro/fracture 四档弹药不再只有伤害差异）：
   - **钍 = 重击弹**：伤害对齐巨浪合金（雷罚 110 / 破空 236 / 破空Pro 130 / 裂电 345，略低于电镀弹由击退+溅射补足），新增击退（3~4）+ 小范围溅射（伤害 ~25%，半径 12~16），粉色重炮手感
   - **电镀合金 = 连锁闪电**：保留麻痹，命中额外释放 2~3 道连锁闪电（伤害 22~70），电系招牌
