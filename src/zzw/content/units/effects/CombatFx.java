@@ -9,6 +9,7 @@ import mindustry.graphics.Pal;
 
 import static arc.graphics.g2d.Draw.color;
 import static arc.graphics.g2d.Fill.circle;
+import static arc.graphics.g2d.Fill.poly;
 import static arc.graphics.g2d.Fill.square;
 import static arc.graphics.g2d.Fill.tri;
 import static arc.graphics.g2d.Lines.lineAngle;
@@ -459,6 +460,45 @@ public class CombatFx{
         lineAngle(e.x, e.y, e.rotation, 3f + e.fout() * 24f);
         color(Color.white);
         circle(e.x, e.y, e.fout() * 3f);
+    }),
+
+    /**
+     * 能量拖尾 (12f) —— 环绕能量球 / 高频拖尾专用。
+     *
+     * <p>★ 无白色大圆芯: 旋转收缩的菱形碎片 (poly 4 边) + 微型火花,
+     * 与"扩散圆环"系特效形成形态区分。尺寸取自传入的 rotation
+     * (调用方把能量球半径作为 size 传入), 颜色完全跟随 e.color。</p>
+     */
+    energyTrail = new Effect(12f, 80f, e -> {
+        color(e.color, e.fout());
+        poly(e.x, e.y, 4, e.fout() * e.rotation * 0.22f + 1f, e.rotation * 0.7f + e.fin() * 90f);
+
+        color(e.color, Color.white, e.fin());
+        randLenVectors(e.id, 2, e.finpow() * e.rotation * 0.3f, (x, y) ->
+            lineAngle(e.x + x, e.y + y, Mathf.angle(x, y), e.fout() * 3f + 0.5f)
+        );
+    }),
+
+    /**
+     * 星芒命中 (16f) —— 能量球 / 电系命中的十字星形态。
+     *
+     * <p>★ 无白色大圆芯: 四向十字主光线 (finpow 展开) + 斜向对角
+     * 短刺 + 弹色小芯, 与圆形命中特效形成形态区分。</p>
+     */
+    starHit = new Effect(16f, e -> {
+        color(e.color, Color.white, e.fin());
+        for(int i = 0; i < 4; i++){
+            stroke(e.fout() * 1.6f + 0.3f);
+            lineAngle(e.x, e.y, e.rotation + 90f * i + e.finpow() * 70f, e.finpow() * 16f);
+        }
+        for(int i = 0; i < 4; i++){
+            stroke(e.fout() * 1.1f + 0.2f);
+            lineAngle(e.x, e.y, e.rotation + 45f + 90f * i - e.finpow() * 60f, e.finpow() * 10f);
+        }
+        color(e.color);
+        circle(e.x, e.y, e.fout() * 2.2f);
+
+        Drawf.light(e.x, e.y, e.fout() * 18f, e.color, 0.7f);
     });
 
     private CombatFx(){

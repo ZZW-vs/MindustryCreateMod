@@ -3673,7 +3673,7 @@ public class Z_Units {
             aphelionBullet.lightningType = new BulletType(0f, 10f){
                 {
                     lifetime = mindustry.content.Fx.lightning.lifetime;
-                    hitEffect = zzw.content.units.effects.CombatFx.laserHit;
+                    hitEffect = Fx.none;  // ★ 去白圆: 命中特效原为 CombatFx.laserHit (白色大圆芯), 闪电视觉由 Fx.lightning 本体承担
                     despawnEffect = Fx.none;
                     status = mindustry.content.StatusEffects.shocked;
                     statusDuration = 60f;
