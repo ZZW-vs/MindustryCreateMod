@@ -384,6 +384,7 @@
   - **重写「科技树模板.java」**：补上 VE 核心写法 `planet.techTree = nodeRoot(...)`（自定义星球整棵树），并移植本项目 `Z_TechTree` 的 `attach`/`node`/`nodeProduce` 辅助方法（160 无 `TechTree.get(parent)`，改用 `content.techNode` 字段）；补充 `Objectives` 清单与 VE 倒金字塔布局 `InvertedPyramidTreeLayout` 说明
   - 更新「Mod主类模板.java」加载顺序为 `物品 → 液体 → 状态 → 子弹 → 方块 → 单位 → 星球 → 科技树`，并在 `loadContent()` 方法体补上星球加载步骤
 ## 更新日志
+- **黑洞炮视觉纯着色器化 + 缩小**：黑洞全部视觉（空间扭曲 / 黑核 / 光子环 / 引力透镜光晕 / 吸积盘 / 内向汇聚粒子）下沉到 `blackholeshader.frag` 全屏后处理程序化绘制——新增 `u_time` uniform，吸积盘角向亮纹随时间旋转、8 颗黄金角螺旋内落粒子椭圆轨道运动，Java 侧 `SingularityBulletType.draw()` 清空（原先 CPU 手绘的扭曲弧/光晕/盘弧/粒子全部删除，消除与 shader 扭曲的错位与观感重复）；影响范围 `radius` 230→180、碰撞 `hitSize` 19→14、中心杀伤参数 `size` 5→4、扭曲影响半径与事件视界（本体）在 shader 端同步收窄（强度上限 4.0→3.4，coreR 系数 4.2→3.0，本体缩小约 40%）
 - **特效误加清理（还原 PU 原版观感）**：部分小口径/中口径弹药此前被统一替换成 `CombatFx.blastExplosion`（白色六边形冲击波），原版其实用的是原版特效或 PU 自家特效，观感重复刺眼——逐项对照 PU132/PU_V8 原版还原：
   - **empire 炮弹**：PU_V8 原版即 `Fx.blastExplosion`，还原
   - **fin**：导弹还原 `Fx.blastExplosion`（原版 basicMissile）；迫击炮还原 PU132 自家 `HitFx.hitExplosionMassive`（新增移植 `HitEffect.hitExplosionMassive`，白环+烟团+橙放射线）；破片还原引擎默认特效（原版 artilleryDense）
