@@ -85,7 +85,7 @@ public class Z_ScarUnits {
         hovos = new UnityUnitType("hovos"){{
             aiController = DistanceGroundAI::new;
             speed = 0.8f;
-            health = 260f;  // 定位: Scar T1 腿部单位，对齐原版 T1 腿部 (150)
+            health = 340f;  // ★ 对齐原版: 260f → 340f (PU132 hovos)
             armor = 1f;
             hitSize = 7.75f * 1.7f;
             range = 350f;

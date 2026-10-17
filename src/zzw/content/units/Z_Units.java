@@ -4272,7 +4272,7 @@ public class Z_Units {
                 shootY = 4.5f;
                 reload = 60f;
                 shootSound = Sounds.shootLaser;
-                bullet = new LaserBulletType(190f) {{
+                bullet = new LaserBulletType(240f) {{  // ★ 对齐原版: 190f → 240f (PU_V8 vespula)
                     sideAngle = 45f;
                     length = 200f;
                 }};
@@ -4496,7 +4496,7 @@ public class Z_Units {
 
         // ===== fin (鳍级战列舰, PU_V8 原版) =====
         fin = new UnitType("fin") {{
-            health = 31000f;
+            health = 36250f;  // ★ 对齐原版: 31000f → 36250f (PU_V8 fin)
             speed = 0.5f;
             drag = 0.18f;
             hitSize = 77.5f;

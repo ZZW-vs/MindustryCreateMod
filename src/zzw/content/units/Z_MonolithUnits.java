@@ -306,7 +306,7 @@ public class Z_MonolithUnits{
             // PU132: Mechc 实体 (携带灵魂 -> SoulMechUnit)
             constructor = SoulMechUnit::create;
 
-            health = 600f;
+            health = 1200f;  // ★ 对齐原版: 600f → 1200f (PU132 pedestal)
             speed = 0.5f;
             rotateSpeed = 2.6f;
             hitSize = 11f;
@@ -437,7 +437,7 @@ public class Z_MonolithUnits{
             // PU132: Mechc 实体 (携带灵魂 -> SoulMechUnit)
             constructor = SoulMechUnit::create;
 
-            health = 1000f;
+            health = 2000f;  // ★ 对齐原版: 1000f → 2000f (PU132 pilaster)
             speed = 0.4f;
             rotateSpeed = 2.2f;
             hitSize = 26.5f;

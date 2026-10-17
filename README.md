@@ -289,6 +289,12 @@
 - 合并时有烟雾效果和延迟检查
 
 ## 更新日志
+- **数值审计：对齐 PU 原版**（模组 vs PU132/PU_V8 全单位对比，修复 5 处低于原版的数值）：
+  - Scar T1 `hovos` 血量 260 → 340（PU132 原版 340）
+  - Monolith `pedestal` 血量 600 → 1200、`pilaster` 血量 1000 → 2000（此前只有原版一半）
+  - 直升机 T4 `vespula` 主激光伤害 190 → 240（PU_V8 原版 240）
+  - 海军 `fin` 血量 31000 → 36250（PU_V8 原版 36250）
+  - 其余单位经审计均不低于原版（End 阵营 10 单位全部 ≥ PU132； PU_V8 族的有意加强项均带 ★ 注释）
 - 修复坩埚 (crucible)「不能往里面输入物品，接上管道/其它可连接方块后才能进料」：`CrucibleGraph.updateOnGraphChanged()` 原先遇到「未初始化模块」会 early-return，而它是在 `GraphModule.onCreate()` → `initAllNets()` 阶段（此时模块尚未 `initialized`）被调用的，于是孤立坩埚的 `totalCapacity` 恒为 0 → `canContainMore` 恒 false → `acceptItem` 拒绝物品；只有发生一次图变化（接上邻居）才会重算容量。现改为：`updateOnGraphChanged` 对未初始化模块也照常累加容量（容量 = `baseLiquidCapacity`，与是否初始化无关；仅贴图位掩码依赖邻居信息），并移除了 `GraphCrucibleModule.initStats()` 里对 `liquidCap` 的清零（它会在 `initAllNets()` 之后把刚算好的容量抹掉）。
   - 注：修复过程中曾把 `initStats()` 提前到 `initAllNets()` 之前，会令 `GraphTorqueModule.initStats()` → `setInertia()` 访问尚未建立的 `networks.get(0)` 抛 NPE（放置扭矩方块即崩）。已恢复原顺序（必须先建网再 initStats）。
 - 移除方块 `create-cooling-heater`（制冷机，暂不再使用）及其注册、bundle 文案与 `CoolingHeater` 类。
