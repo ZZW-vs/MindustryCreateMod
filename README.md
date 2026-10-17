@@ -458,6 +458,7 @@
 - 新增螺旋石油钻井（oil-derrick）：扭矩驱动的石油抽取器（`SolidPump`，`result=Liquids.oil`、`attribute=Attribute.oil`，需建在油层上），绘制为螺旋钻杆样式（类 `zzw.content.mechanics.torque.blocks.production.OilDerrick`）
 
 ## 更新日志
+- **dark 派系炮台新增迪里姆弹药**：`Z_VanillaAmmo` 新增 `injectStrongest()`（自动扫描炮台弹药表挑伤害最高的子弹复制强化，适合 dark 系自定义 Large/Heavy 子弹体系）——apparition / ghost / banshee 3 座物品炮台注入「自身最强弹药 ×1.35 / 单发 3」的 `create-dirium` 顶档弹药（与 spectre 注入思路一致，迪里姆浅绿染色）；fallout / catastrophe / calamity / extinction 4 座为连续激光炮台（无弹药表），不适用物品弹药注入
 - **前兆 (foreshadow) 灵岩弹药特效重写**：直接复制巨浪弹的注入方式导致灵岩穿甲弹的攻击特效与巨浪合金完全同款（染色只改弹色不改特效）——`Z_VanillaAmmo.ammo()` 新增特效自定义钩子（染色前调用），前兆的灵岩弹命中改 PU132 虚空系 `voidHit`（黑芯+弹色描边，灵岩 = imber 时空系暗色石的定位）、射击改模组炮口闪 `muzzleFlashSmoke`，与巨浪观感彻底区分
 - **雷光系弹药按材料属性分化效果**（smite/rift/rift_pro/fracture 四档弹药不再只有伤害差异）：
   - **钍 = 重击弹**：伤害对齐巨浪合金（雷罚 110 / 破空 236 / 破空Pro 130 / 裂电 345，略低于电镀弹由击退+溅射补足），新增击退（3~4）+ 小范围溅射（伤害 ~25%，半径 12~16），粉色重炮手感

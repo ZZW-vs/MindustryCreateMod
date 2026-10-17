@@ -24,6 +24,7 @@ import zzw.content.Z_Bullets.*;
 import zzw.content.Z_Items;
 import zzw.content.Z_Sounds;
 import zzw.content.Z_StatusEffects;
+import zzw.content.Z_VanillaAmmo;
 import zzw.content.blocks.turrets.*;
 import zzw.content.units.bullets.ChangeTeamLaserBulletType;
 import zzw.content.units.effects.ChargeFx;
@@ -541,6 +542,15 @@ public class Z_Turrets {
                 extinction = true;
             }};
         }};
+
+        // ★ 迪里姆弹药扩展 (思路同 Z_VanillaAmmo 对 spectre 的注入):
+        //   3 座物品炮台 (apparition/ghost/banshee) 各注入「自身最强弹药」×1.35 的
+        //   create-dirium 顶档弹药 —— dark 派系自定义 Large/Heavy 子弹体系无固定模板,
+        //   走 injectStrongest 自动扫描; fallout 及以下 4 座为连续激光炮台, 无弹药表,
+        //   不适用物品弹药注入。
+        Z_VanillaAmmo.injectStrongest(apparition, Z_Items.dirium, 1.35f, 3);
+        Z_VanillaAmmo.injectStrongest(ghost, Z_Items.dirium, 1.35f, 3);
+        Z_VanillaAmmo.injectStrongest(banshee, Z_Items.dirium, 1.35f, 3);
     }
 
     /** light 派系 12 个炮台 (PU132 顺序: photon, graviton, electron, proton, neutron, gluon, w-boson, z-boson, higgs-boson, singularity, muon, ephemeron) */

@@ -145,6 +145,44 @@ public class Z_VanillaAmmo{
         }
         if(base == null) return;  // 炮台没有任何弹药 (异常情况), 静默跳过
 
+        addAmmo(turret, modItem, base, dmgMul, ammoPerItem, custom);
+    }
+
+    /**
+     * 向一个炮台注入「其当前最强弹药」的模组物品强化版 (模组自己的多弹药炮台用)。
+     *
+     * <p>与 {@link #ammo} 的差异: 不指定模板弹药, 而是自动扫描弹药表挑伤害最高的一颗
+     * 复制强化 —— 适合 dark 派系等自定义弹药体系 (Large/Heavy 子弹) 的模组炮台,
+     * 无需为每座炮台手写模板物品。</p>
+     *
+     * <p>调用时机: 必须在该炮台自身 {@code load()} 的 ammo(...) 全部注册完毕之后
+     * (否则扫描不到弹药表)。</p>
+     *
+     * @param block       目标炮台 (内部强转 ItemTurret, 类型不符时静默跳过)
+     * @param modItem     注入的模组物品
+     * @param dmgMul      伤害缩放系数 (伤害与溅射伤害同时乘)
+     * @param ammoPerItem 单个物品装填出的弹药数 (ammoMultiplier)
+     */
+    public static void injectStrongest(mindustry.world.Block block, Item modItem, float dmgMul, int ammoPerItem){
+        if(!(block instanceof ItemTurret turret)) return;  // 激光炮台等无弹药表, 跳过
+
+        // 已注入过则跳过 (防重复调用叠加伤害)
+        if(turret.ammoTypes.get(modItem) != null) return;
+
+        // 扫描弹药表, 挑当前伤害最高的弹药作为模板
+        BulletType best = null;
+        for(var e : turret.ammoTypes.entries()){
+            if(best == null || e.value.damage > best.damage) best = e.value;
+        }
+        if(best == null) return;  // 炮台没有弹药 (异常情况), 静默跳过
+
+        addAmmo(turret, modItem, best, dmgMul, ammoPerItem, null);
+    }
+
+    /**
+     * 注入核心: 复制模板子弹、等比强化、深拷贝附生弹、特效定制、染色并注册。
+     */
+    private static void addAmmo(ItemTurret turret, Item modItem, BulletType base, float dmgMul, int ammoPerItem, Consumer<BulletType> custom){
         // 复制原版子弹并等比强化伤害; 其余字段 (弹速/特效/状态/穿透) 保持原版行为
         BulletType copy = base.copy();
         copy.damage *= dmgMul;
