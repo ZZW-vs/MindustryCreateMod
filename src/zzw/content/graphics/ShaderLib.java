@@ -310,8 +310,6 @@ public class ShaderLib{
             setUniformf("u_texsize", b.getWidth(), b.getHeight());
             setUniformf("u_invsize", 1f / arc.Core.camera.width, 1f / arc.Core.camera.height);
             setUniformf("u_camscl", mindustry.Vars.renderer.getDisplayScale());
-            // 吸积盘亮纹旋转 / 汇聚粒子内落动画用的时间 uniform (globalTime 暂停时也推进)
-            setUniformf("u_time", arc.util.Time.globalTime / 60f);
 
             uniforms.clear();
             float[] items = holes.items;

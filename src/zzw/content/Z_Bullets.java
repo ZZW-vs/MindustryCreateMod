@@ -916,23 +916,24 @@ public class Z_Bullets {
      *  - 吸引锥形范围内敌方单位 (force + scaledForce)
      *  - 范围内敌方建筑受持续伤害, 接近中心的建筑被瞬间摧毁
      *  - 中心范围内的单位受到瞬间伤害
-     *  - ★ 视觉全部由 blackholeshader.frag 全屏后处理绘制 (黑核/光子环/吸积盘/透镜光晕/汇聚粒子),
-     *    Draw 侧不再画任何图形
+     *  - 多层同心圆+旋转尖刺光球渲染 (shiningCircle 风格)
      *  - GluonOrbData 单位列表管理 (timer 2f 间隔收集单位, 每帧吸引)
      */
     public static class SingularityBulletType extends BasicBulletType {
         public float force = 8f, scaledForce = 5f;
         public float tileDamage = 150f;
-        public float radius = 180f;  // ★ 影响范围缩小 (原 230f)
-        public float size = 4f;      // ★ 中心杀伤半径参数缩小 (原 5f)
+        public float radius = 230f;
+        public float size = 5f;
         public float buildingDamageMultiplier = 1f;
+        public float[] scales = {8.6f, 7f, 5.5f, 4.2f, 3.9f};
+        public Color[] colors = new Color[]{Color.valueOf("4787ff80"), Pal.lancerLaser, Color.white, Pal.lancerLaser, Color.black};
 
         public SingularityBulletType(float damage) {
             super(0.001f, damage);
             pierce = pierceBuilding = true;
             hitEffect = Fx.none;
             despawnEffect = zzw.content.units.effects.CombatFx.blastExplosion;
-            hitSize = 14f;  // ★ 碰撞半径缩小 (原 19f)
+            hitSize = 19f;
             lifetime = 3.5f * 60f;
         }
 
@@ -1004,17 +1005,137 @@ public class Z_Bullets {
                 sc = Mathf.clamp(sc, 0f, 1f);
                 sc = (float) Math.sin(sc * Mathf.PI * 0.5f);
 
-                zzw.TestMod.blackHoleSFX.blackHole(b.x, b.y, (1.2f + interp * 2.2f) * sc, 5.0f);  // ★ 强度上限调低: 本体与扭曲范围缩小
+                zzw.TestMod.blackHoleSFX.blackHole(b.x, b.y, (1.5f + interp * 2.5f) * sc, 5.0f);
             }
         }
 
         @Override
-        public void draw(Bullet b){
-            // ★ 视觉全部由 blackholeshader.frag 全屏后处理程序化绘制:
-            //   空间扭曲 / 黑核 / 光子环 / 引力透镜光晕 / 吸积盘 / 汇聚粒子,
-            //   Draw 侧不再画任何图形, 避免 CPU 手绘与 shader 扭曲错位和观感重复
+    public void draw(Bullet b){
+        float life = b.fin();
+
+        // 生命周期：前 20% 长大，稳定，最后 25% 缩小到消失
+        float scaleCurve;
+        if(life < 0.2f){
+            scaleCurve = life / 0.2f;
+        } else if(life > 0.75f){
+            scaleCurve = (1f - life) / 0.25f;
+        } else {
+            scaleCurve = 1f;
         }
+        scaleCurve = Mathf.clamp(scaleCurve, 0f, 1f);
+        scaleCurve = (float)Math.sin(scaleCurve * Mathf.PI * 0.5f);
+        // 不再抬到 0.55 下限: 让黑洞末端真正收缩到 0, 与 shader 扭曲强度同步淡出
+
+        if(scaleCurve < 0.02f) return;
+
+        float fade  = scaleCurve;
+        float pulse = 0.85f + 0.15f * Mathf.sin(Time.time * 6f);
+
+        // 核心参数
+        float coreR      = (8f + 5f * life) * scaleCurve;     // 事件视界半径 (Draw 侧, 黑洞本体由 shader 绘制)
+        float diskInner  = coreR * 1.5f;                      // 吸积盘内缘
+        float diskOuter  = coreR * 4.2f;                      // 吸积盘外缘
+        float lensR1     = coreR * 2.2f;                      // 引力透镜弧 1
+        float lensR2     = coreR * 3.4f;                      // 引力透镜弧 2
+
+        // ============================================================
+        // 0. 空间扭曲弧：一组同心弧，内快外慢，模拟空间被拧动
+        // ============================================================
+        Draw.blend(arc.graphics.Blending.additive);
+        int twistCount = 4;
+        for(int i = 0; i < twistCount; i++){
+            float tNorm = i / (float)(twistCount - 1);       // 0 = 内, 1 = 外
+            float arcR = Mathf.lerp(coreR * 1.15f, coreR * 3.0f, tNorm);
+
+            // 内圈转得快，外圈转得慢
+            float speed = Mathf.lerp(3.5f, 0.6f, tNorm);
+            float angle = Time.time * speed * 60f + i * 23f;
+
+            // 内圈亮，外圈淡
+            float alpha = Mathf.lerp(0.85f, 0.15f, tNorm) * fade * pulse;
+
+            // 内圈暖（金橙），外圈冷（蓝白）
+            float rC = Mathf.lerp(1.0f, 0.5f, tNorm);
+            float gC = Mathf.lerp(0.85f, 0.75f, tNorm);
+            float bC = Mathf.lerp(0.4f, 1.0f, tNorm);
+            Draw.color(rC, gC, bC, alpha);
+
+            // 弧的粗细也是内粗外细
+            float stroke = Mathf.lerp(2.2f, 0.8f, tNorm);
+            Lines.stroke(stroke);
+
+            // 每层画两段错开的弧，看起来像空间被拧过
+            float arcSpan = Mathf.lerp(0.30f, 0.14f, tNorm);
+            Lines.arc(b.x, b.y, arcR, arcSpan, angle);
+            Lines.arc(b.x, b.y, arcR, arcSpan * 0.6f, angle + 180f);
+        }
+        Draw.blend();
+
+        // ============================================================
+        // 1. 引力透镜背景光晕（最底层，冷色，大范围渐隐）
+        // ============================================================
+        Draw.blend(arc.graphics.Blending.additive);
+
+        for(int i = 0; i < 2; i++){
+            float rr = diskOuter * (1.0f + i * 0.35f);
+            float a  = (0.10f - i * 0.03f) * fade;
+            Draw.color(Pal.lancerLaser, a);
+            Fill.circle(b.x, b.y, rr);
+        }
+
+        Draw.color(Color.valueOf("7ab8ff"), 0.35f * fade * pulse);
+        Lines.stroke(1.6f);
+        Lines.arc(b.x, b.y, lensR1, 0.45f, 0f);
+        Lines.arc(b.x, b.y, lensR1, 0.45f, 180f);
+        Draw.color(Color.valueOf("a8d4ff"), 0.25f * fade);
+        Lines.stroke(1.2f);
+        Lines.arc(b.x, b.y, lensR2, 0.32f, 0f);
+        Lines.arc(b.x, b.y, lensR2, 0.32f, 180f);
+
+        // ============================================================
+        // 2. 水平吸积盘（暖色，橙色为主，两侧各一条弧）
+        // ============================================================
+        Draw.color(Color.valueOf("ff7030"), 0.50f * fade * pulse);
+        Lines.stroke(3.4f);
+        Lines.arc(b.x, b.y, diskOuter * 0.80f, 0.26f, 0f);
+        Lines.arc(b.x, b.y, diskOuter * 0.80f, 0.26f, 180f);
+
+        Draw.color(Color.valueOf("ffe090"), 0.85f * fade * pulse);
+        Lines.stroke(2.0f);
+        Lines.arc(b.x, b.y, diskInner * 1.15f, 0.34f, 12f);
+        Lines.arc(b.x, b.y, diskInner * 1.15f, 0.34f, 192f);
+
+        // ============================================================
+        // 5. 内向汇聚粒子
+        // ============================================================
+        int particles = 8;
+        for(int i = 0; i < particles; i++){
+            float seed = i * 1.37f;
+            float t = (Time.time * 0.4f + seed) % 1f;
+            float r = Mathf.lerp(diskOuter * 1.1f, coreR * 1.3f, t);
+
+            float baseAng = seed * 137.5f;
+            float driftAng = (1f - t) * 60f * (i % 2 == 0 ? 1f : -1f);
+            float ang = baseAng + driftAng;
+
+            float px = b.x + Mathf.cosDeg(ang) * r;
+            float py = b.y + Mathf.sinDeg(ang) * r * 0.55f;
+
+            float a = Mathf.sin(t * Mathf.PI) * 0.85f * fade;
+            float size = Mathf.lerp(2.2f, 0.7f, t);
+            Draw.color(Color.valueOf("FFE8A0"), a);
+            Fill.circle(px, py, size);
+        }
+
+        // ============================================================
+        // 6. 事件视界改由 blackholeshader.frag 绘制（不透明黑核 + 光子环）
+        //    Draw 侧不再画黑圆, 避免之前半透明叠加的问题
+        // ============================================================
+        Draw.blend();
+        Draw.color();
+        Draw.reset();
     }
+}
 
     /** GluonOrbData - 黑洞单位列表管理 (PU_V8 移植) */
     public static class GluonOrbData {
