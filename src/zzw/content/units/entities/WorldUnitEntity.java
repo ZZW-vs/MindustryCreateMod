@@ -356,6 +356,24 @@ public class WorldUnitEntity extends UnitEntity {
     }
 
     /**
+     * 把单位主世界坐标钳制到平台矩形内部 (留出半个碰撞箱的安全边距).
+     * <p>用于修正"出厂方向贴平台边缘": 陆地单位出口投影落点会跑到平台矩形之外,
+     * 导致 <code>containsWorldPoint</code> 判定失败 → 单位未被收编而直接掉到主世界。
+     * 这里把落点拉回平台内部, 保证出生后仍在大地上被携带。</p>
+     */
+    protected void clampIntoPlatform(Unit u) {
+        if (unitWorld == null || platW <= 0f || platH <= 0f) return;
+        float m = u.hitSize / 2f + 2f;
+        // 主世界 → 平台本地坐标
+        carryVec.set(u.x - x, u.y - y).rotate(-(rotation - 90f)).add(subCX(), subCY());
+        float lx = Mathf.clamp(carryVec.x, m, platW - m);
+        float ly = Mathf.clamp(carryVec.y, m, platH - m);
+        // 平台本地 → 主世界坐标
+        carryVec.set(lx - subCX(), ly - subCY()).rotate(rotation - 90f).add(x, y);
+        u.set(carryVec.x, carryVec.y);
+    }
+
+    /**
      * 接管子世界 payload 块的出口弹射 (修复平台上工厂"生产了单位却永远出不来"的问题).
      *
      * <p>根因: 子世界建筑 update 期间 Vars.world = 8x18 子世界 (建筑逻辑依赖它查
@@ -400,6 +418,12 @@ public class WorldUnitEntity extends UnitEntity {
 
             // 单位上限检查 (与原版 dump 一致): 上限满时留在厂里等待
             if (!Units.canCreate(u.team, u.type)) continue;
+
+            // ★ 陆地单位: 出口若贴平台边缘 (出厂方向朝外), 投影落点会跑到平台外 →
+            //   未被收编、直接掉到主世界; 钳制到平台内部安全范围, 保证出生在大地上
+            if (!u.type.naval) {
+                clampIntoPlatform(u);
+            }
 
             // 自定义投放 (复刻 UnitPayload.dump 的末段, 跳过平台语境下必然失败的
             // solidity/重叠检查 —— 甲板上允许单位重叠, 出口地面即平台)
@@ -454,12 +478,17 @@ public class WorldUnitEntity extends UnitEntity {
                     carryVec.set(relx, rely).rotate(drot);
                     relx = carryVec.x;
                     rely = carryVec.y;
-                    // ★ 强制朝向 = 平台朝向 + 登记时的相对偏移, 完全由平台接管,
-                    //   否则单位自身 AI 的 faceTarget/faceMovement 会把它转回固定方向
-                    u.rotation = this.rotation + subAngles.get(i);
                 }
                 u.set(lastCarryX + relx + dx, lastCarryY + rely + dy);
             }
+
+            // ★ 每帧强制朝向 = 平台朝向 + 登记偏移 (不只在 drot!=0 时才设):
+            //   否则平台不转的帧里单位自身 AI 又会把它转回原位, 下一帧平台一转就突然跳变
+            u.rotation = this.rotation + subAngles.get(i);
+
+            // ★ 清空速度: u.set() 传送后残余速度会让单位自身 EntityCollisions.move
+            //   顺地形实心块把它推离刚设好的位置, 每帧被来回拉锯 → 一卡一卡
+            u.vel.set(0f, 0f);
 
             if (!containsWorldPoint(u.x, u.y)) {
                 // 走出子世界 → 掉回主地图, 禁止重新登船
