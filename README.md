@@ -384,6 +384,10 @@
   - **重写「科技树模板.java」**：补上 VE 核心写法 `planet.techTree = nodeRoot(...)`（自定义星球整棵树），并移植本项目 `Z_TechTree` 的 `attach`/`node`/`nodeProduce` 辅助方法（160 无 `TechTree.get(parent)`，改用 `content.techNode` 字段）；补充 `Objectives` 清单与 VE 倒金字塔布局 `InvertedPyramidTreeLayout` 说明
   - 更新「Mod主类模板.java」加载顺序为 `物品 → 液体 → 状态 → 子弹 → 方块 → 单位 → 星球 → 科技树`，并在 `loadContent()` 方法体补上星球加载步骤
 ## 更新日志
+- 修复 theraphosidae / araneidae 磁轨炮最后炸开特效变白：命中特效颜色（hitColor）未设置时默认传白色给特效，现显式设为 `Pal.sapBullet` 紫色（主炮弹 + 破片弹共 4 处）
+- 修复 aphelion 沿途闪电的白色圆圈特效：原版 scepter 子弹拷贝自带的 `intervalBullet.hitEffect = Fx.hitLancerLow`（白色圆圈）改为 `Fx.none`
+- theraphosidae 加强：导弹射速 7→6 帧、伤害 30→36、溅射 55→65；磁轨炮射速 90→75 帧（cooldownTime 同步）、伤害 95→110、溅射 90→105；破片 30→36 / 60→70
+- araneidae 射速加快：吸血激光 30→24 帧、磁轨炮 120→100 帧
 - empire（T7 机甲）加强：炮弹射程加远（弹寿命 125→150 帧、单位索敌射程 400→460）、炮弹射速加快（reload 40→34 帧）、火焰喷射伤害 120→135
 - End 单位减速：ravager（掠夺者）移动速度 0.65 → 0.5，desolation（湮灭者）0.7 → 0.55（约降 25%，作为巨型 Boss 步伐更沉稳）
 - 修复多节单位段身无影子（arcnelidia 电弧虫等）：原先调用 `seg.type.drawShadow(seg)` 依赖段身类型的 fullIcon 剪影，而段身贴图在 atlas 中带 mod 前缀、段身类型 region 在 load() 阶段查不到导致 fullIcon 无效；现按 PU132 `WormSegmentUnit.drawShadow` 原样改为手动剪影（段身/tail 贴图 + `Pal.shadow` 色 + `UnitType.shadowTX/TY × 飞行高度` 偏移），所有共用 SegmentUnitEntity 的虫子段身统一恢复影子

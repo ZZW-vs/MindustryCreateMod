@@ -3279,7 +3279,7 @@ public class Z_Units {
                 x = 15f;
                 y = -1.75f;
                 shootY = 7.5f;
-                reload = 30f;
+                reload = 24f;  // ★ 加强 (原 30f): 射速加快
                 shake = 4f;
                 rotateSpeed = 2f;
                 rotate = true;
@@ -3316,7 +3316,7 @@ public class Z_Units {
                 x = 0f;
                 y = -12.25f;
                 shootY = 22f;
-                reload = 120f;
+                reload = 100f;  // ★ 加强 (原 120f): 射速加快
                 shake = 10f;
                 recoil = 3f;
                 rotateSpeed = 1f;
@@ -3333,6 +3333,7 @@ public class Z_Units {
                     splashDamageRadius = 90f;
                     splashDamage = 90f;
                     hitEffect = zzw.content.units.effects.CombatFx.sapExplosion;
+                    hitColor = mindustry.graphics.Pal.sapBullet;  // ★ 修复: 命中特效颜色默认是白色, 改为紫色
                     ammoMultiplier = 4f;
                     trailEffect = zzw.content.units.effects.TrailFx.coloredRailgunSmallTrail;   // PU_V8 TrailFx.coloredRailgunSmallTrail
                     trailSpacing = 15f;
@@ -3357,6 +3358,7 @@ public class Z_Units {
                     fragBullets = 4;
                     fragBullet = new ArtilleryBulletType(2.3f, 30f) {{
                         hitEffect = zzw.content.units.effects.CombatFx.sapExplosion;
+                        hitColor = mindustry.graphics.Pal.sapBullet;  // ★ 修复: 命中特效颜色默认是白色, 改为紫色
                         knockback = 0.8f;
                         lifetime = 70f;
                         width = 20f;
@@ -3414,7 +3416,7 @@ public class Z_Units {
                 x = 33f;
                 y = 8.5f;
                 shootY = 5.25f;
-                reload = 7f;
+                reload = 6f;  // ★ 加强 (原 7f): 射速加快
                 recoil = 1f;
                 rotate = true;
                 shootCone = 20f;
@@ -3426,15 +3428,16 @@ public class Z_Units {
                 xRand = 2.25f;
                 shoot.shots = 2;
                 shootSound = Sounds.shootMissile;
-                bullet = new MissileBulletType(3.7f, 30f) {{   // ★ 伤害加强 (原 15f)
+                bullet = new MissileBulletType(3.7f, 36f) {{   // ★ 伤害加强 (原 30f, PU_V8 15f)
                     width = 10f;
                     height = 12f;
                     shrinkY = 0f;
                     drag = -0.01f;
                     splashDamageRadius = 30f;
-                    splashDamage = 55f;
+                    splashDamage = 65f;  // ★ 伤害加强 (原 55f)
                     hitEffect = CombatFx.blastExplosion;
                     despawnEffect = CombatFx.blastExplosion;
+                    hitColor = mindustry.graphics.Pal.sapBullet;  // ★ 修复: 命中特效颜色默认是白色, 改为紫色
                     backColor = trailColor = mindustry.graphics.Pal.sapBulletBack;
                     frontColor = lightningColor = lightColor = mindustry.graphics.Pal.sapBullet;
                     trailLength = 13;
@@ -3487,19 +3490,20 @@ public class Z_Units {
                 x = 20.5f;
                 y = -10f;
                 shootY = 16.5f;
-                reload = 90f;
+                reload = 75f;  // ★ 加强 (原 90f): 射速加快
                 rotate = true;
                 alternate = true;
                 rotateSpeed = 0.9f;
                 shake = 6f;
                 recoil = 8f;
-                cooldownTime = 90f;     // PU_V8: 射击后武器冷却时间
+                cooldownTime = 75f;     // PU_V8: 射击后武器冷却时间 (随 reload 同步缩短)
                 shootSound = Sounds.shootForeshadow;
-                bullet = new SlowRailBulletType(15f, 95f) {{
+                bullet = new SlowRailBulletType(15f, 110f) {{   // ★ 伤害加强 (原 95f)
                     lifetime = 23f;
                     splashDamageRadius = 110f;
-                    splashDamage = 90f;
+                    splashDamage = 105f;  // ★ 伤害加强 (原 90f)
                     hitEffect = zzw.content.units.effects.CombatFx.sapExplosion;
+                    hitColor = mindustry.graphics.Pal.sapBullet;  // ★ 修复: 命中特效颜色默认是白色, 改为紫色
                     ammoMultiplier = 4f;
                     trailEffect = zzw.content.units.effects.TrailFx.coloredRailgunSmallTrail;   // PU_V8 TrailFx.coloredRailgunSmallTrail
                     trailSpacing = 15f;
@@ -3522,15 +3526,16 @@ public class Z_Units {
                     statusDuration = 60f * 10;
                     fragLifeMin = 0.3f;
                     fragBullets = 4;
-                    fragBullet = new ArtilleryBulletType(2.3f, 30f) {{
+                    fragBullet = new ArtilleryBulletType(2.3f, 36f) {{   // ★ 伤害加强 (原 30f)
                         hitEffect = zzw.content.units.effects.CombatFx.sapExplosion;
+                        hitColor = mindustry.graphics.Pal.sapBullet;  // ★ 修复: 命中特效颜色默认是白色, 改为紫色
                         knockback = 0.8f;
                         lifetime = 70f;
                         width = 20f;
                         height = 20f;
                         collidesTiles = false;
                         splashDamageRadius = 70f;
-                        splashDamage = 60f;
+                        splashDamage = 70f;  // ★ 伤害加强 (原 60f)
                         backColor = mindustry.graphics.Pal.sapBulletBack;
                         frontColor = lightningColor = mindustry.graphics.Pal.sapBullet;
                         lightning = 2;
@@ -3664,6 +3669,7 @@ public class Z_Units {
             aphelionBullet.lightningCone = 360f;
             aphelionBullet.lifetime = 50f;
             aphelionBullet.lightningLength = 14;
+            aphelionBullet.intervalBullet.hitEffect = Fx.none;  // ★ 去掉沿途闪电命中的白色圆圈 (原版自带 Fx.hitLancerLow)
             aphelionBullet.lightningType = new BulletType(0f, 10f){
                 {
                     lifetime = mindustry.content.Fx.lightning.lifetime;
