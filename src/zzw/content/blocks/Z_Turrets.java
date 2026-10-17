@@ -130,10 +130,10 @@ public class Z_Turrets {
             requirements(Category.turret, ItemStack.with(Items.copper, 350, Items.graphite, 380, Items.silicon, 360, Items.plastanium, 200, Items.thorium, 220, Z_Items.umbrium, 370, Items.surgeAlloy, 290));
             size = 5;
             health = 3975;
-            range = 235f;
+            range = 355f;  // ★ 用户调整: 范围 +15 格 (原 235f)
             // ★ PU132 原版: reloadTime=6 + alternate=true + shots=2 + spread=12
             //   → 每次只发 1 颗, 左右炮管交替 (v158 用 ShootAlternate + shots=1 复刻)
-            reload = 6f;
+            reload = 5.4f;  // ★ 用户调整: 射速小幅提升 (原 6f)
             inaccuracy = 3f;
             shoot = new ShootAlternate(12f);
             shootSound = Sounds.shootSpectre;  // v155.4 无 Sounds.shootBig, 用 shootSpectre 替代
@@ -150,8 +150,8 @@ public class Z_Turrets {
             coolantBoost.put(mindustry.content.Liquids.cryofluid, 0.45f);  // 145%
             // ★ Large 子弹 (基于 v155.4 Spectre 内联 standardDenseBig 等的属性 + PU_V8 Large 倍率)
             // ★ 已恢复 PU 原版伤害 (去掉之前额外加的 +10 偏移)
-            ammo(Items.graphite, new BasicBulletType(7.5f * 1.1f, 50f * 1.4f) {{
-                // standardDenseLarge (石墨弹)
+            ammo(Items.graphite, new BasicBulletType(7.5f * 1.1f, 50f * 1.4f * 1.25f) {{
+                // standardDenseLarge (石墨弹)  ★ 用户调整: 全弹药伤害 ×1.25
                 lifetime = 40f;
                 width = 15f * 1.12f;
                 height = 21f * 1.12f;
@@ -163,8 +163,8 @@ public class Z_Turrets {
                 hitEffect = despawnEffect = CombatFx.bulletHit;
                 hitColor = backColor = trailColor = Pal.graphiteAmmoBack;
                 frontColor = Pal.graphiteAmmoFront;
-            }}, Items.silicon, new BasicBulletType(7.5f * 1.1f, 50f * 1.23f) {{
-                // standardHomingLarge (硅弹, 追踪型)
+            }}, Items.silicon, new BasicBulletType(7.5f * 1.1f, 50f * 1.23f * 1.25f) {{
+                // standardHomingLarge (硅弹, 追踪型)  ★ 用户调整: 全弹药伤害 ×1.25
                 lifetime = 40f;
                 width = 15f * 1.12f;
                 height = 21f * 1.12f;
@@ -177,8 +177,8 @@ public class Z_Turrets {
                 hitEffect = despawnEffect = CombatFx.bulletHit;
                 hitColor = backColor = trailColor = Pal.graphiteAmmoBack;
                 frontColor = Pal.graphiteAmmoFront;
-            }}, Items.pyratite, new BasicBulletType(7f * 1.1f, 70f * 1.4f) {{
-                // standardIncendiaryLarge (火成岩弹, 燃烧型)
+            }}, Items.pyratite, new BasicBulletType(7f * 1.1f, 70f * 1.4f * 1.25f) {{
+                // standardIncendiaryLarge (火成岩弹, 燃烧型)  ★ 用户调整: 全弹药伤害 ×1.25
                 lifetime = 40f;
                 width = 16f * 1.12f;
                 height = 21f * 1.12f;
@@ -193,9 +193,9 @@ public class Z_Turrets {
                 pierceBuilding = true;
                 knockback = 0.6f;
                 ammoMultiplier = 3;
-                splashDamage = 20f;
+                splashDamage = 25f;  // ★ 用户调整: 溅射同步 ×1.25 (原 20f)
                 splashDamageRadius = 25f;
-            }}, Items.thorium, new BasicBulletType(8f * 1.1f, 80f * 1.4f) {{
+            }}, Items.thorium, new BasicBulletType(8f * 1.1f, 80f * 1.4f * 1.25f) {{
                 // standardThoriumLarge (钍弹, 穿透型)
                 lifetime = 40f;
                 width = 16f * 1.12f;
@@ -220,8 +220,8 @@ public class Z_Turrets {
         ghost = new BarrelsItemTurret("ghost") {{
             size = 8;
             health = 9750;
-            range = 290f;
-            reload = 9f;
+            range = 322f;  // ★ 用户调整: 范围 +4 格 (原 290f)
+            reload = 8.5f;  // ★ 用户调整: 射速微加 (原 9f)
             coolantMultiplier = 0.5f;
             inaccuracy = 3f;
             // ★ PU_V8: spread=21, shots=2, alternate=true
@@ -236,8 +236,8 @@ public class Z_Turrets {
             coolantBoost.put(mindustry.content.Liquids.cryofluid, 0.45f);  // 145%
             // ★ Heavy 子弹 (基于 v155.4 Spectre 内联 standardDenseBig 等的属性 + PU_V8 Heavy 倍率)
             // ★ 已恢复 PU 原版伤害 (去掉之前额外加的 +20 偏移)
-            ammo(Items.graphite, new BasicBulletType(7.5f * 1.3f, 50f * 1.7f) {{
-                // standardDenseHeavy (石墨弹)
+            ammo(Items.graphite, new BasicBulletType(7.5f * 1.3f, 50f * 1.7f * 1.1f) {{
+                // standardDenseHeavy (石墨弹)  ★ 用户调整: 全弹药伤害 ×1.1
                 lifetime = 40f;
                 width = 15f * 1.32f;
                 height = 21f * 1.32f;
@@ -249,8 +249,8 @@ public class Z_Turrets {
                 hitEffect = despawnEffect = CombatFx.bulletHit;
                 hitColor = backColor = trailColor = Pal.graphiteAmmoBack;
                 frontColor = Pal.graphiteAmmoFront;
-            }}, Items.silicon, new BasicBulletType(7.5f * 1.3f, 50f * 1.4f) {{
-                // standardHomingHeavy (硅弹, 追踪型)
+            }}, Items.silicon, new BasicBulletType(7.5f * 1.3f, 50f * 1.4f * 1.1f) {{
+                // standardHomingHeavy (硅弹, 追踪型)  ★ 用户调整: 全弹药伤害 ×1.1
                 lifetime = 40f;
                 width = 15f * 1.19f;
                 height = 21f * 1.19f;
@@ -263,8 +263,8 @@ public class Z_Turrets {
                 hitEffect = despawnEffect = CombatFx.bulletHit;
                 hitColor = backColor = trailColor = Pal.graphiteAmmoBack;
                 frontColor = Pal.graphiteAmmoFront;
-            }}, Items.pyratite, new BasicBulletType(7f * 1.3f, 70f * 1.7f) {{
-                // standardIncendiaryHeavy (火成岩弹, 燃烧型)
+            }}, Items.pyratite, new BasicBulletType(7f * 1.3f, 70f * 1.7f * 1.1f) {{
+                // standardIncendiaryHeavy (火成岩弹, 燃烧型)  ★ 用户调整: 全弹药伤害 ×1.1
                 lifetime = 40f;
                 width = 16f * 1.32f;
                 height = 21f * 1.32f;
@@ -279,9 +279,9 @@ public class Z_Turrets {
                 pierceBuilding = true;
                 knockback = 0.6f;
                 ammoMultiplier = 3;
-                splashDamage = 20f;
+                splashDamage = 22f;  // ★ 用户调整: 溅射同步 ×1.1 (原 20f)
                 splashDamageRadius = 25f;
-            }}, Items.thorium, new BasicBulletType(8f * 1.3f, 80f * 1.7f) {{
+            }}, Items.thorium, new BasicBulletType(8f * 1.3f, 80f * 1.7f * 1.1f) {{
                 // standardThoriumHeavy (钍弹, 穿透型)
                 lifetime = 40f;
                 width = 16f * 1.32f;
@@ -307,7 +307,7 @@ public class Z_Turrets {
         banshee = new BarrelsItemTurret("banshee") {{
             size = 12;
             health = 22000;
-            range = 370f;
+            range = 530f;  // ★ 用户调整: 范围 +20 格 (原 370f, 供 create-terminum 顶档弹使用)
             reload = 12f;
             coolantMultiplier = 0.5f;
             inaccuracy = 3f;
@@ -383,6 +383,25 @@ public class Z_Turrets {
                 knockback = 0.7f;
                 backColor = hitColor = trailColor = Pal.thoriumAmmoBack;
                 frontColor = Pal.thoriumAmmoFront;
+            }}, Z_Items.terminum, new BasicBulletType(7.5f * 1.3f * 1.3f, 6666.6f) {{
+                // ★★ create-terminum 顶档弹药 (用户定制):
+                //    6666.6 伤害/发 · 6x 穿透 · 4x 装填时间 · 强追踪 (~320°/s, 12 格索敌)
+                lifetime = 60f;  // 弹速 12.675 × 60 ≈ 760px, 完整覆盖 530 (66格) 射程
+                width = 18f;
+                height = 27f;
+                hitSize = 6f;
+                shootEffect = CombatFx.muzzleFlash;
+                ammoMultiplier = 4;
+                reloadMultiplier = 0.25f;   // ★ 4x 装填时间 (装填速度 25%)
+                homingPower = 0.09f;        // ★ 强追踪 ≈320°/s (moveToward 速度 = homingPower × 60°/tick)
+                homingRange = 96f;          // ★ 追踪索敌 12 格
+                pierce = true;
+                pierceCap = 6;              // ★ 6x 穿透
+                pierceBuilding = true;
+                knockback = 1.2f;
+                hitEffect = despawnEffect = CombatFx.bulletHitBig;
+                hitColor = backColor = trailColor = Color.valueOf("f53036");  // terminum 红
+                frontColor = Color.valueOf("ff8a75");
             }});
             requirements(Category.turret, ItemStack.with(Items.copper, 2800, Items.graphite, 2980, Items.silicon, 2300, Items.titanium, 1900, Items.phaseFabric, 1760, Items.thorium, 1780, Z_Items.darkAlloy, 1280));
         }};
@@ -409,7 +428,7 @@ public class Z_Turrets {
             requirements(Category.turret, ItemStack.with(Items.copper, 450, Items.lead, 350, Items.graphite, 390, Items.silicon, 360, Items.titanium, 250, Z_Items.umbrium, 370, Items.surgeAlloy, 360));
             shootType = new SparkingContinuousLaserBulletType(125f) {{
                 length = 230f;
-                width = 8f;  // ★ 激光粗细分级: fallout 最细 (默认 9f → 8f)
+                width = 7f;  // ★ 激光粗细分级: fallout 最细 (用户调整: 8f → 7f)
                 fromBlockChance = 0.12f;
                 fromBlockDamage = 23f;
                 fromLaserAmount = 0;
@@ -447,8 +466,8 @@ public class Z_Turrets {
             coolant = consume(new ConsumeLiquidFilter(l -> l == mindustry.content.Liquids.water || l == mindustry.content.Liquids.cryofluid, 1f));
             shootType = new SparkingContinuousLaserBulletType(310f) {{
                 length = 340f;
-                width = 14f;  // ★ 激光粗细分级: catastrophe (fallout 8 < calamity 11 < catastrophe 14 < extinction 18)
-                // PU132: 四层光束描边 = 基类默认 {2, 1.5, 1, 0.3} × 1.4
+                width = 12f;  // ★ 激光粗细分级: catastrophe (fallout 7 < calamity 11 < catastrophe 12 < extinction 18); 用户调整: 14f → 12f
+                // PU132: 四层光束描边 = 基类默认 {2, 1.5, 1, 0.3} × 1.4 (描边层相对光束变细后更显层次)
                 strokes = new float[]{2 * 1.4f, 1.5f * 1.4f, 1 * 1.4f, 0.3f * 1.4f};
                 incendSpread = 7f;
                 incendAmount = 2;

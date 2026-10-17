@@ -384,6 +384,12 @@
   - **重写「科技树模板.java」**：补上 VE 核心写法 `planet.techTree = nodeRoot(...)`（自定义星球整棵树），并移植本项目 `Z_TechTree` 的 `attach`/`node`/`nodeProduce` 辅助方法（160 无 `TechTree.get(parent)`，改用 `content.techNode` 字段）；补充 `Objectives` 清单与 VE 倒金字塔布局 `InvertedPyramidTreeLayout` 说明
   - 更新「Mod主类模板.java」加载顺序为 `物品 → 液体 → 状态 → 子弹 → 方块 → 单位 → 星球 → 科技树`，并在 `loadContent()` 方法体补上星球加载步骤
 ## 更新日志
+- **dark 派系三炮台调整**（apparition/ghost/banshee）：
+  - **炮口白圈去除**：`CombatFx.muzzleFlash` 删除开火扩散环（白圈主体），保留火焰三角+白芯+火花+动态光源，注入弹药自动继承
+  - **apparition（显形）**：射程 235→355（+15 格）、射速 reload 6→5.4、全部弹药伤害 ×1.25（石墨 87.5 / 硅 76.9 / 火成岩 122.5+溅射 25 / 钍 140）
+  - **ghost（幻影）**：射程 290→322（+4 格）、射速 reload 9→8.5、全部弹药伤害 ×1.1（溅射同步）
+  - **banshee（妖姬）新增 create-terminum 顶档弹药**：6666.6 伤害/发、6x 穿透（pierceCap=6）、4x 装填时间（reloadMultiplier=0.25）、强追踪（homingPower 0.09 ≈320°/s，索敌 12 格），射程 370→530（+20 格）供其全程飞行，terminum 红色弹体
+- **fallout / catastrophe 激光变细**：fallout 8→7、catastrophe 14→12
 - **特效误加清理（还原 PU 原版观感）**：部分小口径/中口径弹药此前被统一替换成 `CombatFx.blastExplosion`（白色六边形冲击波），原版其实用的是原版特效或 PU 自家特效，观感重复刺眼——逐项对照 PU132/PU_V8 原版还原：
   - **empire 炮弹**：PU_V8 原版即 `Fx.blastExplosion`，还原
   - **fin**：导弹还原 `Fx.blastExplosion`（原版 basicMissile）；迫击炮还原 PU132 自家 `HitFx.hitExplosionMassive`（新增移植 `HitEffect.hitExplosionMassive`，白环+烟团+橙放射线）；破片还原引擎默认特效（原版 artilleryDense）

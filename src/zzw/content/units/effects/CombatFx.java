@@ -58,10 +58,6 @@ public class CombatFx{
         color(Color.white);
         circle(e.x, e.y, 3f * e.fout());
 
-        color(e.color, Color.white, e.fout());
-        stroke(e.fout() * 1.8f + 0.2f);
-        arc.graphics.g2d.Lines.circle(e.x, e.y, e.finpow() * 16f);
-
         randLenVectors(e.id, 6, e.finpow() * 16f, e.rotation, 55f, (x, y) -> {
             float a = Mathf.angle(x, y);
             Drawf.tri(e.x + x, e.y + y, 2f * e.fout(), 5f * e.fout(), a);
