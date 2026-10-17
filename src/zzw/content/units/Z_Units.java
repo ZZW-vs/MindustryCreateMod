@@ -1580,7 +1580,7 @@ public class Z_Units {
         // ═══════════════════════════════════════════════════════════
         ravager = new zzw.content.type.UnityUnitType("ravager") {{
             health = 1650000f;
-            speed = 0.65f;
+            speed = 0.5f;
             drag = 0.16f;
             armor = 15f;
             hitSize = 138f;
@@ -2129,7 +2129,7 @@ public class Z_Units {
         // ═══════════════════════════════════════════════════════════
         desolation = new zzw.content.units.types.DesolationUnitType("desolation") {{
             health = 307300f;
-            speed = 0.7f;
+            speed = 0.55f;
             drag = 0.16f;
             armor = 35f;
             hitSize = 257f;
@@ -2880,7 +2880,7 @@ public class Z_Units {
                 x = 31.5f;
                 y = -6.25f;
                 shootY = 30.25f;
-                reload = 48f;   // ★ 射速再加快 (原 90f → 60f → 48f)
+                reload = 36f;   // ★ 射速再加快 (原 90f → 60f → 48f → 36f)
                 recoil = 7f;
                 shake = 3f;
                 ejectEffect = mindustry.content.Fx.casing4;
@@ -2907,7 +2907,7 @@ public class Z_Units {
                 x = 17.75f;
                 y = 11.25f;
                 shootY = 5.5f;
-                reload = 2.5f;    // ★ 射速再加快 (原 5f → 3f → 2.5f)
+                reload = 2f;    // ★ 射速再加快 (原 5f → 3f → 2.5f → 2f)
                 recoil = 0.5f;
                 shootSound = mindustry.gen.Sounds.shootFlame;
                 angleCone = 80f;
@@ -2918,7 +2918,7 @@ public class Z_Units {
                 x = 14f;
                 y = -9f;
                 shootY = 5.5f;
-                reload = 1.5f;    // ★ 射速再加快 (原 4f → 2f → 1.5f)
+                reload = 1.2f;    // ★ 射速再加快 (原 4f → 2f → 1.5f → 1.2f)
                 recoil = 0.5f;
                 shootSound = mindustry.gen.Sounds.shootFlame;
                 angleCone = 80f;
