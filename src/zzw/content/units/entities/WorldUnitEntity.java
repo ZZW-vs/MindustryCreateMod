@@ -122,6 +122,10 @@ public class WorldUnitEntity extends UnitEntity {
 
     /** 平台携带的单位 (陆军; 空军自由飞不携带, 海军不存在于平台) */
     public transient Seq<Unit> subUnits = new Seq<>(8);
+    /** 携带单位相对平台的朝向偏移 (登记时 u.rotation - this.rotation), 与 subUnits 下标对齐;
+     *  平台旋转时用它强制 u.rotation = this.rotation + offset, 由平台完全接管朝向,
+     *  否则单位自身 AI 的 faceTarget/faceMovement 会把朝向覆盖回固定方向 (跟随不真实) */
+    public transient FloatSeq subAngles = new FloatSeq();
     /** 上帧位姿 (携带单位刚体跟随的位移差/旋转差来源, update() 开头捕获) */
     protected transient float lastCarryX, lastCarryY, lastCarryRot;
 
@@ -260,6 +264,10 @@ public class WorldUnitEntity extends UnitEntity {
 
         // ★ TimeReflect: 把 Time.runs 替换为单位自己的队列, 建筑物 Time.run 进入单位队列而非主世界
         TimeReflect.swapRuns(runs);
+        // ★ 捕获建筑更新前的速度: 子世界建筑 update 期间 PayloadBlock.pushOutput 会对悬停且
+        //   同 legStep 分组的 terra 施加 vel (每出厂一个单位就把大地推一点), 这里记下, finally 后回退
+        float velOldX = vel.x, velOldY = vel.y;
+
         // ★ 切入子世界: pushWorld 把真主世界存进静态字段并设置 mainWorld, 并计数 +1
         pushWorld(unitWorld);
 
@@ -322,6 +330,9 @@ public class WorldUnitEntity extends UnitEntity {
             TimeReflect.resetRuns();
         }
 
+        // ★ 回退出厂挤动速度: 抵消建筑 update 期间 PushOutput 加给 terra 的速度
+        vel.set(velOldX, velOldY);
+
         // ===== 平台单位系统 (必须在主世界上下文执行) =====
 
         // ★ 接管 payload 出口弹射: 子世界上下文里地面单位永远过不了 UnitPayload.dump
@@ -377,10 +388,14 @@ public class WorldUnitEntity extends UnitEntity {
             if (!pb.payVector.within(ex, ey, 0.5f)) continue;
 
             if (u.type.naval) {
-                // ★ 海军: 平台是金属地板无水域, 海军无法存在 → 拒绝出厂 (生成不了)
-                pb.payload = null;
-                Fx.pulverize.at(u.x, u.y, u.hitSize / 8f);
-                continue;
+                // ★ 海军: 只有当大地下方主世界是水域时才能投放, 否则停在工厂等待
+                //   (u.x/u.y 是最后一次 updatePayload 投影出的主世界坐标)
+                Tile t = Vars.world.tileWorld(u.x, u.y);
+                if (t == null || t.solid() || !t.floor().isLiquid) {
+                    continue; // 非水域: 留在工厂, 待平台移到水域上方再放
+                }
+                // 挪到水域格子中心, 海军必须立在水上
+                u.set(t.worldx(), t.worldy());
             }
 
             // 单位上限检查 (与原版 dump 一致): 上限满时留在厂里等待
@@ -420,11 +435,13 @@ public class WorldUnitEntity extends UnitEntity {
             Unit u = subUnits.get(i);
             if (!u.isAdded() || u.dead) {
                 subUnits.remove(i);
+                subAngles.removeIndex(i);
                 continue;
             }
             if (u.isFlying()) {
                 // 起飞 → 自由飞行 (空军正常飞出来)
                 subUnits.remove(i);
+                subAngles.removeIndex(i);
                 continue;
             }
 
@@ -437,7 +454,9 @@ public class WorldUnitEntity extends UnitEntity {
                     carryVec.set(relx, rely).rotate(drot);
                     relx = carryVec.x;
                     rely = carryVec.y;
-                    u.rotation += drot;
+                    // ★ 强制朝向 = 平台朝向 + 登记时的相对偏移, 完全由平台接管,
+                    //   否则单位自身 AI 的 faceTarget/faceMovement 会把它转回固定方向
+                    u.rotation = this.rotation + subAngles.get(i);
                 }
                 u.set(lastCarryX + relx + dx, lastCarryY + rely + dy);
             }
@@ -445,6 +464,7 @@ public class WorldUnitEntity extends UnitEntity {
             if (!containsWorldPoint(u.x, u.y)) {
                 // 走出子世界 → 掉回主地图, 禁止重新登船
                 subUnits.remove(i);
+                subAngles.removeIndex(i);
                 fallOffBanned.add(u.id);
                 if (fallOffBanned.size > 4096) fallOffBanned.clear(); // 防无限增长 (id 不复用)
                 Fx.pulverize.at(u.x, u.y, u.hitSize / 8f);
@@ -464,6 +484,7 @@ public class WorldUnitEntity extends UnitEntity {
             if (fallOffBanned.contains(u.id)) continue;
             if (!containsWorldPoint(u.x, u.y)) continue;
             subUnits.add(u);
+            subAngles.add(u.rotation - this.rotation);
         }
     }
 
