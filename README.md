@@ -384,6 +384,7 @@
   - **重写「科技树模板.java」**：补上 VE 核心写法 `planet.techTree = nodeRoot(...)`（自定义星球整棵树），并移植本项目 `Z_TechTree` 的 `attach`/`node`/`nodeProduce` 辅助方法（160 无 `TechTree.get(parent)`，改用 `content.techNode` 字段）；补充 `Objectives` 清单与 VE 倒金字塔布局 `InvertedPyramidTreeLayout` 说明
   - 更新「Mod主类模板.java」加载顺序为 `物品 → 液体 → 状态 → 子弹 → 方块 → 单位 → 星球 → 科技树`，并在 `loadContent()` 方法体补上星球加载步骤
 ## 更新日志
+- empire（T7 机甲）加强：炮弹射程加远（弹寿命 125→150 帧、单位索敌射程 400→460）、炮弹射速加快（reload 40→34 帧）、火焰喷射伤害 120→135
 - End 单位减速：ravager（掠夺者）移动速度 0.65 → 0.5，desolation（湮灭者）0.7 → 0.55（约降 25%，作为巨型 Boss 步伐更沉稳）
 - 修复多节单位段身无影子（arcnelidia 电弧虫等）：原先调用 `seg.type.drawShadow(seg)` 依赖段身类型的 fullIcon 剪影，而段身贴图在 atlas 中带 mod 前缀、段身类型 region 在 load() 阶段查不到导致 fullIcon 无效；现按 PU132 `WormSegmentUnit.drawShadow` 原样改为手动剪影（段身/tail 贴图 + `Pal.shadow` 色 + `UnitType.shadowTX/TY × 飞行高度` 偏移），所有共用 SegmentUnitEntity 的虫子段身统一恢复影子
 - 全模组战斗特效加强（新建颜色参数化特效集 `CombatFx`，PU132 ShootFx 手法 + 饱和火力 / FlameOut / Vanilla-Expansion 的绘制技巧，替代原版 `Fx.*`）：

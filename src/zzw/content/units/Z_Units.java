@@ -2945,7 +2945,7 @@ public class Z_Units {
             outlineColor = Color.valueOf("2e3142");
             constructor = mindustry.gen.MechUnit::create;
             aiController = () -> new mindustry.ai.types.GroundAI();
-            range = 400f;
+            range = 460f;  // ★ 加强 (原 400f): 配合炮弹射程加远
 
             // 武器1: 火焰喷射 (PU_V8 LimitedAngleWeapon + FlameBulletType, angleCone=20f, angleOffset=-15f)
             weapons.add(new LimitedAngleWeapon("create-empire-weapon") {{
@@ -2965,7 +2965,7 @@ public class Z_Units {
                 shootCone = 20f;
                 shootSound = Sounds.shootFlame;
                 cooldownTime = 180f;
-                bullet = new FlameBulletType(6.6f, 120f) {{
+                bullet = new FlameBulletType(6.6f, 135f) {{  // ★ 加强 (原 120f): 火焰伤害提高
                     lifetime = 42f;
                     pierceCap = 6;
                     pierceBuilding = true;
@@ -3045,13 +3045,13 @@ public class Z_Units {
                 inaccuracy = 10f;
                 shoot.shots = 8;
                 velocityRnd = 0.2f;
-                reload = 40f;
+                reload = 34f;  // ★ 加强 (原 40f): 射速稍快
                 mirror = true;
                 shootSound = Sounds.shootArtillery;
                 bullet = new ArtilleryBulletType(3f, 38f) {{
                     hitEffect = zzw.content.units.effects.CombatFx.blastExplosion;
                     knockback = 0.8f;
-                    lifetime = 125f;
+                    lifetime = 150f;  // ★ 加强 (原 125f): 射程加远 (3f × 150 = 450px)
                     width = 14f;
                     height = 14f;
                     collides = true;
