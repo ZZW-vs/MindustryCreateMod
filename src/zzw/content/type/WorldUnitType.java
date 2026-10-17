@@ -24,9 +24,9 @@ import arc.util.Time;
 import arc.Core;
 import arc.Events;
 import mindustry.Vars;
+import mindustry.ai.types.CommandAI;
 import mindustry.content.Blocks;
 import mindustry.core.World;
-import mindustry.entities.units.AIController;
 import mindustry.entities.units.BuildPlan;
 import mindustry.entities.units.UnitController;
 import mindustry.game.EventType;
@@ -123,19 +123,53 @@ public class WorldUnitType extends UnityUnitType {
     }
 
     /**
-     * 空控制器: 只保存单位引用, 不做任何移动/索敌 (PU132 EmptyAI 移植).
+     * 空控制器: 不做任何自主移动/索敌寻路, 大地保持静止 (PU132 EmptyAI 移植).
      *
-     * <p>★ 必须继承 {@link AIController}: 原版玩家点击附身的前置条件是
-     * {@code unit.isAI() == true} (UnitComp.isAI() 判断 controller 是否为
-     * AIController 实例), 之前直接实现 UnitController 接口导致 isAI() 恒为
-     * false, 大地无法被玩家点击附身 ("不能操控")。</p>
+     * <p>★ 必须继承 {@link CommandAI}: 原版框选/单选命令选中要求
+     * {@code unit.isCommandable() == true} (UnitComp.isCommandable() 判断
+     * controller 是否为 CommandAI 实例), 之前继承普通 AIController 导致
+     * isCommandable() 恒为 false, 大地无法被框选下指令。附身 (ctrl/点击)
+     * 要求的 {@code unit.isAI()} 对 CommandAI 同样成立, 一举两得。</p>
      *
-     * <p>AIController 基类的 update() 是空实现 (接口默认方法), 继承后不会
-     * 引入任何自主移动/索敌行为, 与原"空控制器"语义完全一致。</p>
+     * <p>★ 但不能原样使用 CommandAI.updateUnit(): 它在巡逻/追击姿态下会
+     * 自动索敌寻路, 大地会自己乱跑。本类覆写 updateUnit(), <b>只执行玩家
+     * 显式下达的移动/攻击指令</b> (框选后右键产生的 targetPos/attackTarget),
+     * 无指令时原地不动, 武器仍可原地自动索敌开火 (updateTargeting)。</p>
      */
-    public static class EmptyController extends AIController {
-        // 全部行为继承 AIController: unit 字段与 unit()/unit() 方法、
-        // update() 空实现 —— 无需任何覆写
+    public static class EmptyController extends CommandAI {
+        @Override
+        public void updateUnit(){
+            // 视觉与武器: 与 CommandAI/AIController 一致 —— 武器原地自动索敌开火
+            updateVisuals();
+            updateTargeting();
+
+            // 特殊指令控制器 (装卸/修理等 UnitCommand 自带的执行器) 优先,
+            // 与 CommandAI.updateUnit() 的命令控制器调度保持一致
+            var curCommand = command;
+            if(lastCommand != curCommand){
+                lastCommand = curCommand;
+                commandController = (curCommand == null ? null : curCommand.controller.get(unit));
+            }
+            if(commandController != null){
+                if(commandController.unit() != unit) commandController.unit(unit);
+                commandController.updateUnit();
+                return;
+            }
+
+            // 清理无效攻击目标 (死亡/移除的目标不再追击)
+            if(attackTarget != null && invalid(attackTarget)){
+                attackTarget = null;
+                targetPos = null;
+            }
+
+            // ★ 只执行玩家显式指令; 无指令时原地不动 ——
+            //   CommandAI 默认的巡逻/追击自动寻路逻辑全部省略
+            if(targetPos != null || attackTarget != null){
+                defaultBehavior();
+            }else{
+                unit.updateBoosting(false);
+            }
+        }
     }
 
     /**

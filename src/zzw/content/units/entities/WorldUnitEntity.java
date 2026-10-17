@@ -484,6 +484,24 @@ public class WorldUnitEntity extends UnitEntity {
         return -1;
     }
 
+    /**
+     * ★ 甲板单位优先: 甲板 (subUnits) 上存在可命令单位时, 大地对框选/单选
+     * 命令不可选 —— 这样 shift 框选只会选中甲板上的陆军, 不会把巨大的大地
+     * 本体一起框进去; 甲板清空后, 大地恢复可命令选中 (isCommandable =
+     * controller 是 CommandAI 实例, 即 EmptyController)。
+     *
+     * <p>该判定同时被单点命令选中 ({@code selectedCommandUnit}) 与框选
+     * ({@code selectedCommandUnits}) 使用, 附身 (ctrl/点击操控) 走的是
+     * isAI() 路径, 不受影响 —— 甲板上有单位时仍可附身大地本体。</p>
+     */
+    @Override
+    public boolean isCommandable() {
+        for (int i = 0; i < subUnits.size; i++) {
+            if (subUnits.get(i).isCommandable()) return false;
+        }
+        return super.isCommandable();
+    }
+
     // ===== setup / absorb (召唤初始化 + 吸收建筑到子世界) =====
 
     /**
