@@ -90,6 +90,13 @@ public class SoulFloorExtractor extends FloorExtractor {
     }
 
 
+    @Override
+    public void setBars(){
+        super.setBars();
+        // 灵魂填充进度条 (可视化供魂效果)
+        ISoulTurret.addSoulBar(this);
+    }
+
     public class SoulFloorExtractorBuild extends FloorExtractorBuild implements ISoulTurret {
         /** 当前灵魂数 */
         public int souls;

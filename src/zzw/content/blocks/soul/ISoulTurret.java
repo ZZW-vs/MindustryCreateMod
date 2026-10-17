@@ -51,6 +51,20 @@ public interface ISoulTurret {
     float efficiencyFrom();
     float efficiencyTo();
 
+    /**
+     * 灵魂进度条注册助手 (各灵魂方块在 setBars() 中调用)。
+     *
+     * <p>紫色进度条显示当前灵魂填充比例 (souls/maxSouls),
+     * 让"供灵魂 → 炮台变强"的过程可视化 —— 灵魂越满,
+     * 装填/伤害/制作速度加成越高 (soulEfficiency)。</p>
+     */
+    static void addSoulBar(mindustry.world.Block block) {
+        block.addBar("souls", (mindustry.gen.Building b) -> new mindustry.ui.Bar(
+            () -> arc.Core.bundle.get("bar.souls"),
+            () -> zzw.content.graphics.UnityPal.monolith,
+            b instanceof ISoulTurret s ? s::soulf : () -> 0f));
+    }
+
     /** 灵魂效率倍率 (供 Building.efficiency 调用) */
     default float soulEfficiency() {
         if (requireSoul() && !hasSouls()) return 0f;

@@ -449,6 +449,10 @@
 - 新增螺旋石油钻井（oil-derrick）：扭矩驱动的石油抽取器（`SolidPump`，`result=Liquids.oil`、`attribute=Attribute.oil`，需建在油层上），绘制为螺旋钻杆样式（类 `zzw.content.mechanics.torque.blocks.production.OilDerrick`）
 
 ## 更新日志
+- **灵魂机制修正与可视化**：
+  - 修复灵魂炮台 (ricochet/diviner/mage/blackout/shellshock/purge) **射速加成完全无效**的问题——旧实现在 `updateTile` 里 `efficiency *= soulEfficiency()` 且放在 `super.updateTile()` 之后，而 efficiency 每 tick 会被 updateConsumption 重算，乘算从未生效；改为覆写 `getProgressIncrease` 织入灵魂倍率（与制作方块侧做法一致，SoulItemTurret 同步修复）
+  - 新增**灵魂进度条**：全部灵魂建筑（6 种灵魂炮台 + 灵魂灌注器/碎屑提取器/巨石锻造厂）显示 `bar.souls` 进度条（UnityPal.monolith 浅蓝），灵魂越满 → 装填越快 + 伤害越高（0 灵魂 ×0.8 → 满灵魂 ×1.5），供魂效果一目了然
+  - 灵魂炮台伤害缩放保留（PU_V8 progression.linear）；激光类灵魂炮台维持仅伤害加成（原注释记录修改 efficiency 会破坏激光炮蓄力，未动）
 - **修复：bastion 系列 (Monolith 灵魂单位) 不能动也不能攻击**：`UnityUnitType` 补移植 PU132 `create(Team)` 出厂钩子——灵魂单位 (SoulLegsUnit/SoulMechUnit/SoulDecorationUnit) 出厂时自带 1 只灵魂 (`Soul.join()`)。此前单位出生 0 灵魂，立即被 `disabled` 瘫痪状态 (移速归零+缴械) 锁死；核心直接召唤的单位受 `canJoin()` (maxSouls=0) 保护不受影响，与 PU132 原版行为一致
 - **历史简化移植重写收尾**（三处旧"简化/TODO"全部升级为 PU132 完整机制）：
   - **dark 系四连激光四层光束渲染**：`SparkingContinuousLaserBulletType` 补上 PU132 改版基类的 `strokes[]`（四层描边宽度）+ `tscales[]`（闪烁）+ `lenscales[]`（层长递增）+ `spaceMag`（层间距）字段与配套 `draw()` 覆盖（v160.1 原生 `ContinuousLaserBulletType` 无这些字段，经 javap 验证后自行复刻，绘制逻辑与本项目 Saber 激光同源）；三个炮台按 PU132 原值启用——catastrophe 描边 ×1.4、calamity ×1.7 + 层间距 70、extinction ×2.2 + 层间距 70 + 一次引 4 道炮口闪电（`fromBlockAmount=4` 此前遗漏，一并补齐）

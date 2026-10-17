@@ -110,6 +110,13 @@ public class SoulTractorBeamTurret extends TractorBeamTurret implements ISoulTur
         });
     }
 
+    @Override
+    public void setBars(){
+        super.setBars();
+        // 灵魂填充进度条 (可视化供魂效果)
+        ISoulTurret.addSoulBar(this);
+    }
+
     public class SoulTractorBeamTurretBuild extends TractorBeamBuild implements ISoulTurret {
         public int souls = 0;
 

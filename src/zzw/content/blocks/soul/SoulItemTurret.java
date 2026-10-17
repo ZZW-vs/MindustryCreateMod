@@ -67,6 +67,13 @@ public class SoulItemTurret extends ItemTurret implements ISoulTurret {
         });
     }
 
+    @Override
+    public void setBars(){
+        super.setBars();
+        // 灵魂填充进度条 (可视化供魂效果)
+        ISoulTurret.addSoulBar(this);
+    }
+
     public class SoulItemTurretBuild extends ItemTurretBuild implements ISoulTurret {
         public int souls = 0;
         /** 缓存每种 ammo 的基础伤害 (按 item 区分) */
@@ -115,6 +122,18 @@ public class SoulItemTurret extends ItemTurret implements ISoulTurret {
                     b.damage = e.value * soulEfficiency();
                 }
             }
+        }
+
+        /**
+         * 灵魂射速加成 (PU132 SoulComp.efficiency 织入语义)。
+         *
+         * <p>★ v155.4 适配: efficiency 是 BuildingComp 的字段而非可覆写方法,
+         * 改为覆写 {@link #getProgressIncrease} 让灵魂倍率作用于装填进度
+         * (与制作方块 SoulFloorExtractor 侧做法一致)。</p>
+         */
+        @Override
+        public float getProgressIncrease(float baseTime) {
+            return super.getProgressIncrease(baseTime) * soulEfficiency();
         }
 
         @Override

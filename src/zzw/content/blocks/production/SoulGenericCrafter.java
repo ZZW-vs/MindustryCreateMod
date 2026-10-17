@@ -65,6 +65,13 @@ public class SoulGenericCrafter extends GenericCrafter {
     }
 
 
+    @Override
+    public void setBars(){
+        super.setBars();
+        // 灵魂填充进度条 (可视化供魂效果)
+        ISoulTurret.addSoulBar(this);
+    }
+
     public class SoulGenericCrafterBuild extends GenericCrafterBuild implements ISoulTurret {
         /** 当前灵魂数 */
         public int souls;

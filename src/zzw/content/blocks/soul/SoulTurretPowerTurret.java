@@ -71,6 +71,13 @@ public class SoulTurretPowerTurret extends PowerTurret implements ISoulTurret {
         });
     }
 
+    @Override
+    public void setBars(){
+        super.setBars();
+        // 灵魂填充进度条 (可视化供魂效果)
+        ISoulTurret.addSoulBar(this);
+    }
+
     public class SoulTurretPowerTurretBuild extends PowerTurretBuild implements ISoulTurret {
         public int souls = 0;
         /** baseDamage 缓存, 在 created 时记录 shootType.damage */
@@ -122,8 +129,23 @@ public class SoulTurretPowerTurret extends PowerTurret implements ISoulTurret {
         @Override
         public void updateTile() {
             super.updateTile();
-            // v158 中 efficiency 是字段, 通过乘以灵魂倍率调整
-            efficiency *= soulEfficiency();
+            // 旧实现 (efficiency *= soulEfficiency() 放在 super 之后) 已废弃:
+            // efficiency 每 tick 会被 updateConsumption 重新计算, super.updateTile()
+            // 内的 updateReload 已经用未加成的 efficiency 跑完, 乘算完全无效
+        }
+
+        /**
+         * 灵魂射速加成 (PU132 SoulComp.efficiency 织入语义)。
+         *
+         * <p>★ v155.4 适配: efficiency 是 BuildingComp 的字段而非可覆写方法,
+         * 改为覆写 {@link #getProgressIncrease} 让灵魂倍率作用于装填进度 ——
+         * 与制作方块 (SoulFloorExtractor) 侧的做法一致, 且与 updateTile
+         * 执行顺序无关。效果: 灵魂越满, 装填越快 (0 灵魂 = efficiencyFrom 倍,
+         * 满灵魂 = efficiencyTo 倍); requireSoul 且无灵魂时完全不装填。</p>
+         */
+        @Override
+        public float getProgressIncrease(float baseTime) {
+            return super.getProgressIncrease(baseTime) * soulEfficiency();
         }
 
         @Override

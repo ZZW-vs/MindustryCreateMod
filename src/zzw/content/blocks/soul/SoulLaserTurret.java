@@ -69,6 +69,13 @@ public class SoulLaserTurret extends LaserTurret implements ISoulTurret {
         });
     }
 
+    @Override
+    public void setBars(){
+        super.setBars();
+        // 灵魂填充进度条 (可视化供魂效果)
+        ISoulTurret.addSoulBar(this);
+    }
+
     public class SoulLaserTurretBuild extends LaserTurretBuild implements ISoulTurret {
         public int souls = 0;
         /** baseDamage 缓存, 在 created 时记录 shootType.damage */
