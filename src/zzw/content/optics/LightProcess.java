@@ -28,6 +28,15 @@ public class LightProcess {
     /** 光的四叉树 (终点查找已有光合并父子) */
     public final QuadTree<Light> quad = new QuadTree<>(new Rect());
 
+    // ===== 版本号驱动的 cast 跳过 (性能优化) =====
+    // 任何光的输入变化 (强度/朝向/位置/颜色/光源)、光端点移动、光增删、
+    // 世界方块建造/摧毁都会推进 version; 版本号未变说明整帧所有光输入与世界
+    // 均无变化, cast 结果必然与上一帧相同, 可整体跳过 (静态场景零开销)。
+    /** 全局光照版本号 (任何变化 +1) */
+    public static int version = 0;
+    /** 上次执行 cast 时的版本号 (-1 = 强制全量 cast) */
+    private static int lastVersion = -1;
+
     private boolean ready = false;
 
     /**
@@ -35,13 +44,9 @@ public class LightProcess {
      */
     public void update() {
         // 1. 执行上一帧 cast 期间排队的交互任务 (原版 begin 的 queue.run)
-        if (!queue.isEmpty()) {
-            Seq<Runnable> q = new Seq<>(queue);
-            queue.clear();
-            for (Runnable r : q) r.run();
-        }
+        runQueue();
 
-        // 2. 收集全部存活的光并 snap (同步输入 → cast 输入)
+        // 2. 收集全部存活的光并 snap (同步输入 → cast 输入; snap 内部做变更检测)
         all.clear();
         for (Light l : Light.active) {
             if (l.removed) continue;
@@ -49,18 +54,27 @@ public class LightProcess {
             all.add(l);
         }
 
-        // 3. 光传播 (同步执行原 cast 的异步部分)
-        for (int i = 0; i < all.size; i++) {
-            all.items[i].cast();
+        // 3. 光传播: 版本号未变 → 所有光输入与世界均无变化, 跳过重 cast
+        if (version != lastVersion) {
+            for (int i = 0; i < all.size; i++) {
+                all.items[i].cast();
+            }
+            // cast 可能推进端点/增删子光 (也会 bump version), 以 cast 后的版本为准;
+            // 子光 queuePosition 滞后一帧的部分会由其 snap 的变更检测在下一帧补 cast
+            lastVersion = version;
         }
 
         // 4. 执行本帧 cast 期间排队的任务 (原版下一帧 begin 执行; 提前到本帧尾,
         //    使 interact(child 注册) 当帧生效, 反射镜当帧出反射光)
-        if (!queue.isEmpty()) {
-            Seq<Runnable> q = new Seq<>(queue);
-            queue.clear();
-            for (Runnable r : q) r.run();
-        }
+        runQueue();
+    }
+
+    /** 执行并清空队列 (无分配; 运行中新增的任务留到下一次 runQueue) */
+    private void runQueue() {
+        if (queue.isEmpty()) return;
+        int n = queue.size;
+        for (int i = 0; i < n; i++) queue.items[i].run();
+        queue.removeRange(0, n - 1);
     }
 
     /** 世界重置 */
@@ -69,6 +83,7 @@ public class LightProcess {
         quad.clear();
         all.clear();
         Light.active.clear();
+        lastVersion = -1;
         ready = false;
     }
 
@@ -78,6 +93,7 @@ public class LightProcess {
         quad.clear();
         float b = Light.yield * 2f;
         quad.bounds.set(-b, -b, world.unitWidth() + b * 2f, world.unitHeight() + b * 2f);
+        lastVersion = -1;  // 换图后强制全量 cast
         ready = true;
     }
 
@@ -153,6 +169,10 @@ public class LightProcess {
 
         arc.Events.on(mindustry.game.EventType.WorldLoadEvent.class, e -> lights.init());
         arc.Events.on(mindustry.game.EventType.ResetEvent.class, e -> lights.reset());
+
+        // ★ 世界变化会改变光路 (新建方块挡光 / 拆除方块透光) → 强制下一帧重新 cast
+        arc.Events.on(mindustry.game.EventType.BlockBuildEndEvent.class, e -> version++);
+        arc.Events.on(mindustry.game.EventType.BlockDestroyEvent.class, e -> version++);
 
         // 与 WorldUnitType.updateInteraction 相同的每 tick 驱动方式
         arc.Events.run(mindustry.game.EventType.Trigger.update, () -> {

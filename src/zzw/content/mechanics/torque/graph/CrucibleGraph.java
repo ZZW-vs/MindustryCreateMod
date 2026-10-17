@@ -45,6 +45,7 @@ public class CrucibleGraph extends BaseGraph<GraphCrucibleModule, CrucibleGraph>
     private final Seq<CrucibleIngredient> smeltOrder = new Seq<>();
     private final Seq<CrucibleIngredient> boilOrder = new Seq<>();
     private final Seq<CrucibleIngredient> coolOrder = new Seq<>();
+    private final Seq<CrucibleIngredient> removeOrder = new Seq<>();
 
     /** 拼装坩埚方块名 (连接白名单的主角) */
     private static final String MODULAR = "modular-crucible";
@@ -155,8 +156,9 @@ public class CrucibleGraph extends BaseGraph<GraphCrucibleModule, CrucibleGraph>
             color.set(Color.clear);
             return;
         }
+        // alpha 增长系数 2f 与 PU_V8 原版 updateColor 一致
         float inv = 1f / t;
-        color.set(r * inv, g * inv, b * inv, Mathf.clamp(10f * t / totalCapacity));
+        color.set(r * inv, g * inv, b * inv, Mathf.clamp(2f * t / totalCapacity));
     }
 
     @Override
@@ -207,6 +209,8 @@ public class CrucibleGraph extends BaseGraph<GraphCrucibleModule, CrucibleGraph>
     void updateGraph(){
         if(fluids.isEmpty()) return;
         if(!crafts){
+            // 与 PU_V8 一致: 不参与合成的网络也要清理残留, 否则微量内容物永远留在网络里
+            removeEmpty();
             updateColor();
             return;
         }
@@ -299,10 +303,13 @@ public class CrucibleGraph extends BaseGraph<GraphCrucibleModule, CrucibleGraph>
         for(var recipe : CrucibleRecipes.recipes){
             if(recipe.minTemp > temp) continue;
 
-            float maxam = totalCapacity - getFluid(recipe.output).total();
+            // ★ 用 fluids.get 判空而非 getFluid: getFluid 会为不存在的原料插入空 entry,
+            //   每帧对每个配方×原料都插入再由 removeEmpty 删除, 白白增加 GC 与 OrderedMap 开销
+            CrucibleFluid out = fluids.get(recipe.output);
+            float maxam = totalCapacity - (out == null ? 0f : out.total());
             for(RecipeIngredient ri : recipe.items){
-                CrucibleFluid fluid = getFluid(ri.ingredient);
-                if(fluid.total() == 0f){
+                CrucibleFluid fluid = fluids.get(ri.ingredient);
+                if(fluid == null || fluid.total() == 0f){
                     maxam = 0f;
                     break;
                 }
@@ -331,11 +338,12 @@ public class CrucibleGraph extends BaseGraph<GraphCrucibleModule, CrucibleGraph>
     }
 
     private void removeEmpty(){
-        Seq<CrucibleIngredient> rm = new Seq<>();
+        // 复用临时序列, 避免每帧分配 (与 smeltOrder 等同类)
+        removeOrder.clear();
         for(var f : fluids){
-            if(f.value.total() <= 0.0001f) rm.add(f.key);
+            if(f.value.total() <= 0.0001f) removeOrder.add(f.key);
         }
-        for(var k : rm) fluids.remove(k);
+        for(var k : removeOrder) fluids.remove(k);
     }
 
     @Override

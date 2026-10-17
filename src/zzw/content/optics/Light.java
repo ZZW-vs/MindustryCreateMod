@@ -53,6 +53,9 @@ public class Light implements QuadTree.QuadTreeObject {
     /** 旋转角步进 (22.5°, 16 方向) */
     public static final float rotationInc = 22.5f;
 
+    /** 是否向原版 LightRenderer 发光 (黑暗地图下光束/落点真正照亮环境); 关闭光照规则时原版内部自动忽略 */
+    public static boolean emitVanillaLight = true;
+
     /** 全部活跃光 (对象池替代品: 复用 removed 的实例) */
     static final Seq<Light> active = new Seq<>();
     static final Seq<Light> pool = new Seq<>();
@@ -130,21 +133,35 @@ public class Light implements QuadTree.QuadTreeObject {
 
     /** cast 前同步快照 (PU132 snap) */
     void snap() {
-        strength = queueStrength + recStrength();
-        source = queueSource;
-        color = combinedCol(queueColor);
+        float nStrength = queueStrength + recStrength();
+        LightHolder nSource = queueSource;
+        int nColor = combinedCol(queueColor);
 
         float rot = fixRot(queueRotation);
-        if (!Mathf.equal(rotation, rot)) rotationChanged = true;
-        rotation = rot;
+        boolean rotChanged = !Mathf.equal(rotation, rot);
+        float nx = SVec2.x(queuePosition);
+        float ny = SVec2.y(queuePosition);
 
-        x = SVec2.x(queuePosition);
-        y = SVec2.y(queuePosition);
+        // ★ 变更检测: 任何输入变化都推进全局版本号, LightProcess 据此跳过无意义的重 cast
+        if (!Mathf.equal(nStrength, strength) || rotChanged || nSource != source
+            || nColor != color || !Mathf.equal(nx, x) || !Mathf.equal(ny, y)) {
+            LightProcess.version++;
+        }
+
+        strength = nStrength;
+        source = nSource;
+        color = nColor;
+        if (rotChanged) rotationChanged = true;
+        rotation = rot;
+        x = nx;
+        y = ny;
     }
 
     /** 光传播 (PU132 cast, 同步执行) */
     void cast() {
         clearInvalid();
+
+        float oldEndX = endX, oldEndY = endY;
 
         // 无光源且无父光 → 移除
         if ((source == null || !source.building().isValid()) && parentsAny(p -> p.size <= 0)) {
@@ -218,6 +235,11 @@ public class Light implements QuadTree.QuadTreeObject {
         if (!hit) {
             endX = Mathf.round(targetX / tilesize) * tilesize;
             endY = Mathf.round(targetY / tilesize) * tilesize;
+        }
+
+        // ★ 端点变化也推进版本号 (子光 queuePosition 取自父光端点, 需触发重 cast)
+        if (!Mathf.equal(oldEndX, endX) || !Mathf.equal(oldEndY, endY)) {
+            LightProcess.version++;
         }
 
         Tile tile = world.tileWorld(endX, endY);
@@ -341,6 +363,7 @@ public class Light implements QuadTree.QuadTreeObject {
 
     public void add() {
         LightProcess.lights.quad(quad -> quad.insert(this));
+        LightProcess.version++;  // 光集合变化 (QuadTree 查重/子光合并依赖它)
     }
 
     public void queueAdd() {
@@ -356,6 +379,7 @@ public class Light implements QuadTree.QuadTreeObject {
         removed = true;
         active.remove(this, true);
         if (pool.size < 512) pool.add(this);
+        LightProcess.version++;  // 子光的清理依赖下一帧 cast (父失效检测)
     }
 
     public void queueRemove() {
@@ -427,6 +451,24 @@ public class Light implements QuadTree.QuadTreeObject {
 
         Draw.blend();
         Draw.z(z);
+
+        // ★ 原版光照兼容: 把光束写进原版 LightRenderer。
+        //   黑暗地图 (state.rules.lighting) 下光束沿途 (line 光) 与落点 (圆形光)
+        //   会真正照亮周围环境, 与原版照明方块/激光的表现一致;
+        //   未开启光照规则时 LightRenderer.add/line 内部直接丢弃, 零开销。
+        if (emitVanillaLight) {
+            float alpha = Mathf.clamp(strength) * 0.45f;
+            if (!Mathf.zero(alpha)) {
+                Tmp.c1.set(color);
+                // 光束沿途照亮 (line 光, 宽度放大到可见程度)
+                renderer.lights.line(x, y, endX, endY, width * 8f, Tmp.c1, alpha);
+                // 落点圆形照亮 (半径与残余光强成正比)
+                float endStr = endStrength();
+                renderer.lights.add(endX, endY,
+                    Mathf.clamp(endStr, 0.15f, 2f) * yield * 0.3f, Tmp.c1,
+                    Mathf.clamp(endStr) * 0.6f);
+            }
+        }
     }
 
     // ===== 父子关系管理 (PU132 原版逻辑) =====
