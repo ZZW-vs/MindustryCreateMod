@@ -1,5 +1,6 @@
 package zzw.content;
 
+import arc.graphics.Color;
 import mindustry.entities.bullet.BulletType;
 import mindustry.type.Item;
 import mindustry.world.blocks.defense.turrets.ItemTurret;
@@ -126,7 +127,79 @@ public class Z_VanillaAmmo{
         if(copy.splashDamage > 0f) copy.splashDamage *= dmgMul;
         copy.ammoMultiplier = ammoPerItem;
 
+        // ★ 附生弹 (子母弹) 处理: BulletType.copy() 是浅拷贝, fragBullet/intervalBullet
+        //   仍与原版弹药共享同一实例。这里深拷贝一份并等比强化伤害, 让注入弹药
+        //   拥有独立的附生弹 (也避免未来调整互相串改)。
+        copy.fragBullet = strengthenChild(copy.fragBullet, dmgMul);
+        copy.intervalBullet = strengthenChild(copy.intervalBullet, dmgMul);
+
+        // ★ 颜色区分: 原版炮台不同弹药本就有不同颜色 (如旋风的玻璃/塑钢/浪涌),
+        //   注入弹药若与模板弹药同色, 视觉上无法区分装的是哪种。
+        //   把主弹与附生弹的整套颜色向模组物品色偏移 40%, 观感上"同款加强版"。
+        tintBullet(copy, modItem.color);
+
         turret.ammoTypes.put(modItem, copy);
+    }
+
+    /**
+     * 深拷贝一颗附生子弹并等比强化伤害 (null 直接返回 null)。
+     * <p>附生弹自己如果还有下一级 fragBullet, 不再递归 —— 原版附生弹最多一级。</p>
+     */
+    private static BulletType strengthenChild(BulletType child, float dmgMul){
+        if(child == null) return null;
+        BulletType copy = child.copy();
+        copy.damage *= dmgMul;
+        if(copy.splashDamage > 0f) copy.splashDamage *= dmgMul;
+        return copy;
+    }
+
+    /**
+     * 把一颗子弹的整套颜色字段向 {@code to} 偏移 40% (null 字段自动跳过)。
+     * <p>覆盖: 基础弹的前后色/命中色/拖尾色/闪电色, 以及激光类的 colors 渐变数组;
+     * 所有 Color 均先 cpy() 再调 lerp, <b>绝不修改原版弹药共享的 Color 实例</b>;
+     * lerp 会连 alpha 一起插值, 因此插值后恢复原 alpha (保持渐变数组半透明段)。</p>
+     */
+    private static void tintBullet(BulletType b, Color to){
+        // ★ null 安全: 原版部分弹药的 fragBullet/intervalBullet 为 null,
+        //   下方递归染色附生弹时会把 null 传进来, 直接 NPE 崩掉整个内容加载
+        if(b == null) return;
+        b.hitColor = tint(b.hitColor, to);
+        b.trailColor = tint(b.trailColor, to);
+        b.lightningColor = tint(b.lightningColor, to);
+
+        if(b instanceof mindustry.entities.bullet.BasicBulletType basic){
+            basic.backColor = tint(basic.backColor, to);
+            basic.frontColor = tint(basic.frontColor, to);
+        }
+        if(b instanceof mindustry.entities.bullet.LaserBulletType laser){
+            laser.colors = tintColors(laser.colors, to);
+        }
+        if(b instanceof mindustry.entities.bullet.ContinuousLaserBulletType cl){
+            cl.colors = tintColors(cl.colors, to);
+        }
+        if(b instanceof mindustry.entities.bullet.ContinuousFlameBulletType cf){
+            cf.colors = tintColors(cf.colors, to);
+        }
+        // 附生弹一并染色, 保持主弹与子母弹观感统一
+        tintBullet(b.fragBullet, to);
+        tintBullet(b.intervalBullet, to);
+    }
+
+    /** 颜色向 {@code to} 偏移 40%, 保留原 alpha; null 安全。 */
+    private static Color tint(Color c, Color to){
+        if(c == null) return null;
+        float a = c.a;
+        Color result = c.cpy().lerp(to, 0.4f);
+        result.a = a;
+        return result;
+    }
+
+    /** 颜色数组逐个偏移 (拷贝为新数组, 不动原版共享数组); null 安全。 */
+    private static Color[] tintColors(Color[] colors, Color to){
+        if(colors == null) return null;
+        Color[] result = new Color[colors.length];
+        for(int i = 0; i < colors.length; i++) result[i] = tint(colors[i], to);
+        return result;
     }
 
     /** 空子弹占位 (兜底遍历时的初始比较值) */

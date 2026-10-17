@@ -273,10 +273,10 @@
 - **视觉**：影子贴近本体（shadowElevation=0.1f）；子世界炮台不再显示开火红温光效
 - **平台单位系统**（空中平台：甲板上可正常驻留/移动/攻击单位）
   - **碰撞隔离**：terra 覆写 `collisionLayer()` 返回 -1，PhysicsProcess 完全跳过其物理体 —— 平台碰撞箱不再把甲板上的单位挤飞，单位也不再挤动 terra（彻底根治"产出单位导致漂移"类问题）
-  - **携带跟随**：甲板上的地面单位每帧做刚体跟随（绕旧中心旋转 drot + 平移 dx,dy），随平台移动/旋转整体搬运，像空中平台一样
-  - **出厂修复**：平台工厂弹射地面单位时 `UnitPayload.dump` 的 solidity/重叠检查在子世界上下文必然失败（卡死工厂），由 `WorldUnitEntity.ejectStuckPayloads` 在主世界上下文接管出口投放；`ModularConstructor` 产出的单位直接出生在甲板上（移除旧的"推到平台外"方案）
+  - **携带跟随**：甲板上的地面单位每帧做刚体跟随（绕旧中心旋转 drot + 平移 dx,dy），随平台移动/旋转整体搬运，像空中平台一样；单位朝向按登记时的相对偏移强制随平台转动（`u.rotation = 平台朝向 + 偏移`），不再被单位自身 AI 覆盖成固定方向
+  - **出厂修复**：平台工厂弹射地面单位时 `UnitPayload.dump` 的 solidity/重叠检查在子世界上下文必然失败（卡死工厂），由 `WorldUnitEntity.ejectStuckPayloads` 在主世界上下文接管出口投放；`ModularConstructor` 产出的单位直接出生在甲板上（移除旧的"推到平台外"方案）；出厂时 `PayloadBlock.pushOutput` 对悬停 terra 施加的挤动速度在建筑更新窗口内回退，大地不再被"每出一个单位推一点"
   - **出界掉落**：陆军走出平台矩形 → 掉回主地图正常行动，并加入**禁登名单**（不能再登上任何子世界平台，名单随存档 v4 持久化）；单位起飞则正常放行（不算掉落，飞回甲板仍可再被携带）
-  - **海军拒绝**：平台上无法生产海军（金属地板无水域）—— 工厂出口的海军 payload 直接拒绝出厂，`ModularConstructor` 对海军暂缓生产
+  - **海军投放**：平台上无法直接生产海军（金属地板无水域）—— 工厂出口的海军 payload 由主世界接管，检查大地下方主世界方块：为水域则投放到水域格（海军正常落下保留），非水域则留在工厂等待平台移到水域上方
   - **空军自由**：空军不受携带、可自由飞进飞出平台；甲板上的地面单位起飞（boost）同样放行
   - **渲染**：地面单位自然渲染层（groundUnit=60）低于甲板（darkness+1=81），由 `drawBody` 在甲板之上补绘；读档后按位置自动重新收编携带单位
 
@@ -308,6 +308,7 @@
 - 移除方块 `create-cooling-heater`（制冷机，暂不再使用）及其注册、bundle 文案与 `CoolingHeater` 类。
 - 修复 Android 平台崩溃 `NoClassDefFoundError: java.util.Comparator$-CC`（拆除机械方块/管道时触发）：`BaseGraph.isAtriculationPoint` 使用了 `Comparator.comparingInt(...)`，其字节码会引用 javac 生成的 companion class `java.util.Comparator$-CC`，该类在 Android/ART 上不存在。改用普通 lambda + `Integer.compare`，Desktop / Android 全平台兼容。
 - 修复热管 (heat-pipe)「实际已连接但贴图仍显示未连接」：`HeatPipeBuild` 原先只在 `onNeighboursChanged()` 里按邻居位掩码算一次贴图变体，图重建过程中的增量注册/提前 return 可能漏发该通知，导致掩码残留旧值。现在 `draw()` 每帧按当前真实邻居重算掩码，彻底避免残留。
+- 修复加载崩溃：`Z_VanillaAmmo.tintBullet` 递归染色附生弹时未判 null，原版部分弹药的 `fragBullet`/`intervalBullet` 为 null，内容加载阶段 NPE 崩溃（`Cannot read field "hitColor" because "b" is null`）；入口处补 null 守卫。
 - 修复「大地」(terra) 在子世界内产出单位时漂移/乱窜：
   - **对齐 PU132 原版定位根因**：PU 的 terra（`UnityUnitTypes.java:2387`）是纯地面单位，仅设 `speed/health/worldWidth/worldHeight`；端口此前把它额外改成了低空飞行 + 整平台碰撞箱 + `physics=false` + 极低阻力（`accel=0.08`、`drag=0.03`），其中极低阻力是漂移的放大器——任何一次微小挤动产生的速度几乎不衰减，terra 便朝一个方向持续滑行。
   - **修掉漂移放大器**：恢复默认 `accel`/`drag`（不再覆写），位移会迅速衰减；`physics=false`（实测无效）一并移除，恢复默认 `physics=true`。
