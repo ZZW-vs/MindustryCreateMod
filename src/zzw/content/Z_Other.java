@@ -58,13 +58,13 @@ public class Z_Other {
                 }},
                 Items.thorium, new ShrapnelBulletType(){{
                     length = 105f ; // 激光长度
-                    damage = 98f ; // 伤害
+                    damage = 110f ; // 伤害 (≈巨浪合金, 差距由击退+溅射补足)
                     ammoMultiplier = 5f ; // 弹药倍率
                     width = 13f ; // 激光宽度
                     toColor = Pal.thoriumPink ; // 颜色
                     shootEffect = smokeEffect = zzw.content.units.effects.CombatFx.muzzleFlashSmoke ; // 特效
                     knockback = 3f ; // 钍=重金属: 击退目标
-                    splashDamage = 24f ; splashDamageRadius = 12f ; // 重击小范围溅射 (伤害的 ~25%)
+                    splashDamage = 27f ; splashDamageRadius = 12f ; // 重击小范围溅射 (伤害的 ~25%)
                 }},
                 Items.surgeAlloy, new ShrapnelBulletType(){{
                     length = 105f ; // 激光长度
@@ -74,7 +74,7 @@ public class Z_Other {
                     toColor = Pal.surge ; // 颜色
                     buildingDamageMultiplier = 0.2f ; // 对建筑减伤80%
                     status = StatusEffects.shocked ; // 电镀=电系: 附加麻痹效果
-                    fragBullet = new LightningBulletType(){{ damage = 22f ; length = 9f ; }} ; // 连锁闪电
+                    fragBullet = new LightningBulletType(){{ damage = 22f ; length = 9 ; }} ; // 连锁闪电
                     fragBullets = 2 ; // 每发激光命中释放 2 道闪电
                 }},
                 Items.plastanium, new ShrapnelBulletType(){{
@@ -148,13 +148,13 @@ public class Z_Other {
                 }},
                 Items.thorium, new ShrapnelBulletType(){{
                     length = 150f ; // 激光长度
-                    damage = 215f ; // 伤害
+                    damage = 236f ; // 伤害 (≈巨浪合金, 差距由击退+溅射补足)
                     ammoMultiplier = 5f ; // 弹药倍率
                     width = 34f ; // 激光宽度
                     toColor = Pal.thoriumPink ; // 颜色
                     shootEffect = smokeEffect = zzw.content.units.effects.CombatFx.muzzleFlashSmoke ; // 特效
                     knockback = 4f ; // 钍=重金属: 击退目标
-                    splashDamage = 54f ; splashDamageRadius = 14f ; // 重击小范围溅射 (伤害的 ~25%)
+                    splashDamage = 59f ; splashDamageRadius = 14f ; // 重击小范围溅射 (伤害的 ~25%)
                 }},
                 Items.surgeAlloy, new ShrapnelBulletType(){{
                     length = 150f ; // 激光长度
@@ -164,7 +164,7 @@ public class Z_Other {
                     toColor = Pal.surge ; // 颜色
                     buildingDamageMultiplier = 0.2f ; // 对建筑减伤80%
                     status = StatusEffects.shocked ; // 电镀=电系: 附加麻痹效果
-                    fragBullet = new LightningBulletType(){{ damage = 48f ; length = 10f ; }} ; // 连锁闪电
+                    fragBullet = new LightningBulletType(){{ damage = 48f ; length = 10 ; }} ; // 连锁闪电
                     fragBullets = 2 ; // 每发激光命中释放 2 道闪电
                 }},
                 Items.plastanium, new ShrapnelBulletType(){{
@@ -238,13 +238,13 @@ public class Z_Other {
                 }},
                 Items.thorium, new ShrapnelBulletType(){{
                     length = 120f ; // 激光长度
-                    damage = 114f ; // 伤害
+                    damage = 130f ; // 伤害 (≈巨浪合金, 差距由击退+溅射补足)
                     ammoMultiplier = 5f ; // 弹药倍率
                     width = 18f ; // 激光宽度
                     toColor = Pal.thoriumPink ; // 颜色
                     shootEffect = smokeEffect = zzw.content.units.effects.CombatFx.muzzleFlashSmoke ; // 特效
                     knockback = 3f ; // 钍=重金属: 击退目标
-                    splashDamage = 28f ; splashDamageRadius = 12f ; // 重击小范围溅射 (伤害的 ~25%)
+                    splashDamage = 32f ; splashDamageRadius = 12f ; // 重击小范围溅射 (伤害的 ~25%)
                 }},
                 Items.surgeAlloy, new ShrapnelBulletType(){{
                     length = 120f ; // 激光长度
@@ -254,7 +254,7 @@ public class Z_Other {
                     toColor = Pal.surge ; // 颜色
                     buildingDamageMultiplier = 0.2f ; // 对建筑减伤80%
                     status = StatusEffects.shocked ; // 电镀=电系: 附加麻痹效果
-                    fragBullet = new LightningBulletType(){{ damage = 26f ; length = 9f ; }} ; // 连锁闪电
+                    fragBullet = new LightningBulletType(){{ damage = 26f ; length = 9 ; }} ; // 连锁闪电
                     fragBullets = 2 ; // 每发激光命中释放 2 道闪电
                 }},
                 Items.plastanium, new ShrapnelBulletType(){{
@@ -328,13 +328,13 @@ public class Z_Other {
                 }},
                 Items.thorium, new ShrapnelBulletType(){{
                     length = 160f ; // 激光长度
-                    damage = 321f ; // 伤害
+                    damage = 345f ; // 伤害 (≈巨浪合金, 差距由击退+溅射补足)
                     ammoMultiplier = 5f ; // 弹药倍率
                     width = 30f ; // 激光宽度
                     toColor = Pal.thoriumPink ; // 颜色
                     shootEffect = smokeEffect = zzw.content.units.effects.CombatFx.muzzleFlashSmoke ; // 特效
                     knockback = 4f ; // 钍=重金属: 击退目标
-                    splashDamage = 80f ; splashDamageRadius = 16f ; // 重击小范围溅射 (伤害的 ~25%)
+                    splashDamage = 86f ; splashDamageRadius = 16f ; // 重击小范围溅射 (伤害的 ~25%)
                 }},
                 Items.surgeAlloy, new ShrapnelBulletType(){{
                     length = 160f ; // 激光长度
@@ -344,7 +344,7 @@ public class Z_Other {
                     toColor = Pal.surge ; // 颜色
                     buildingDamageMultiplier = 0.2f ; // 对建筑减伤80%
                     status = StatusEffects.shocked ; // 电镀=电系: 附加麻痹效果
-                    fragBullet = new LightningBulletType(){{ damage = 70f ; length = 11f ; }} ; // 连锁闪电
+                    fragBullet = new LightningBulletType(){{ damage = 70f ; length = 11 ; }} ; // 连锁闪电
                     fragBullets = 3 ; // 每发激光命中释放 3 道闪电
                 }},
                 Items.plastanium, new ShrapnelBulletType(){{
