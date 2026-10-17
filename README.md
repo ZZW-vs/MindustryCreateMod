@@ -449,7 +449,13 @@
 - 新增螺旋石油钻井（oil-derrick）：扭矩驱动的石油抽取器（`SolidPump`，`result=Liquids.oil`、`attribute=Attribute.oil`，需建在油层上），绘制为螺旋钻杆样式（类 `zzw.content.mechanics.torque.blocks.production.OilDerrick`）
 
 ## 更新日志
-- **雷光系炮台 (smite/rift/rift_pro/fracture) 新增迪里姆弹药**：4 座炮台弹药表末尾追加 `create-dirium` 顶档弹药（迪里姆浅绿激光）——伤害约为电镀弹的 1.5 倍（雷罚 175 / 破空 380 / 破空Pro 210 / 裂电 560，全档最高），弹宽更粗、弹药倍率 8（最高）、麻痹持续 1.5 倍时间，对建筑减伤 80%（对单位特化），重装倍率 1.3 与钍持平
+- **雷光系弹药按材料属性分化效果**（smite/rift/rift_pro/fracture 四档弹药不再只有伤害差异）：
+  - **钍 = 重击弹**：新增击退（3~4）+ 小范围溅射（伤害 ~25%，半径 12~16），粉色重炮手感
+  - **电镀合金 = 连锁闪电**：保留麻痹，命中额外释放 2~3 道连锁闪电（伤害 22~70），电系招牌
+  - **塑料 = 纯贯穿弹**：删除无状态来源的无效 `statusDuration` 字段，定位清晰为最快射速+贯穿清群
+  - **迪里姆 = 熔炼热流**：麻痹改为**点燃 2 秒**（坩埚熔炼产物的热系定位，与电镀的电系区分），附带激光命中爆闪
+  - 钛弹保持无状态基准弹
+- **雷光系炮台 (smite/rift/rift_pro/fracture) 新增迪里姆弹药**：4 座炮台弹药表末尾追加 `create-dirium` 顶档弹药（迪里姆浅绿激光）——伤害约为电镀弹的 1.5 倍（雷罚 175 / 破空 380 / 破空Pro 210 / 裂电 560，全档最高），弹宽更粗、弹药倍率 8（最高），对建筑减伤 80%（对单位特化），重装倍率 1.3 与钍持平
 - **灵魂机制修正与可视化**：
   - 修复灵魂炮台 (ricochet/diviner/mage/blackout/shellshock/purge) **射速加成完全无效**的问题——旧实现在 `updateTile` 里 `efficiency *= soulEfficiency()` 且放在 `super.updateTile()` 之后，而 efficiency 每 tick 会被 updateConsumption 重算，乘算从未生效；改为覆写 `getProgressIncrease` 织入灵魂倍率（与制作方块侧做法一致，SoulItemTurret 同步修复）
   - 新增**灵魂进度条**：全部灵魂建筑（6 种灵魂炮台 + 灵魂灌注器/碎屑提取器/巨石锻造厂）显示 `bar.souls` 进度条（UnityPal.monolith 浅蓝），灵魂越满 → 装填越快 + 伤害越高（0 灵魂 ×0.8 → 满灵魂 ×1.5），供魂效果一目了然

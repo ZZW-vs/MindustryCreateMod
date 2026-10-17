@@ -3,6 +3,7 @@ package zzw.content;
 import mindustry.content.Fx;
 import mindustry.content.Items;
 import mindustry.content.StatusEffects;
+import mindustry.entities.bullet.LightningBulletType;
 import mindustry.entities.bullet.ShrapnelBulletType;
 import mindustry.gen.Sounds;
 import mindustry.graphics.Pal;
@@ -60,17 +61,21 @@ public class Z_Other {
                     damage = 98f ; // 伤害
                     ammoMultiplier = 5f ; // 弹药倍率
                     width = 13f ; // 激光宽度
-                    toColor = Pal.thoriumPink; // 颜色
-                    shootEffect = smokeEffect = zzw.content.units.effects.CombatFx.muzzleFlashSmoke; // 特效
+                    toColor = Pal.thoriumPink ; // 颜色
+                    shootEffect = smokeEffect = zzw.content.units.effects.CombatFx.muzzleFlashSmoke ; // 特效
+                    knockback = 3f ; // 钍=重金属: 击退目标
+                    splashDamage = 24f ; splashDamageRadius = 12f ; // 重击小范围溅射 (伤害的 ~25%)
                 }},
                 Items.surgeAlloy, new ShrapnelBulletType(){{
                     length = 105f ; // 激光长度
                     damage = 115f ; // 伤害
                     ammoMultiplier = 6f ; // 弹药倍率
                     width = 13f ; // 激光宽度
-                    toColor = Pal.surge; // 颜色
+                    toColor = Pal.surge ; // 颜色
                     buildingDamageMultiplier = 0.2f ; // 对建筑减伤80%
-                    status = StatusEffects.shocked; // 附加麻痹效果
+                    status = StatusEffects.shocked ; // 电镀=电系: 附加麻痹效果
+                    fragBullet = new LightningBulletType(){{ damage = 22f ; length = 9f ; }} ; // 连锁闪电
+                    fragBullets = 2 ; // 每发激光命中释放 2 道闪电
                 }},
                 Items.plastanium, new ShrapnelBulletType(){{
                     range = 97f ;
@@ -86,7 +91,6 @@ public class Z_Other {
                     pierce = true ; // 贯穿效果
                     pierceBuilding = true ; // 贯穿建筑
                     // 添加持续伤害效果，让整个激光长度都有伤害
-                    statusDuration = 60f ; // 状态持续时间
                     buildingDamageMultiplier = 1f ; // 对建筑正常伤害
                     hitEffect = zzw.content.units.effects.CombatFx.laserHitBlast ; // 击中特效
                 }},
@@ -99,8 +103,9 @@ public class Z_Other {
                     toColor = UnityPal.dirium ; // 迪里姆浅绿
                     shootEffect = smokeEffect = zzw.content.units.effects.CombatFx.muzzleFlashSmoke ; // 特效
                     buildingDamageMultiplier = 0.2f ; // 对建筑减伤80% (对单位特化)
-                    status = StatusEffects.shocked ; // 附加麻痹效果
-                    statusDuration = 90f ; // 麻痹持续 1.5 倍时间
+                    status = StatusEffects.burning ; // 迪里姆=坩埚熔炼产物: 点燃目标 (热系, 与电镀的麻痹区分)
+                    statusDuration = 120f ; // 燃烧持续 2 秒
+                    hitEffect = zzw.content.units.effects.CombatFx.laserHitBlast ; // 击中特效
                 }}
             );
             // 存储冷却时间
@@ -146,17 +151,21 @@ public class Z_Other {
                     damage = 215f ; // 伤害
                     ammoMultiplier = 5f ; // 弹药倍率
                     width = 34f ; // 激光宽度
-                    toColor = Pal.thoriumPink; // 颜色
-                    shootEffect = smokeEffect = zzw.content.units.effects.CombatFx.muzzleFlashSmoke; // 特效
+                    toColor = Pal.thoriumPink ; // 颜色
+                    shootEffect = smokeEffect = zzw.content.units.effects.CombatFx.muzzleFlashSmoke ; // 特效
+                    knockback = 4f ; // 钍=重金属: 击退目标
+                    splashDamage = 54f ; splashDamageRadius = 14f ; // 重击小范围溅射 (伤害的 ~25%)
                 }},
                 Items.surgeAlloy, new ShrapnelBulletType(){{
                     length = 150f ; // 激光长度
                     damage = 248f ; // 伤害
                     ammoMultiplier = 6f ; // 弹药倍率
                     width = 34f ; // 激光宽度
-                    toColor = Pal.surge; // 颜色
+                    toColor = Pal.surge ; // 颜色
                     buildingDamageMultiplier = 0.2f ; // 对建筑减伤80%
-                    status = StatusEffects.shocked; // 附加麻痹效果
+                    status = StatusEffects.shocked ; // 电镀=电系: 附加麻痹效果
+                    fragBullet = new LightningBulletType(){{ damage = 48f ; length = 10f ; }} ; // 连锁闪电
+                    fragBullets = 2 ; // 每发激光命中释放 2 道闪电
                 }},
                 Items.plastanium, new ShrapnelBulletType(){{
                     range = 147f ;
@@ -172,7 +181,6 @@ public class Z_Other {
                     pierce = true ; // 贯穿效果
                     pierceBuilding = true ; // 贯穿建筑
                     // 添加持续伤害效果，让整个激光长度都有伤害
-                    statusDuration = 60f ; // 状态持续时间
                     buildingDamageMultiplier = 1f ; // 对建筑正常伤害
                     hitEffect = zzw.content.units.effects.CombatFx.laserHitBlast ; // 击中特效
                 }},
@@ -185,8 +193,9 @@ public class Z_Other {
                     toColor = UnityPal.dirium ; // 迪里姆浅绿
                     shootEffect = smokeEffect = zzw.content.units.effects.CombatFx.muzzleFlashSmoke ; // 特效
                     buildingDamageMultiplier = 0.2f ; // 对建筑减伤80% (对单位特化)
-                    status = StatusEffects.shocked ; // 附加麻痹效果
-                    statusDuration = 90f ; // 麻痹持续 1.5 倍时间
+                    status = StatusEffects.burning ; // 迪里姆=坩埚熔炼产物: 点燃目标 (热系, 与电镀的麻痹区分)
+                    statusDuration = 120f ; // 燃烧持续 2 秒
+                    hitEffect = zzw.content.units.effects.CombatFx.laserHitBlast ; // 击中特效
                 }}
             );
             // 存储冷却时间
@@ -232,17 +241,21 @@ public class Z_Other {
                     damage = 114f ; // 伤害
                     ammoMultiplier = 5f ; // 弹药倍率
                     width = 18f ; // 激光宽度
-                    toColor = Pal.thoriumPink; // 颜色
-                    shootEffect = smokeEffect = zzw.content.units.effects.CombatFx.muzzleFlashSmoke; // 特效
+                    toColor = Pal.thoriumPink ; // 颜色
+                    shootEffect = smokeEffect = zzw.content.units.effects.CombatFx.muzzleFlashSmoke ; // 特效
+                    knockback = 3f ; // 钍=重金属: 击退目标
+                    splashDamage = 28f ; splashDamageRadius = 12f ; // 重击小范围溅射 (伤害的 ~25%)
                 }},
                 Items.surgeAlloy, new ShrapnelBulletType(){{
                     length = 120f ; // 激光长度
                     damage = 137f ; // 伤害
                     ammoMultiplier = 6f ; // 弹药倍率
                     width = 18f ; // 激光宽度
-                    toColor = Pal.surge; // 颜色
+                    toColor = Pal.surge ; // 颜色
                     buildingDamageMultiplier = 0.2f ; // 对建筑减伤80%
-                    status = StatusEffects.shocked; // 附加麻痹效果
+                    status = StatusEffects.shocked ; // 电镀=电系: 附加麻痹效果
+                    fragBullet = new LightningBulletType(){{ damage = 26f ; length = 9f ; }} ; // 连锁闪电
+                    fragBullets = 2 ; // 每发激光命中释放 2 道闪电
                 }},
                 Items.plastanium, new ShrapnelBulletType(){{
                     range = 122f ;
@@ -258,7 +271,6 @@ public class Z_Other {
                     pierce = true ; // 贯穿效果
                     pierceBuilding = true ; // 贯穿建筑
                     // 添加持续伤害效果，让整个激光长度都有伤害
-                    statusDuration = 60f ; // 状态持续时间
                     buildingDamageMultiplier = 1f ; // 对建筑正常伤害
                     hitEffect = zzw.content.units.effects.CombatFx.laserHitBlast ; // 击中特效
                 }},
@@ -271,8 +283,9 @@ public class Z_Other {
                     toColor = UnityPal.dirium ; // 迪里姆浅绿
                     shootEffect = smokeEffect = zzw.content.units.effects.CombatFx.muzzleFlashSmoke ; // 特效
                     buildingDamageMultiplier = 0.2f ; // 对建筑减伤80% (对单位特化)
-                    status = StatusEffects.shocked ; // 附加麻痹效果
-                    statusDuration = 90f ; // 麻痹持续 1.5 倍时间
+                    status = StatusEffects.burning ; // 迪里姆=坩埚熔炼产物: 点燃目标 (热系, 与电镀的麻痹区分)
+                    statusDuration = 120f ; // 燃烧持续 2 秒
+                    hitEffect = zzw.content.units.effects.CombatFx.laserHitBlast ; // 击中特效
                 }}
             );
             // 存储冷却时间
@@ -318,17 +331,21 @@ public class Z_Other {
                     damage = 321f ; // 伤害
                     ammoMultiplier = 5f ; // 弹药倍率
                     width = 30f ; // 激光宽度
-                    toColor = Pal.thoriumPink; // 颜色
-                    shootEffect = smokeEffect = zzw.content.units.effects.CombatFx.muzzleFlashSmoke; // 特效
+                    toColor = Pal.thoriumPink ; // 颜色
+                    shootEffect = smokeEffect = zzw.content.units.effects.CombatFx.muzzleFlashSmoke ; // 特效
+                    knockback = 4f ; // 钍=重金属: 击退目标
+                    splashDamage = 80f ; splashDamageRadius = 16f ; // 重击小范围溅射 (伤害的 ~25%)
                 }},
                 Items.surgeAlloy, new ShrapnelBulletType(){{
                     length = 160f ; // 激光长度
                     damage = 362f ; // 伤害
                     ammoMultiplier = 6f ; // 弹药倍率
                     width = 30f ; // 激光宽度
-                    toColor = Pal.surge; // 颜色
+                    toColor = Pal.surge ; // 颜色
                     buildingDamageMultiplier = 0.2f ; // 对建筑减伤80%
-                    status = StatusEffects.shocked; // 附加麻痹效果
+                    status = StatusEffects.shocked ; // 电镀=电系: 附加麻痹效果
+                    fragBullet = new LightningBulletType(){{ damage = 70f ; length = 11f ; }} ; // 连锁闪电
+                    fragBullets = 3 ; // 每发激光命中释放 3 道闪电
                 }},
                 Items.plastanium, new ShrapnelBulletType(){{
                     range = 137 ;
@@ -344,7 +361,6 @@ public class Z_Other {
                     pierce = true ; // 贯穿效果
                     pierceBuilding = true ; // 贯穿建筑
                     // 添加持续伤害效果，让整个激光长度都有伤害
-                    statusDuration = 60f ; // 状态持续时间
                     buildingDamageMultiplier = 1f ; // 对建筑正常伤害
                     hitEffect = zzw.content.units.effects.CombatFx.laserHitBlast ; // 击中特效
                 }},
@@ -357,8 +373,9 @@ public class Z_Other {
                     toColor = UnityPal.dirium ; // 迪里姆浅绿
                     shootEffect = smokeEffect = zzw.content.units.effects.CombatFx.muzzleFlashSmoke ; // 特效
                     buildingDamageMultiplier = 0.2f ; // 对建筑减伤80% (对单位特化)
-                    status = StatusEffects.shocked ; // 附加麻痹效果
-                    statusDuration = 90f ; // 麻痹持续 1.5 倍时间
+                    status = StatusEffects.burning ; // 迪里姆=坩埚熔炼产物: 点燃目标 (热系, 与电镀的麻痹区分)
+                    statusDuration = 120f ; // 燃烧持续 2 秒
+                    hitEffect = zzw.content.units.effects.CombatFx.laserHitBlast ; // 击中特效
                 }}
             );
             // 存储冷却时间
