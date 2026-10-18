@@ -25,8 +25,8 @@ import static arc.Core.*;
  * 实现方式: 把本模块热辐射的"环境温度"临时改成冷却液对应的温度池, 并乘以散热倍率,
  * 让所在热网向该温度收敛 (见 {@code GraphHeatModule.ambientTemp / radiativityMul})。
  * <p>
- * 移植说明: 原版有 2 个朝向变体贴图 (name1/name2), 本项目 small-radiator
- * 只有单张 {@code small-radiator.png}, 因此找不到变体时回退到本体贴图。
+ * 移植说明: 已补齐原版 2 张朝向变体贴图 (small-radiator1 = 横向 / small-radiator2 = 纵向,
+ * 取自 PU_V8 原版资源), 本体贴图与热叠加贴图也同步替换为原版样式。
  * 参数取自 参考/PU160反编译/.../YoungchaBlocks.java L553-564。
  */
 public class HeatRadiator extends GraphBlock{
