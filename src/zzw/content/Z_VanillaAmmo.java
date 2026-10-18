@@ -180,24 +180,6 @@ public class Z_VanillaAmmo{
     }
 
     /**
-     * 指定模板注入: 从炮台弹药表里取 {@code baseItem} 对应的子弹作为模板,
-     * 其余流程 (复制/强化/深拷贝附生弹/染色/注册) 与 {@link #injectStrongest} 相同。
-     * <p>用于含"超模定制弹"的炮台 (如 banshee 的 create-terminum) —— 自动扫描会
-     * 误把定制弹当最强模板拷贝, 继承其追踪/穿透/特效导致注入弹属性与颜色异常。</p>
-     */
-    public static void injectFrom(mindustry.world.Block block, Item modItem, Item baseItem, float dmgMul, int ammoPerItem){
-        if(!(block instanceof ItemTurret turret)) return;
-
-        // 已注入过则跳过 (防重复调用叠加伤害)
-        if(turret.ammoTypes.get(modItem) != null) return;
-
-        BulletType base = turret.ammoTypes.get(baseItem);
-        if(base == null) return;  // 模板弹药不存在, 静默跳过
-
-        addAmmo(turret, modItem, base, dmgMul, ammoPerItem, null);
-    }
-
-    /**
      * 注入核心: 复制模板子弹、等比强化、深拷贝附生弹、特效定制、染色并注册。
      */
     private static void addAmmo(ItemTurret turret, Item modItem, BulletType base, float dmgMul, int ammoPerItem, Consumer<BulletType> custom){

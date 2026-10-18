@@ -207,6 +207,18 @@ public class Z_Turrets {
                 knockback = 0.7f;
                 backColor = hitColor = trailColor = Pal.thoriumAmmoBack;
                 frontColor = Pal.thoriumAmmoFront;
+            }}, Z_Items.dirium, new BasicBulletType(8f * 1.1f, 189f) {{
+                // ★ create-dirium 顶档 (显式): 钍弹模板 ×1.35, 无追踪/无射速削减, dirium 本色
+                lifetime = 40f;
+                width = 16f * 1.12f;
+                height = 23f * 1.12f;
+                hitSize = 5f;
+                shootEffect = CombatFx.muzzleFlash;
+                pierceCap = 2;
+                pierceBuilding = true;
+                knockback = 0.7f;
+                backColor = hitColor = trailColor = Z_Items.dirium.color.cpy();
+                frontColor = Color.valueOf("e9fff4");
             }});
         }};
 
@@ -293,6 +305,18 @@ public class Z_Turrets {
                 knockback = 0.7f;
                 backColor = hitColor = trailColor = Pal.thoriumAmmoBack;
                 frontColor = Pal.thoriumAmmoFront;
+            }}, Z_Items.dirium, new BasicBulletType(8f * 1.3f, 202f) {{
+                // ★ create-dirium 顶档 (显式): 钍弹模板 ×1.35, 无追踪/无射速削减, dirium 本色
+                lifetime = 40f;
+                width = 16f * 1.32f;
+                height = 23f * 1.32f;
+                hitSize = 5f;
+                shootEffect = CombatFx.muzzleFlash;
+                pierceCap = 2;
+                pierceBuilding = true;
+                knockback = 0.7f;
+                backColor = hitColor = trailColor = Z_Items.dirium.color.cpy();
+                frontColor = Color.valueOf("e9fff4");
             }});
             requirements(Category.turret, ItemStack.with(Items.copper, 1150, Items.graphite, 1420, Items.silicon, 960, Items.plastanium, 800, Items.thorium, 1230, Z_Items.darkAlloy, 380));
         }};
@@ -383,6 +407,18 @@ public class Z_Turrets {
                 knockback = 0.7f;
                 backColor = hitColor = trailColor = Pal.thoriumAmmoBack;
                 frontColor = Pal.thoriumAmmoFront;
+            }}, Z_Items.dirium, new BasicBulletType(8f * 1.3f, 287.55f) {{
+                // ★ create-dirium 顶档 (显式): 钍弹模板 ×1.35, 无追踪/无射速削减, dirium 本色
+                lifetime = 40f * 1.1f * 1.3f;
+                width = 16f * 1.34f * 1.15f;
+                height = 23f * 1.34f * 1.15f;
+                hitSize = 5f;
+                shootEffect = CombatFx.muzzleFlash;
+                pierceCap = 2;
+                pierceBuilding = true;
+                knockback = 0.7f;
+                backColor = hitColor = trailColor = Z_Items.dirium.color.cpy();
+                frontColor = Color.valueOf("e9fff4");
             }}, Z_Items.terminum, new BasicBulletType(7.5f * 1.3f * 1.3f, 6666.6f) {{
                 // ★★ create-terminum 顶档弹药 (用户定制, 全炮台最强):
                 //    6666.6 伤害/发 · 6x 穿透 · 无射速削减 · 强追踪 (~320°/s, 12 格索敌) · 专属命中特效
@@ -561,17 +597,11 @@ public class Z_Turrets {
             }};
         }};
 
-        // ★ 迪里姆弹药扩展 (思路同 Z_VanillaAmmo 对 spectre 的注入):
-        //   apparition/ghost 走 injectStrongest 自动扫描「自身最强弹药」×1.35 注入;
-        //   banshee 因弹药表含 create-terminum 超模弹 (用户定制), 改用 injectFrom 显式
-        //   指定钍弹为模板 (保持"无追踪、常规伤害"的老注入行为);
-        //   fallout 及以下 4 座为连续激光炮台, 无弹药表, 不适用物品弹药注入。
-        Z_VanillaAmmo.injectStrongest(apparition, Z_Items.dirium, 1.35f, 3);
-        Z_VanillaAmmo.injectStrongest(ghost, Z_Items.dirium, 1.35f, 3);
-        // ★ banshee 显式指定钍弹为注入模板: injectStrongest 自动选伤害最高弹,
-        //   现在最高是 create-terminum (6666.6, 带追踪/穿透/特效) —— 拷贝它会让
-        //   dirium 注入弹继承全部强化属性且颜色异常; 老行为模板应为钍弹 (无追踪, 213×1.35)
-        Z_VanillaAmmo.injectFrom(banshee, Z_Items.dirium, Items.thorium, 1.35f, 3);
+        // ★ create-dirium 顶档弹药已显式写进三座炮台的弹药表 (apparition 189 / ghost 202 /
+        //   banshee 287.55, 各为自身钍弹 ×1.35, dirium 本色, 无追踪/无射速削减)。
+        //   不再走 Z_VanillaAmmo.injectStrongest 自动扫描: banshee 弹药表含 create-terminum
+        //   超模定制弹 (6666.6), 自动扫描会误把它当"最强模板"拷贝 —— dirium 弹因此继承
+        //   追踪/穿透/射速削减且颜色被 40% 混色染花 (此问题已修, 显式定义杜绝复发)。
     }
 
     /** light 派系 12 个炮台 (PU132 顺序: photon, graviton, electron, proton, neutron, gluon, w-boson, z-boson, higgs-boson, singularity, muon, ephemeron) */

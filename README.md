@@ -384,6 +384,7 @@
   - **重写「科技树模板.java」**：补上 VE 核心写法 `planet.techTree = nodeRoot(...)`（自定义星球整棵树），并移植本项目 `Z_TechTree` 的 `attach`/`node`/`nodeProduce` 辅助方法（160 无 `TechTree.get(parent)`，改用 `content.techNode` 字段）；补充 `Objectives` 清单与 VE 倒金字塔布局 `InvertedPyramidTreeLayout` 说明
   - 更新「Mod主类模板.java」加载顺序为 `物品 → 液体 → 状态 → 子弹 → 方块 → 单位 → 星球 → 科技树`，并在 `loadContent()` 方法体补上星球加载步骤
 ## 更新日志
+- **dirium 弹药彻底显式化**（根治 injectStrongest 自动扫描拷贝 create-terminum 超模弹导致的属性/颜色污染）：apparition/ghost/banshee 三座炮台的 create-dirium 顶档弹不再走注入 copy 机制，改为弹药表内显式定义——各自钍弹 ×1.35（189 / 202 / 287.55 伤害）、无追踪、无射速削减、pierceCap 2、dirium 本色（不再被 40% 混色染花）；删除 injectFrom 辅助方法；create-terminum 保持全炮台最强弹定位（6666.6 / 6x 穿透 / 强追踪 / 专属特效 / 无射速削减）
 - **banshee dirium 注入弹修复**：`injectStrongest` 自动选"伤害最高"弹药当模板，新增 create-terminum 后误把 6666.6 超模弹当模板拷贝（dirium 注入弹变成 9000 伤害 + 追踪 + 6x 穿透 + 射速削减 + 红绿混色异常）——新增 `Z_VanillaAmmo.injectFrom()`（显式指定模板注入），banshee 的 dirium 弹改回钍弹模板（213×1.35≈287.6，无追踪无穿透常规属性，dirium 正常染色）
 - **create-terminum 顶档弹调整**：删除 4x 装填削减（reloadMultiplier 0.25）；banshee 射程 530→466（terminum 弹 +12 格）；banshee 全弹药存活时间 ×1.3（弹程覆盖 466px 射程，terminum 75 帧 ≈950px）；新增专属命中特效 `CombatFx.terminumBlast`（黑芯+红色六芒星炸开+放射三角长钉+六向细光线+红光）
 - **dark 派系三炮台调整**（apparition/ghost/banshee）：
