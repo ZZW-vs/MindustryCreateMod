@@ -105,7 +105,8 @@ public class SoulTractorBeamTurret extends TractorBeamTurret implements ISoulTur
                     bt.add(Core.bundle.format("soul.max", maxSouls)).padLeft(6);
                 }
                 bt.row();
-                bt.add(Core.bundle.format("soul.bonus", (int) (efficiencyFrom * 100f), (int) (efficiencyTo * 100f)));
+                // ★ 加成作用点写明: 光束炮台灵魂只提升 持续伤害 (updateTile 改写 damage 字段), 光束无装填概念
+                bt.add(Core.bundle.format("soul.bonus.dmg", (int) (efficiencyFrom * 100f), (int) (efficiencyTo * 100f)));
             });
         });
     }

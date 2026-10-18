@@ -297,6 +297,7 @@
 - 合并时有烟雾效果和延迟检查
 
 ## 更新日志
+- **灵魂炮台信息面板「灵魂加成」写明作用点**：原「灵魂加成: 80% ~ 150%」看不出加到哪里，拆分为两类文案并注明区间含义（无魂→满魂）——弹药类/电力类灵魂炮台显示「灵魂加成(伤害与装填速度)」（`SoulItemTurret`/`SoulTurretPowerTurret` 及其子类），激光类/光束类只显示「灵魂加成(伤害)」（`SoulLaserTurret`/`SoulTractorBeamTurret` 及其子类，光束无装填概念）；bundle key `soul.bonus` 拆为 `soul.bonus.dmgreload` / `soul.bonus.dmg`
 - **数值审计：对齐 PU 原版**（模组 vs PU132/PU_V8 全单位对比，修复 5 处低于原版的数值）：
   - Scar T1 `hovos` 血量 260 → 340（PU132 原版 340）
   - Monolith `pedestal` 血量 600 → 1200、`pilaster` 血量 1000 → 2000（此前只有原版一半）
@@ -493,6 +494,11 @@
 - 新增螺旋石油钻井（oil-derrick）：扭矩驱动的石油抽取器（`SolidPump`，`result=Liquids.oil`、`attribute=Attribute.oil`，需建在油层上），绘制为螺旋钻杆样式（类 `zzw.content.mechanics.torque.blocks.production.OilDerrick`）
 
 ## 更新日志
+- **传送器（create-teleporter）配置界面重做**：
+  - 顶部新增**当前配置状态栏**（色块 + 频道中文名/信号名，未配置显示灰色），实时刷新
+  - 打开面板时**自动定位到当前配置所在的标签页**（绑定信号 → 信号页，否则 → 颜色页）
+  - 颜色频道 12 个色块加大至 40px 并悬停显示中文名（皇家蓝/橙/…/珊瑚）
+  - 自定义信号列表**只显示本队信号**（原混入其他队伍不可用的信号），每行显示批注预览 + 成员传送器数（悬停查看完整批注），删除按钮改为垃圾桶图标；输入框加宽至 150px
 - **bt-laser-turret 开火镜头震动减弱**：shake 6→2（对齐原版 Lancer 手感）
 - **剁刀（chopper）刀刃默认改为顺时针旋转**：绘制与命中判定共用的扭矩角度取负（arc 角度正方向在屏幕上为逆时针），判定几何随视觉同步翻转
 - **剁刀（chopper）伤害翻倍**：刀刃 32→64、锯齿刀刃 72→144

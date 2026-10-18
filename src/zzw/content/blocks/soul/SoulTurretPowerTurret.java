@@ -66,7 +66,8 @@ public class SoulTurretPowerTurret extends PowerTurret implements ISoulTurret {
                     bt.add(arc.Core.bundle.format("soul.max", maxSouls)).padLeft(6);
                 }
                 bt.row();
-                bt.add(arc.Core.bundle.format("soul.bonus", (int) (efficiencyFrom * 100f), (int) (efficiencyTo * 100f)));
+                // ★ 加成作用点写明: 电力灵魂炮台灵魂同时提升 伤害 与 装填速度 (updateSoulDamage + getProgressIncrease 织入)
+                bt.add(arc.Core.bundle.format("soul.bonus.dmgreload", (int) (efficiencyFrom * 100f), (int) (efficiencyTo * 100f)));
             });
         });
     }

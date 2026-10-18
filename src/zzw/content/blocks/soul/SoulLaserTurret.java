@@ -64,7 +64,8 @@ public class SoulLaserTurret extends LaserTurret implements ISoulTurret {
                     bt.add(arc.Core.bundle.format("soul.max", maxSouls)).padLeft(6);
                 }
                 bt.row();
-                bt.add(arc.Core.bundle.format("soul.bonus", (int) (efficiencyFrom * 100f), (int) (efficiencyTo * 100f)));
+                // ★ 加成作用点写明: 激光炮台灵魂只提升 伤害 (updateSoulDamage 改写 shootType.damage), 无装填加成
+                bt.add(arc.Core.bundle.format("soul.bonus.dmg", (int) (efficiencyFrom * 100f), (int) (efficiencyTo * 100f)));
             });
         });
     }

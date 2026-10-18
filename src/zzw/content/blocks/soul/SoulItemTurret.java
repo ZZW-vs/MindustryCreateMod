@@ -61,8 +61,9 @@ public class SoulItemTurret extends ItemTurret implements ISoulTurret {
                 if (maxSouls > 0) {
                     bt.add(arc.Core.bundle.format("soul.max", maxSouls)).padLeft(6);
                 }
+                // ★ 加成作用点写明: 弹药炮台灵魂同时提升 伤害 与 装填速度 (getProgressIncrease 织入)
                 bt.row();
-                bt.add(arc.Core.bundle.format("soul.bonus", (int) (efficiencyFrom * 100f), (int) (efficiencyTo * 100f)));
+                bt.add(arc.Core.bundle.format("soul.bonus.dmgreload", (int) (efficiencyFrom * 100f), (int) (efficiencyTo * 100f)));
             });
         });
     }
