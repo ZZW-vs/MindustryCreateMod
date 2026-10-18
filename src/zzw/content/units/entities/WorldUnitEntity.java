@@ -123,10 +123,6 @@ public class WorldUnitEntity extends UnitEntity {
 
     /** 平台携带的单位 (陆军; 空军自由飞不携带, 海军不存在于平台) */
     public transient Seq<Unit> subUnits = new Seq<>(8);
-    /** 携带单位相对平台的朝向偏移 (登记时 u.rotation - this.rotation), 与 subUnits 下标对齐;
-     *  平台旋转时用它强制 u.rotation = this.rotation + offset, 由平台完全接管朝向,
-     *  否则单位自身 AI 的 faceTarget/faceMovement 会把朝向覆盖回固定方向 (跟随不真实) */
-    public transient FloatSeq subAngles = new FloatSeq();
     /** 上帧位姿 (携带单位刚体跟随的位移差/旋转差来源, update() 开头捕获) */
     protected transient float lastCarryX, lastCarryY, lastCarryRot;
 
@@ -473,41 +469,35 @@ public class WorldUnitEntity extends UnitEntity {
             Unit u = subUnits.get(i);
             if (!u.isAdded() || u.dead) {
                 subUnits.remove(i);
-                subAngles.removeIndex(i);
                 continue;
             }
             if (u.isFlying()) {
                 // 起飞 → 自由飞行 (空军正常飞出来)
                 subUnits.remove(i);
-                subAngles.removeIndex(i);
                 continue;
             }
 
-            // ★ 先刚体跟随再判出界: 平台移动/旋转时单位随平台整体搬运,
-            //   相对位置不变 → 变换后仍在矩形内不会误判掉落;
-            //   平台静止时此步跳过, 单位自己走出边界照样判掉
+            // ★ 只在平台发生移动/旋转的帧做刚体跟随 (绕旧中心旋转 drot 再平移 dx,dy),
+            //   与子世界建筑跟随变换一致; 平台静止时跳过 → 单位可在甲板上自由移动/攻击
             if (dx != 0f || dy != 0f || drot != 0f) {
                 float relx = u.x - lastCarryX, rely = u.y - lastCarryY;
                 if (drot != 0f) {
                     carryVec.set(relx, rely).rotate(drot);
                     relx = carryVec.x;
                     rely = carryVec.y;
+                    // ★ 增量式随平台旋转: 保证跟随转过 drot, 又不锁定绝对朝向,
+                    //   单位自身 AI 仍能瞄准目标攻击 (修复"锁朝向导致不能攻击")
+                    u.rotation += drot;
                 }
                 u.set(lastCarryX + relx + dx, lastCarryY + rely + dy);
+                // ★ 仅在平台刚传送完时清残余速度, 防止 EntityCollisions 顺地形实心块把单位
+                //   推离刚设好的位置; 平台静止时不清 → 单位自身移动速度正常 (修复"不能移动")
+                u.vel.set(0f, 0f);
             }
-
-            // ★ 每帧强制朝向 = 平台朝向 + 登记偏移 (不只在 drot!=0 时才设):
-            //   否则平台不转的帧里单位自身 AI 又会把它转回原位, 下一帧平台一转就突然跳变
-            u.rotation = this.rotation + subAngles.get(i);
-
-            // ★ 清空速度: u.set() 传送后残余速度会让单位自身 EntityCollisions.move
-            //   顺地形实心块把它推离刚设好的位置, 每帧被来回拉锯 → 一卡一卡
-            u.vel.set(0f, 0f);
 
             if (!containsWorldPoint(u.x, u.y)) {
                 // 走出子世界 → 掉回主地图, 禁止重新登船
                 subUnits.remove(i);
-                subAngles.removeIndex(i);
                 fallOffBanned.add(u.id);
                 if (fallOffBanned.size > 4096) fallOffBanned.clear(); // 防无限增长 (id 不复用)
                 Fx.pulverize.at(u.x, u.y, u.hitSize / 8f);
@@ -527,7 +517,6 @@ public class WorldUnitEntity extends UnitEntity {
             if (fallOffBanned.contains(u.id)) continue;
             if (!containsWorldPoint(u.x, u.y)) continue;
             subUnits.add(u);
-            subAngles.add(u.rotation - this.rotation);
         }
     }
 
