@@ -361,7 +361,11 @@ public class Z_Turrets {
         banshee = new BarrelsItemTurret("banshee") {{
             size = 12;
             health = 22000;
-            range = 466f;  // ★ 用户调整: create-terminum 弹攻击范围 +12 格 (原 370f), 全弹药弹程已延长覆盖
+            // ★ 用户调整回归原版写法: 基础射程恢复 PU_V8 原值 370f, create-terminium 弹
+            //   的射程延伸改用原版 {@code BulletType.rangeChange} 机制 (+96f → 466f),
+            //   索敌/放置预览/子弹存活时间全套跟随原版 {@code TurretBuild.range()} 与
+            //   {@code limitRange()} 自动换算 (见块尾 limitRange 调用)
+            range = 370f;
             reload = 12f;
             coolantMultiplier = 0.5f;
             inaccuracy = 3f;
@@ -380,8 +384,8 @@ public class Z_Turrets {
             // ★ Massive 子弹 (基于 v155.4 Spectre 内联 standardDenseBig 等的属性 + PU_V8 Massive 倍率)
             // ★ 已恢复 PU 原版伤害 (去掉之前额外加的 +40 偏移)
             ammo(Items.graphite, new BasicBulletType(7.5f * 1.3f, 145) {{
-                // standardDenseMassive (石墨弹)
-                lifetime = 40f * 1.1f * 1.3f;  // ★ 用户调整: 存活时间加长 ×1.3, 保证 466px 射程全程覆盖
+                // standardDenseMassive (石墨弹) — 存活时间由 limitRange 按射程自动换算 (PU_V8 原值 40*1.1)
+                lifetime = 40f * 1.1f;
                 // ★ 用户调整: 子弹整体尺寸稍微加大 (×1.15)
                 width = 15f * 1.34f * 1.15f;
                 height = 21f * 1.34f * 1.15f;
@@ -397,8 +401,8 @@ public class Z_Turrets {
                 hitColor = backColor = trailColor = Pal.graphiteAmmoBack;
                 frontColor = Pal.graphiteAmmoFront;
             }}, Items.silicon, new BasicBulletType(7.5f * 1.3f, 125) {{
-                // standardHomingMassive (硅弹, 追踪型)
-                lifetime = 40f * 1.1f * 1.3f;  // ★ 用户调整: 存活时间加长 ×1.3, 保证 466px 射程全程覆盖
+                // standardHomingMassive (硅弹, 追踪型) — 存活时间由 limitRange 自动换算
+                lifetime = 40f * 1.1f;
                 width = 15f * 1.21f * 1.15f;
                 height = 21f * 1.21f * 1.15f;
                 hitSize = 4.8f;
@@ -414,8 +418,8 @@ public class Z_Turrets {
                 hitColor = backColor = trailColor = Pal.graphiteAmmoBack;
                 frontColor = Pal.graphiteAmmoFront;
             }}, Items.pyratite, new BasicBulletType(7f * 1.3f, 193) {{
-                // standardIncendiaryMassive (火成岩弹, 燃烧型)
-                lifetime = 40f * 1.1f * 1.3f;  // ★ 用户调整: 存活时间加长 ×1.3, 保证 466px 射程全程覆盖
+                // standardIncendiaryMassive (火成岩弹, 燃烧型) — 存活时间由 limitRange 自动换算
+                lifetime = 40f * 1.1f;
                 width = 16f * 1.34f * 1.15f;
                 height = 21f * 1.34f * 1.15f;
                 hitSize = 5f;
@@ -435,8 +439,8 @@ public class Z_Turrets {
                 splashDamage = 20f;
                 splashDamageRadius = 25f;
             }}, Items.thorium, new BasicBulletType(8f * 1.3f, 213) {{
-                // standardThoriumMassive (钍弹, 穿透型)
-                lifetime = 40f * 1.1f * 1.3f;  // ★ 用户调整: 存活时间加长 ×1.3, 保证 466px 射程全程覆盖
+                // standardThoriumMassive (钍弹, 穿透型) — 存活时间由 limitRange 自动换算
+                lifetime = 40f * 1.1f;
                 width = 16f * 1.34f * 1.15f;
                 height = 23f * 1.34f * 1.15f;
                 hitSize = 5f;
@@ -451,7 +455,8 @@ public class Z_Turrets {
                 frontColor = Pal.thoriumAmmoFront;
             }}, Z_Items.dirium, new BasicBulletType(8f * 1.3f, 287.55f) {{
                 // ★ create-dirium 顶档 (显式): 钍弹模板 ×1.35, 无追踪/无射速削减, dirium 本色
-                lifetime = 40f * 1.1f * 1.3f;
+                //   (存活时间由 limitRange 自动换算)
+                lifetime = 40f * 1.1f;
                 width = 16f * 1.34f * 1.15f;
                 height = 23f * 1.34f * 1.15f;
                 hitSize = 5f;
@@ -467,7 +472,10 @@ public class Z_Turrets {
             }}, Z_Items.terminum, new BasicBulletType(7.5f * 1.3f * 1.3f, 6666.6f) {{
                 // ★★ create-terminum 顶档弹药 (用户定制, 全炮台最强):
                 //    6666.6 伤害/发 · 6x 穿透 · 无射速削减 · 强追踪 (~320°/s, 12 格索敌) · 专属命中特效
-                lifetime = 75f;  // ★ 用户调整: 存活时间加长 (弹速 12.675 × 75 ≈ 950px, 完整覆盖 466px 射程)
+                // ★ 射程延伸改用原版机制: {@code rangeChange} —— 索敌射程 ({@code TurretBuild.range()})
+                //   / 放置预览圈 / limitRange 存活时间换算全部自动跟随, 无需手调寿命
+                //   (原手调 lifetime=75f 只延长弹程, 索敌仍锁在炮台 range 上, 两套数值互相打架)
+                rangeChange = 96f;  // 基础 370f + 96f = 466f (+12 格)
                 width = 18f;
                 height = 27f;
                 hitSize = 6f;
@@ -487,6 +495,10 @@ public class Z_Turrets {
                 frontColor = Color.valueOf("ff8a75");
             }});
             requirements(Category.turret, ItemStack.with(Items.copper, 2800, Items.graphite, 2980, Items.silicon, 2300, Items.titanium, 1900, Items.phaseFabric, 1760, Items.thorium, 1780, Z_Items.darkAlloy, 1280));
+            // ★ 原版写法 (同原版 Blocks.java duo/scatter 的块尾 limitRange 调用):
+            //   对全部弹药按「炮台射程 + 该弹 rangeChange + 裕量」自动换算存活时间 ——
+            //   石墨/硅/火成岩/钍/迪里姆 → 370f+裕量; terminum → 466f+裕量
+            limitRange(12f);
         }};
 
         // ===== fallout (PU_V8 L451-481, BoostLaserTurret + SparkingContinuousLaserBulletType) =====

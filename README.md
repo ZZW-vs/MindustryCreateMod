@@ -497,6 +497,7 @@
 - 新增螺旋石油钻井（oil-derrick）：扭矩驱动的石油抽取器（`SolidPump`，`result=Liquids.oil`、`attribute=Attribute.oil`，需建在油层上），绘制为螺旋钻杆样式（类 `zzw.content.mechanics.torque.blocks.production.OilDerrick`）
 
 ## 更新日志
+- **banshee 的 terminium 弹加射程改用原版机制**：改用原版 `BulletType.rangeChange` + 块尾 `limitRange(12f)`（同原版 Blocks.java duo/scatter 写法）——炮台基础射程恢复 PU_V8 原值 370f，terminium 弹 `rangeChange = 96f`（→466f），索敌射程（`TurretBuild.range()` 跟随当前弹药）/放置预览圈/子弹存活时间全套自动换算；删除此前"炮台 range 硬拉 466 + 各弹药寿命手调 ×1.3"的非原版写法（手调寿命只延长弹程、索敌仍锁在炮台 range 上，两套数值互相矛盾），其余弹药寿命回归 PU_V8 原值 40×1.1 由 limitRange 接管
 - **经验系列墙体（LevelLimitWall）允许经验颗粒直接进入**：dirium-wall(-large) / steel-wall(-large) / shielded-wall(-large) 等"被动等级方块"原按 PU_V8 设计拒绝 Exp.球（`acceptOrb` 的 `!passive` 拦截），现放开颗粒入口（覆盖 `acceptOrb` 仅检查容量）；其余被动行为不变——仍不能被古代塔/卸载器取走经验；经验提示文本同步更新
 - **传送器（create-teleporter）配置界面重做**：
   - 顶部新增**当前配置状态栏**（色块 + 频道中文名/信号名，未配置显示灰色），实时刷新
