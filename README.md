@@ -496,6 +496,7 @@
 - 新增螺旋石油钻井（oil-derrick）：扭矩驱动的石油抽取器（`SolidPump`，`result=Liquids.oil`、`attribute=Attribute.oil`，需建在油层上），绘制为螺旋钻杆样式（类 `zzw.content.mechanics.torque.blocks.production.OilDerrick`）
 
 ## 更新日志
+- **经验系列墙体（LevelLimitWall）允许经验颗粒直接进入**：dirium-wall(-large) / steel-wall(-large) / shielded-wall(-large) 等"被动等级方块"原按 PU_V8 设计拒绝 Exp.球（`acceptOrb` 的 `!passive` 拦截），现放开颗粒入口（覆盖 `acceptOrb` 仅检查容量）；其余被动行为不变——仍不能被古代塔/卸载器取走经验；经验提示文本同步更新
 - **传送器（create-teleporter）配置界面重做**：
   - 顶部新增**当前配置状态栏**（色块 + 频道中文名/信号名，未配置显示灰色），实时刷新
   - 打开面板时**自动定位到当前配置所在的标签页**（绑定信号 → 信号页，否则 → 颜色页）

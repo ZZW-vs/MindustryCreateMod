@@ -94,6 +94,14 @@ public class LevelLimitWall extends ExpLimitWall {
         }
 
         @Override
+        public boolean acceptOrb() {
+            // ★ 用户调整: 经验系列墙体允许经验颗粒直接进入
+            //   (PU_V8 原版把这类墙定为"被动等级方块", acceptOrb 的 !passive 会拒绝 Exp.球;
+            //    此处放开颗粒入口, 其余被动行为不变 —— 仍不能被古代塔抽取/卸载经验)
+            return exp < maxExp;
+        }
+
+        @Override
         public void draw() {
             TextureRegion top = levelRegion();
             Draw.z(Layer.block);
