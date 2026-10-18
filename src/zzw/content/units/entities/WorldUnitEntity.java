@@ -479,10 +479,6 @@ public class WorldUnitEntity extends UnitEntity {
                 subUnits.remove(i);
                 continue;
             }
-            // ★ 抑制主世界地形影响: 携带期间强制 elevation=1 (被视为 flying), 单位自身
-            //   floorOn()/地面碰撞不再读取大地下方的实心地形 —— 否则平台悬停在陆地上方时,
-            //   甲板地面单位会被主世界的地形拉住/推挤/减速 (即"受到地面的影响")
-            u.elevation = 1f;
 
             // ★ 只在平台发生移动/旋转的帧做刚体跟随 (绕旧中心旋转 drot 再平移 dx,dy),
             //   与子世界建筑跟随变换一致; 平台静止时跳过 → 单位可在甲板上自由移动/攻击
@@ -503,8 +499,7 @@ public class WorldUnitEntity extends UnitEntity {
             }
 
             if (!containsWorldPoint(u.x, u.y)) {
-                // 走出子世界 → 掉回主地图, 禁止重新登船; 恢复地面高度让单位正常落地
-                u.elevation = 0f;
+                // 走出子世界 → 掉回主地图, 禁止重新登船
                 subUnits.remove(i);
                 fallOffBanned.add(u.id);
                 if (fallOffBanned.size > 4096) fallOffBanned.clear(); // 防无限增长 (id 不复用)
