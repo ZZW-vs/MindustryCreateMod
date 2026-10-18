@@ -453,12 +453,15 @@ public class Chopper extends GraphBlock{
 
         @Override
         public void updatePost(){
-            if(getPaidRatio() >= 1f && speedDmgMul > 0.8f) damageChk(torque().getRotation());
+            // ★ 取负: arc 角度正方向在屏幕上为逆时针, 取负让刀刃默认顺时针旋转
+            //   (命中判定与绘制用同一 rot, 翻转后判定几何仍与刀刃一致)
+            if(getPaidRatio() >= 1f && speedDmgMul > 0.8f) damageChk(-torque().getRotation());
         }
 
         @Override
         public void draw(){
-            float rot = torque().getRotation();
+            // ★ 取负: 同 updatePost, 让刀刃默认顺时针旋转 (原为逆时针)
+            float rot = -torque().getRotation();
             Draw.rect(baseRegions[rotation], x, y);
             TextureRegion blades = getBufferRegion();
             if(blades != null){
