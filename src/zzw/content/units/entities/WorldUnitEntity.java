@@ -247,6 +247,12 @@ public class WorldUnitEntity extends UnitEntity {
         lastCarryY = y;
         lastCarryRot = rotation;
 
+        // ★ 建造模式下清空 vanilla 输入的拆除计划: DesktopInput 右键框选会 addBuild(断拆计划)
+        //   进 plans, BuilderComp.updateBuild(在 super.update() 内) 会拿着它们拆主世界方块,
+        //   进而影响本体/让甲板单位误判出界被 pulverize 掉落。sweepPlans 跑在 Trigger.update,
+        //   清不到这些更晚到达的计划, 这里在 super.update() 前再清一次。
+        if (buildMode) plans.clear();
+
         // ★ 先执行正常的 Unit 更新 (移动/物理/武器等), 对应 PU132 中 @MethodPriority(100) 晚于默认优先级
         super.update();
 
@@ -903,6 +909,13 @@ public class WorldUnitEntity extends UnitEntity {
         float prevPercent = tile.build.healthf();
         int rotation = tile.build.rotation;
         Block previous = tile.block();
+
+        // ★ 拆除前先剥掉 payload 载荷: PayloadBlockBuild.onRemoved()(tile.remove/setBlock 都会触发)
+        //   对 payload 调 dump() —— 子世界上下文 dump 会失败/把单位投错坐标, 表现成单位消失。
+        //   这里先清空载荷再拆 (工厂进行中的单位被放弃, 与原版"拆除工厂丢进度"语义一致)。
+        if (tile.build instanceof PayloadBlock.PayloadBlockBuild<?> pb && pb.payload != null) {
+            pb.payload = null;
+        }
 
         // 即拆方块: 直接移除 (原版 ConstructBlock.deconstructFinish 的核心步骤)
         if (previous.instantDeconstruct) {
