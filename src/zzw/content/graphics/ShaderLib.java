@@ -37,19 +37,23 @@ public class ShaderLib{
     /**
      * 全模组共享的顶点着色器。
      *
-     * <p>与 {@code assets/shaders/screenspace.vert} 完全等价 (仅声明位置属性与
-     * 纹理坐标, 输出 {@code v_texCoords}), 写成内联常量后:
-     * 既避免读取 .vert 文件的 IO, 也不受游戏内置 assets 版本变化影响。</p>
+     * <p>与游戏内置 {@code shaders/screenspace.vert} 逐字节等价: <b>不乘任何投影矩阵</b>,
+     * 直接输出顶点位置 —— ScreenQuad 的顶点范围是 (-1..1) 裁剪空间, 因此 blit 时
+     * 无论当前相机投影是什么, 输出始终铺满整个屏幕。</p>
+     *
+     * <p>★ 修复记录: 此前误用了 {@code gl_Position = u_projTrans * a_position} 的版本,
+     * 但 {@code u_projTrans} 从未被上传 (GLSL uniform 默认为零矩阵), 导致全屏 quad
+     * 塌缩成一个点 —— 所有 blit 后处理 (切割/碎裂/汽化/黑洞扭曲) 全部静默输出空白。</p>
      */
     public static final String defaultVert = """
         attribute vec4 a_position;
         attribute vec2 a_texCoord0;
-        uniform mat4 u_projTrans;
+
         varying vec2 v_texCoords;
 
         void main(){
             v_texCoords = a_texCoord0;
-            gl_Position = u_projTrans * a_position;
+            gl_Position = a_position;
         }""";
 
     // ===== 着色器实例 (集中登记) =====

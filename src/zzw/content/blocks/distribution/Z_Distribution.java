@@ -16,14 +16,14 @@ import zzw.content.exp.DrawOver;
  * 注册内容:
  * 1. teleporter         - Teleporter 物品传送器 (12 颜色频道)
  * 2. steel-conveyor      - KoruhConveyor 钢制传送带 (absorbLasers=true 标志)
- * 3. mechanical-conveyor - ShadowedConveyor 机械传送带 (含 shadow 影子贴图)
+ * 3. mechanical-conveyor - MechanicalConveyor 机械传送带 (8 槽位大吞吐, 兼容原版两种传送带)
  * 4. dirium-conveyor     - ExpKoruhConveyor 迪里姆合金传送带 (完整经验系统)
  * 5. distribution-drill  - DistributionDrill 分配式钻机 (钻机间互传产物)
  */
 public class Z_Distribution {
     public static Block teleporter;
     public static KoruhConveyor steelConveyor;
-    public static ShadowedConveyor mechanicalConveyor;
+    public static MechanicalConveyor mechanicalConveyor;
     public static ExpKoruhConveyor diriumConveyor;
     public static DistributionDrill distributionDrill;
 
@@ -52,16 +52,18 @@ public class Z_Distribution {
             drawMultiplier = 1.9f;
         }};
 
-        // ===== mechanical-conveyor 机械传送带 (PU_V8 L2910-2914) =====
-        // 继承原版 Conveyor + 额外渲染 shadowRegion 影子贴图用于视觉过渡
-        mechanicalConveyor = new ShadowedConveyor("mechanical-conveyor") {{
+        // ===== mechanical-conveyor 机械传送带 (2026-10-18 重做) =====
+        // 完整重写运输逻辑: 8 槽位 + 小间距 —— 兼容原版 conveyor/plastanium-conveyor,
+        // 既能承接塑料传送带的批量"打包"倾倒, 也能单件运输, 两种流同带混合
+        mechanicalConveyor = new MechanicalConveyor("mechanical-conveyor") {{
             requirements(Category.distribution, ItemStack.with(
                 Items.copper, 3, Z_Items.nickel, 2
             ));
             health = 320;
-            // 实际运输速度 = speed * 150 物品/秒
-            speed = 0.1f;          // 0.1 * 150 = 15 物品/秒
-            displayedSpeed = 15f;
+            // 吞吐 = speed / itemSpace × 60 = 0.1 / 0.125 × 60 = 48 物品/秒
+            // (原版传送带同速度约 15/秒; 槽位数见 MechanicalConveyor.beltCapacity)
+            speed = 0.1f;
+            displayedSpeed = 48f;
         }};
 
         // ===== dirium-conveyor 迪里姆合金传送带 (PU_V8 L1694-1702) =====
