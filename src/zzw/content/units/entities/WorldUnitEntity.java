@@ -4,6 +4,7 @@ import zzw.content.units.ZEntityRegister;
 import zzw.content.type.WorldUnitType;
 
 import arc.Core;
+import arc.Events;
 import arc.math.Angles;
 import arc.math.geom.Geometry;
 import arc.math.geom.Point2;
@@ -26,6 +27,7 @@ import mindustry.Vars;
 import mindustry.content.Blocks;
 import mindustry.content.Fx;
 import mindustry.core.World;
+import mindustry.game.EventType;
 import mindustry.game.EventType.BlockBuildBeginEvent;
 import mindustry.game.EventType.BlockBuildEndEvent;
 import mindustry.game.EventType.BuildRotateEvent;
@@ -558,6 +560,92 @@ public class WorldUnitEntity extends UnitEntity {
             if (subUnits.get(i).isCommandable()) return false;
         }
         return super.isCommandable();
+    }
+
+    // ===== 甲板单位地形隔离 ("飞行下限"伪装, Trigger 驱动) =====
+
+    /** 隔离钩子是否已注册 (幂等, 只注册一次) */
+    protected static boolean deckIsolationHooked = false;
+
+    /**
+     * 引擎"飞行判定"的高度下限 = {@code UnitComp.isFlying()} 的阈值 (elevation >= 0.09f)。
+     * <p>把贴地的甲板单位临时抬到正好这个高度, 引擎在整段实体更新内就会把它们当成
+     * "飞行单位", 从而跳过全部主世界地形判定 —— 详见 {@link #setupDeckIsolation()}。</p>
+     */
+    protected static final float DECK_FLY_EPS = 0.09f;
+
+    /**
+     * ★ 甲板单位地形隔离: 注册两个 Trigger 钩子 (幂等)。
+     *
+     * <p><b>要解决的问题</b>: 甲板上的陆军在主世界里只是"站在平台坐标上的普通地面单位",
+     * 它们自身 update() 里所有与地形有关的判定 (UnitComp.update / StatusComp.update)
+     * 都拿脚下的<b>主世界 tile</b> 来算 —— 平台悬停在深水 / 焦油 / 熔渣 / 冰面 / 泥地等
+     * 特殊地面上时, 甲板单位就会溺水、被扣地面状态 (wet / tarred / melting / freezing /
+     * muddy)、被地面拖拽减速 (深水 speedMultiplier 低到 0.18); 平台悬停在墙体 / 工厂等
+     * 实心块上时, 更会被 {@code canPassOn()} 直接判死, 或被地形挡路走不动。</p>
+     *
+     * <p><b>做法 (不动外观)</b>: 引擎里"贴地"与"飞行"分别由 {@code isGrounded()}
+     * (elevation &lt; 0.001f) 与 {@code isFlying()}(elevation &gt;= 0.09f) 判定, 而上面这些
+     * 地形判定恰好全部挂在这两个判定之一上:</p>
+     * <ul>
+     *   <li>溺水: {@code canDrown() = isGrounded() && type.canDrown} → 伪装飞行即跳过;</li>
+     *   <li>地面状态 / 灼伤地面: {@code isGrounded() && !type.hovering} → 跳过;</li>
+     *   <li>地面减速 / 地面拖拽: {@code floorSpeedMultiplier()}、{@code drag} 走 isFlying() → 跳过;</li>
+     *   <li>实心块挡路 / 压在实心块上判死: {@code solidity() = isFlying() ? null : solid} → 跳过.</li>
+     * </ul>
+     *
+     * <p>于是只需在两个时机改一下 elevation:</p>
+     * <ol>
+     *   <li>帧首 ({@link mindustry.game.EventType.Trigger#update}, 早于全部实体更新):
+     *       把贴地的甲板单位抬到 0.09 → 本帧逻辑里它们就是"飞行单位", 完全免疫主世界地形;</li>
+     *   <li>帧末 ({@link mindustry.game.EventType.Trigger#afterGameUpdate}, 晚于全部实体更新
+     *       但早于渲染): 把本帧没真正飞起来的甲板单位落回 0 → 渲染时 elevation 与普通地面
+     *       单位一致, 阴影 / 引擎 / 特效全部正常 (不会出现"低空飞行"的观感)。</li>
+     * </ol>
+     *
+     * <p><b>为什么阈值取 0.09</b>: 它是引擎判定的"飞行下限", 既能让 solidity() 返回 null、
+     * 让全部地面判定跳过, 又几乎不影响任何按 elevation 缩放的视觉 (阴影偏移仅 0.09 × 12px ≈ 1px);
+     * 加上帧末会落回 0, 渲染上完全看不出。真正靠自身动力起飞的单位 (canBoost 且本帧
+     * elevation 上升) 帧末不会被落回 0, 下帧起也因 elevation >= 0.09 不再被抬升,
+     * 起飞 / 降落流程与原版一致。</p>
+     */
+    public static void setupDeckIsolation() {
+        if (deckIsolationHooked) return;
+        deckIsolationHooked = true;
+        Events.run(EventType.Trigger.update, WorldUnitEntity::deckLogicBegin);
+        Events.run(EventType.Trigger.afterGameUpdate, WorldUnitEntity::deckLogicEnd);
+    }
+
+    /**
+     * 帧首钩子 (Trigger.update, 全部实体 update 之前): 遍历所有大地单位携带的甲板单位,
+     * 把"贴地"的 (elevation &lt; 0.09) 抬到飞行下限, 让本帧逻辑里的地形判定全部跳过。
+     */
+    protected static void deckLogicBegin() {
+        for (Unit u : Groups.unit) {
+            if (!(u instanceof WorldUnitEntity)) continue;
+            Seq<Unit> subs = ((WorldUnitEntity) u).subUnits;
+            for (int i = 0; i < subs.size; i++) {
+                Unit s = subs.get(i);
+                if (s == null || !s.isAdded() || s.dead || s.type == null) continue;
+                if (s.elevation < DECK_FLY_EPS) s.elevation = DECK_FLY_EPS;
+            }
+        }
+    }
+
+    /**
+     * 帧末钩子 (Trigger.afterGameUpdate, 全部实体 update 之后 / 渲染之前):
+     * 把本帧没有真正飞起来的甲板单位落回地面 (elevation = 0), 保证渲染外观与普通地面单位一致。
+     */
+    protected static void deckLogicEnd() {
+        for (Unit u : Groups.unit) {
+            if (!(u instanceof WorldUnitEntity)) continue;
+            Seq<Unit> subs = ((WorldUnitEntity) u).subUnits;
+            for (int i = 0; i < subs.size; i++) {
+                Unit s = subs.get(i);
+                if (s == null || !s.isAdded() || s.dead || s.type == null) continue;
+                if (s.elevation <= DECK_FLY_EPS) s.elevation = 0f;
+            }
+        }
     }
 
     // ===== setup / absorb (召唤初始化 + 吸收建筑到子世界) =====

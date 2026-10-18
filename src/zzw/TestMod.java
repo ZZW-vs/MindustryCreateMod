@@ -45,6 +45,11 @@ public class TestMod extends Mod{
         //   挂 Trigger.update / ResetEvent / BlockBuildBeginEvent, 幂等, 只生效一次
         zzw.util.AntiCheat.setup();
 
+        // ★ 甲板单位地形隔离 (幂等): 用 Trigger.update / Trigger.afterGameUpdate 钩子把甲板上的
+        //   陆军在逻辑期伪装成"飞行单位", 使其不再被平台下方主世界的特殊地面 (深水/焦油/熔渣/冰面/泥地)
+        //   和实心块影响; 帧末 (渲染前) 落回地面, 外观与普通地面单位一致。
+        zzw.content.units.entities.WorldUnitEntity.setupDeckIsolation();
+
 
         Events.on(EventType.ClientLoadEvent.class, e -> {
             // ★ 阻断游戏联网拉取"在线模组列表" (国内网络会超时, 表现为"导入报错")
