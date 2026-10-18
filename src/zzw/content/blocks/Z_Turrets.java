@@ -1412,7 +1412,12 @@ public class Z_Turrets {
                 collidesAir = false;
                 lifetime = 70f;
                 despawnEffect = ParticleFx.surgeSplash;
-                hitEffect = CombatFx.massiveExplosion;
+                // ★ 用户调整: 命中特效改 PU132 原版金色涌浪 (与消散特效统一) ——
+                //   原 massiveExplosion 自带白色扩散圆 (硬编码白) + 六边形轮廓多边形, 观感难看
+                hitEffect = ParticleFx.surgeSplash;
+                // ★ 用户调整: 加大碰撞盒 (默认 ~5) —— 子弹接近目标即在命中点爆炸,
+                //   不再因擦身而过飞到射程极限 (490px) 才引爆
+                hitSize = 16f;
                 keepVelocity = false;
                 // ★ 修复"炮弹只能射到射程最远处": 原先 collides=false 使炮弹不与任何目标碰撞,
                 //   只能飞到寿命尽头 (≈射程最远处) 才引爆, 射程内的单位/建筑全部穿过不受伤.
