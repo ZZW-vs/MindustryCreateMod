@@ -35,6 +35,7 @@ import mindustry.graphics.Layer;
 import mindustry.graphics.Pal;
 
 import zzw.content.graphics.UnityPal;
+import zzw.content.units.effects.UnityDrawf;
 import zzw.content.units.bullets.KamiBulletType;
 import zzw.content.units.bullets.KamiLaserBulletType;
 
@@ -1014,87 +1015,86 @@ public class Z_Bullets {
 
         @Override
         public void draw(Bullet b){
-            // ★ 1:1 移植 FlameOut BlackHoleAttack.drawBlackHole (原版黑洞样式):
-            //   随机彩色光环 + 水平双刺 + 7 根随机尖刺 + 80 个内落方块 + 不透明黑芯。
-            //   时间轴直接复用子弹自身: b.time ↔ blackholeTime, b.lifetime ↔ blackHoleDuration
-            //   (shader 扭曲强度 fi2*fo2 的部分在 update() 的 blackHoleSFX 调用中处理)
-            float blackholeTime = b.time;
-            float blackHoleDuration = b.lifetime;
+            // ★ 黑洞本体 1:1 按 PU132 SingularityBulletType.draw() 原版样式:
+            //   半透明蓝色辉光圈 → 3 层 shiningCircle (6 根旋转三角尖刺) → 不透明黑芯
+            //   (用户指定: 黑色圆圈 + 淡蓝色光圈 + 三角突起转动)
+            //   彩色粒子 (80 个内落碎片) 与空间扭曲 (update() 中的 shader) 保留
+            float interp = b.fin(Interp.exp10Out);
 
-            float fi = Interp.pow2Out.apply(Mathf.clamp(blackholeTime / 60f)) * (Mathf.clamp(blackholeTime / blackHoleDuration) * 0.4f + 1f);
-            float fo = Mathf.clamp((blackHoleDuration - blackholeTime) / 120f);
+            // 淡入淡出包络 (与 update() 的扭曲强度一致): 前 20% 淡入, 最后 25% 淡出
+            float life = b.fin();
+            float env;
+            if(life < 0.2f){
+                env = life / 0.2f;
+            }else if(life > 0.75f){
+                env = (1f - life) / 0.25f;
+            }else{
+                env = 1f;
+            }
+            env = Mathf.clamp(env, 0f, 1f);
+            env = (float)Math.sin(env * Mathf.PI * 0.5f);
+
+            // 全局尺寸系数 = 扩张曲线 × 淡入淡出包络
+            float scl = interp * env;
+
+            // 绘制在特效层之上, 画完恢复到子弹层
+            Draw.z(Layer.effect - 0.1f);
+
+            // ===== 黑洞本体: PU132 五层原版结构 =====
+            for(int i = 0; i < singColors.length; i++){
+                Draw.color(singColors[i]);
+                if(i != 0){
+                    float extra = (singColors.length - (i + 1f)) * (11f / (singColors.length - 1f));
+
+                    UnityDrawf.shiningCircle(b.id, Time.time - i,
+                        b.x + Mathf.range(0.5f), b.y + Mathf.range(0.5f),
+                        scl * size * singScales[i], 6, 30f, 17f + (extra / 2f), (10f + extra) * scl, 60f);
+                }else{
+                    Fill.circle(b.x + Mathf.range(0.5f), b.y + Mathf.range(0.5f), scl * size * singScales[i]);
+                }
+            }
+
+            // ===== 彩色粒子: 80 个螺旋内落碎片 (FlameOut 风格, 保留) =====
+            float fi = Interp.pow2Out.apply(Mathf.clamp(b.time / 60f)) * (Mathf.clamp(b.time / b.lifetime) * 0.4f + 1f);
+            float fo = Mathf.clamp((b.lifetime - b.time) / 120f);
             float f = fi * fo;
-            float sin = Mathf.absin(12f, 0.1f) + 1f;
-            float angle = blackholeTime / 1.5f;
+            float angle = b.time / 1.5f;
             Rand r = RAND1, r2 = RAND2;
             r.setSeed(b.id + 16311);
             Color c = Tmp.c1.rand();
             float max = Math.max(c.r, Math.max(c.g, c.b));
             c.mul(1f / max);
-
-            // 绘制在特效层之上, 画完恢复到子弹层
-            Draw.z(Layer.effect - 0.1f);
-
-            // 彩色光环 + 左右两根水平尖刺
             Draw.color(c);
-            Fill.circle(b.x, b.y, 12f * sin * f);
-            Drawf.tri(b.x, b.y, 7f * sin * f, 120f * f * f * sin, 0f);
-            Drawf.tri(b.x, b.y, 7f * sin * f, 120f * f * f * sin, 180f);
 
-            // 7 根随机尖刺: 绕黑洞缓慢旋转的彩色三角
-            for(int i = 0; i < 7; i++){
-                float dur = r.random(20f, 30f);
-                float time = (Time.time + r.random(dur));
-                float mtime = time % dur;
-                float ef = mtime / dur;
-                int stime = (int)(time / dur) * 1621 + i + b.id;
-
-                r2.setSeed(stime);
-                float rot = r2.random(360f) + r2.range(80f) * ef;
-                float l = r2.random(20f, 40f) * Interp.pow2.apply(biasSlope(ef, 0.2f)) * f * sin;
-                float w = r2.random(5f, 7f) * f * sin;
-                Vec2 v = Tmp.v1.trns(rot, 6f * sin * f).add(b.x, b.y);
-                Drawf.tri(v.x, v.y, w, l, rot);
-            }
-
-            // 80 个内落方块: 从外围被吸入黑洞的碎片
             for(int i = 0; i < 80; i++){
                 float dur = r.random(40f, 50f);
                 float time = (Time.time + r.random(dur));
                 float mtime = time % dur;
                 float ef = mtime / dur;
                 int stime = (int)(time / dur) * 1621 + i + b.id;
-                float scl = Interp.pow2Out.apply(Mathf.clamp(Math.max(blackholeTime - r.random(70f), 0) / 75f)) * Mathf.clamp(((blackHoleDuration - r.random(50f)) - blackholeTime) / 120f);
-                if(scl > 0.001f){
+                float fscl = Interp.pow2Out.apply(Mathf.clamp(Math.max(b.time - r.random(70f), 0) / 75f)) * Mathf.clamp(((b.lifetime - r.random(50f)) - b.time) / 120f);
+                if(fscl > 0.001f){
                     r2.setSeed(stime);
                     float a = r2.random(360f);
                     float l = r2.random(240f, 270f) * fi;
-                    float s = r2.random(4f, 6f) * scl * ef;
+                    float s = r2.random(4f, 6f) * fscl * ef;
                     Vec2 v = Tmp.v1.trns(a + angle * (ef * ef * ef) * fi, l * (1f - ef * ef)).add(b.x, b.y);
                     Fill.square(v.x, v.y, s, 45f);
                 }
             }
 
-            // 最后画不透明黑芯 (事件视界), 盖住中心所有元素
-            Draw.color(Color.black);
-            Fill.circle(b.x, b.y, 10f * sin * f);
-
             Draw.z(Layer.bullet);
         }
 
-        /** ★ FlameOut 原版随机数发生器 (静态复用, 每帧 setSeed 保证画面帧同步) */
-        static final Rand RAND1 = new Rand(), RAND2 = new Rand();
+        /** ★ PU132 原版颜色: 半透明蓝辉光 / 激光蓝 / 白 / 激光蓝 / 黑芯 */
+        static final Color[] singColors = {Color.valueOf("4787ff80"), Pal.lancerLaser, Color.white, Pal.lancerLaser, Color.black};
 
-        /**
-         * ★ FlameOut Utils.biasSlope 移植: 偏置斜坡函数。
-         *
-         * <p>fin 在 [0, bias) 区间线性上升, 之后线性下降到 0 —
-         * 用于让尖刺特效快速出现、缓慢消失。</p>
-         */
-        static float biasSlope(float fin, float bias){
-            return (fin < bias ? (fin / bias) : 1f - (fin - bias) / (1f - bias));
-        }
-}
+        /** ★ PU132 原版各层半径倍率 */
+        static final float[] singScales = {8.6f, 7f, 5.5f, 4.2f, 3.9f};
+
+        /** ★ 彩色粒子随机数发生器 (静态复用, 每帧 setSeed 保证画面帧同步) */
+        static final Rand RAND1 = new Rand(), RAND2 = new Rand();
+    }
 
     /** GluonOrbData - 黑洞单位列表管理 (PU_V8 移植) */
     public static class GluonOrbData {

@@ -387,6 +387,7 @@
   - **重写「科技树模板.java」**：补上 VE 核心写法 `planet.techTree = nodeRoot(...)`（自定义星球整棵树），并移植本项目 `Z_TechTree` 的 `attach`/`node`/`nodeProduce` 辅助方法（160 无 `TechTree.get(parent)`，改用 `content.techNode` 字段）；补充 `Objectives` 清单与 VE 倒金字塔布局 `InvertedPyramidTreeLayout` 说明
   - 更新「Mod主类模板.java」加载顺序为 `物品 → 液体 → 状态 → 子弹 → 方块 → 单位 → 星球 → 科技树`，并在 `loadContent()` 方法体补上星球加载步骤
 ## 更新日志
+- **create-singularity 黑洞本体改为 PU132 原版样式**：`SingularityBulletType.draw()` 重写为 PU132 五层原版结构——半透明蓝辉光圈（4787ff80）→ 3 层 `UnityDrawf.shiningCircle`（6 根旋转三角尖刺，激光蓝/白/激光蓝）→ 不透明黑芯；保留 80 个彩色螺旋内落碎片与 shader 空间扭曲
 - **修复全模组 blit 后处理着色器集体失效（切割碎片不显示的根因）**：ShaderLib 重构时把共享顶点着色器 `defaultVert` 写成了 `gl_Position = u_projTrans * a_position`，但 `u_projTrans` 从未被上传（GLSL uniform 默认为零矩阵），全屏 quad 塌缩成一个点——所有 `Draw.blit` 后处理（tenmeikiri 切割的 StencilShader、End 系碎裂/汽化、黑洞空间扭曲）全部静默输出空白。现对齐游戏内置 `screenspace.vert`（`gl_Position = a_position`，ScreenQuad 顶点本就在 (-1..1) 裁剪空间，铺满全屏）；同步修正 `assets/shaders/screenspace.vert` 与 `blackholeshader.vert` 资源副本。**此修复同时让黑洞的空间扭曲效果恢复显示**
 - **create-singularity 黑洞彻底重做（根治全屏变黑）**：
   - **修复全屏变黑根因**：`blackholeshader.frag` 原先 `if(i >= u_holes_count - 1) break;` 写在处理之后，扭曲队列为空时仍会处理未上传的 `u_holes[0]`（值未定义），`smoothstep(0, 0, dist)` 除零产生 NaN → 全屏被 mix 成黑色；判空前移到循环开头，队列空时直接跳过
