@@ -342,8 +342,10 @@ public class WorldUnitEntity extends UnitEntity {
         //   的 solidity/重叠检查 (详见 ejectStuckPayloads), 这里在主世界替它完成投放
         ejectStuckPayloads();
 
-        // ★ 平台携带: 跟随移动/旋转, 走出平台掉回主地图, 注册新登船单位
-        updateSubUnits();
+        // ★ 平台携带: 延迟到帧末执行 (Core.app.post), 保证在携带单位自身 AI 更新之后再
+        //   叠加朝向/位置 —— 否则单位 AI 的 faceTarget/faceMovement 会把 u.rotation 覆盖回
+        //   固定朝向 (甲板单位面向不随大地旋转, 看起来像"方向反了/原地打转")
+        Core.app.post(this::updateSubUnits);
     }
 
     // ===== 平台单位系统 (甲板上的陆军) =====
