@@ -934,7 +934,8 @@ public class Z_Bullets {
             super(0.001f, damage);
             pierce = pierceBuilding = true;
             hitEffect = Fx.none;
-            despawnEffect = zzw.content.units.effects.CombatFx.blastExplosion;
+            // ★ 用户指定: 删除黑洞收缩结束后出现的白色圆+多边形框特效 (原 blastExplosion)
+            despawnEffect = Fx.none;
             hitSize = 19f;
             lifetime = 3.5f * 60f;
         }
@@ -1076,7 +1077,8 @@ public class Z_Bullets {
                 if(fscl > 0.001f){
                     r2.setSeed(stime);
                     float a = r2.random(360f);
-                    float l = r2.random(240f, 270f) * fi;
+                    // ★ 用户指定: 彩色粒子影响范围减小 35% (240~270 × 0.65 ≈ 156~176)
+                    float l = r2.random(240f, 270f) * 0.65f * fi;
                     float s = r2.random(4f, 6f) * fscl * ef;
                     Vec2 v = Tmp.v1.trns(a + angle * (ef * ef * ef) * fi, l * (1f - ef * ef)).add(b.x, b.y);
                     Fill.square(v.x, v.y, s, 45f);

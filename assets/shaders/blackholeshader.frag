@@ -31,8 +31,8 @@ void main(){
         float intensity = u_holes[i].z;
         float swirl = u_holes[i].w;
 
-        // 影响半径: intensity 1.5~4.0 -> 约 62~142 px (进一步收窄)
-        float range = (14.0 + intensity * 32.0) * u_camscl;
+        // 影响半径: ★ 用户指定较上一版 (14+32i) 减小 35% → (9.1+20.8i), intensity 1.5~4.0 → 约 40~92 px
+        float range = (9.1 + intensity * 20.8) * u_camscl;
 
         vec2 vp = (v_texCoords * u_texsize) - pos;
         float dist = length(vp);
