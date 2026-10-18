@@ -4,8 +4,10 @@ import arc.graphics.Color;
 import arc.graphics.g2d.Draw;
 import arc.graphics.g2d.TextureRegion;
 import arc.math.Mathf;
+import arc.math.geom.Geometry;
 import arc.util.Time;
 import arc.util.Eachable;
+import mindustry.Vars;
 import mindustry.content.StatusEffects;
 import mindustry.entities.units.BuildPlan;
 import mindustry.gen.Unit;
@@ -22,16 +24,18 @@ import static mindustry.Vars.tilesize;
  * <p>连接热量网络的导热管道: 贴图按 4 邻居连接位掩码自动拼接 (8x2 切片 16 变体)。
  * 高温时发光, 单位踩上会受到灼烧伤害。管道温度低于 0°C 或高于 225°C 时显示热色。</p>
  *
- * <p>★ 与 PU132 差异: rotate=true (用户需求, 保留放置时的游戏自带大箭头)。
- * 因此端口索引 n 与物理方向存在偏移: 物理方向 = (n + rotation) % 4,
- * 计算贴图位掩码时必须把端口索引换算回物理方向, 否则贴图拼接错乱。</p>
+ * <p>★ 与 PU132 完全一致 (2026-10 回退): rotate=false, 位掩码直接按本地端口索引查表,
+ * 贴图不随旋转绘制 —— 曾经为"保留放置大箭头"开过 rotate=true 并在掩码里做
+ * (端口 + rotation) 换算, 但 draw() 不旋转贴图 / drawPlanRegion 旋转贴图 /
+ * 掩码换算三者互相不一致, 表现为连接贴图错乱; 回退原版方案后三者天然统一。</p>
  *
  * <p>适配说明: unity.util.GraphicUtils → zzw.content.util.GraphicUtils;
- * onNeighboursChanged 为项目 GraphBlockBase 接口方法。</p>
+ * onNeighboursChanged 为项目 GraphBlockBase 接口方法;
+ * 每帧重算掩码为端口特有的兜底 (图重建过程可能漏发邻居变化通知)。</p>
  */
 public class HeatPipe extends GraphBlock{
     final static Color baseColor = Color.valueOf("6e7080");
-    /** 物理方向到位掩码位的映射 (右→0, 上→3, 左→2, 下→1) */
+    /** 本地端口方向到位掩码位的映射 (右→bit0, 上→bit3, 左→bit2, 下→bit1, 与 PU132 一致) */
     final static int[] shift = new int[]{0, 3, 2, 1};
     /** 热色贴图 16 变体 (8x2 切片) */
     TextureRegion[] heatRegions, regions;
@@ -57,10 +61,29 @@ public class HeatPipe extends GraphBlock{
 
     @Override
     public void drawPlanRegion(BuildPlan req, Eachable<BuildPlan> list){
-        // 只绘制方块本体 (与 PU132 原版一致);
-        // 放置方向大箭头由游戏 InputHandler 在 rotate=true 时自动绘制 (线拖拽时仅线尾一个)
+        // ★ PU132 原样复刻: 放置预览也显示与已建成/队列中热管的连接,
+        //   预览只连接 HeatPipeBuild (不含其他热力方块), 贴图不随旋转绘制
         float scl = tilesize * req.animScale;
-        Draw.rect(region, req.drawx(), req.drawy(), scl, scl, req.rotation * 90f);
+        int spriteIndex = 0;
+        for(int i = 0; i < 4; i++){
+            // i → 物理方向 (4-i)%4 = 右/下/左/上, 与掩码位序一致 (PU132 原样)
+            var pt = Geometry.d4((4 - i) % 4).cpy().add(req.x, req.y);
+            if(Vars.world.build(pt.x, pt.y) instanceof HeatPipeBuild){
+                spriteIndex += 1 << i;
+            }else{
+                // 拖拽放置队列中同位置的热管也视为已连接
+                final boolean[] found = {false};
+                list.each(plan -> {
+                    if(!found[0] && plan.x == pt.x && plan.y == pt.y){
+                        found[0] = true;
+                    }
+                });
+                if(found[0]){
+                    spriteIndex += 1 << i;
+                }
+            }
+        }
+        Draw.rect(regions[spriteIndex], req.drawx(), req.drawy(), scl, scl);
     }
 
     public class HeatPipeBuild extends GraphBuild{
@@ -83,9 +106,9 @@ public class HeatPipe extends GraphBlock{
         void updateSpriteIndex(){
             if(heat() == null) return;
             spriteIndex = 0;
-            // rotate=true 时端口索引 n 的物理方向 = (n + rotation) % 4,
-            // 需换算回物理方向再查 shift 表, 否则贴图切片错乱
-            heat().eachNeighbourValue(n -> spriteIndex += 1 << shift[(n + rotation) % 4]);
+            // rotate=false, 本地端口索引即物理方向, 直接查 shift 表 (PU132 原样;
+            // 曾经为 rotate=true 做过 (n + rotation) % 4 换算, 已随 rotate 回退一并移除)
+            heat().eachNeighbourValue(n -> spriteIndex += 1 << shift[n]);
         }
 
         @Override

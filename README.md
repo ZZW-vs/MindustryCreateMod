@@ -297,6 +297,8 @@
 - 合并时有烟雾效果和延迟检查
 
 ## 更新日志
+- **热管 (heat-pipe) 连接贴图按 PU132 原版复刻**：回退端口的 `rotate=true` 偏差（原意是保留放置大箭头），该偏差导致「掩码按旋转换算 / draw() 不旋转贴图 / 放置预览旋转贴图」三者互相不一致，连接贴图错乱。现与原版完全一致——`rotate=false`，位掩码直接按本地端口索引查表，贴图固定朝向自动拼接；`drawPlanRegion` 复刻原版逻辑，放置预览时即显示与已建成/队列中热管的连接（只连热管，不含其他热力方块）；并补上原版的 `solid=false`（单位可从管道上方走过，配合 unitOn 灼烧）与 `underBullets=true`（子弹从上方飞过）
+- 修复 `MechanicalConveyor` 编译错误：`SliceMode` 误 import 为 `mindustry.graphics.SliceMode`（不存在），正确路径为 `mindustry.world.blocks.Autotiler.SliceMode`（Autotiler 内部枚举）
 - **灵魂炮台信息面板「灵魂加成」写明作用点**：原「灵魂加成: 80% ~ 150%」看不出加到哪里，拆分为两类文案并注明区间含义（无魂→满魂）——弹药类/电力类灵魂炮台显示「灵魂加成(伤害与装填速度)」（`SoulItemTurret`/`SoulTurretPowerTurret` 及其子类），激光类/光束类只显示「灵魂加成(伤害)」（`SoulLaserTurret`/`SoulTractorBeamTurret` 及其子类，光束无装填概念）；bundle key `soul.bonus` 拆为 `soul.bonus.dmgreload` / `soul.bonus.dmg`
 - **数值审计：对齐 PU 原版**（模组 vs PU132/PU_V8 全单位对比，修复 5 处低于原版的数值）：
   - Scar T1 `hovos` 血量 260 → 340（PU132 原版 340）
