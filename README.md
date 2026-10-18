@@ -384,6 +384,13 @@
   - **重写「科技树模板.java」**：补上 VE 核心写法 `planet.techTree = nodeRoot(...)`（自定义星球整棵树），并移植本项目 `Z_TechTree` 的 `attach`/`node`/`nodeProduce` 辅助方法（160 无 `TechTree.get(parent)`，改用 `content.techNode` 字段）；补充 `Objectives` 清单与 VE 倒金字塔布局 `InvertedPyramidTreeLayout` 说明
   - 更新「Mod主类模板.java」加载顺序为 `物品 → 液体 → 状态 → 子弹 → 方块 → 单位 → 星球 → 科技树`，并在 `loadContent()` 方法体补上星球加载步骤
 ## 更新日志
+- **create-singularity 黑洞彻底重做（根治全屏变黑）**：
+  - **修复全屏变黑根因**：`blackholeshader.frag` 原先 `if(i >= u_holes_count - 1) break;` 写在处理之后，扭曲队列为空时仍会处理未上传的 `u_holes[0]`（值未定义），`smoothstep(0, 0, dist)` 除零产生 NaN → 全屏被 mix 成黑色；判空前移到循环开头，队列空时直接跳过
+  - **shader 纯扭曲化**：删除 shader 内黑核/光子环全部绘制，`gl_FragColor` 只输出扭曲后的背景采样——shader 不再向画面添加任何颜色，只负责 UV 空间扭曲（吸入 + 螺旋），扭曲强度/范围/螺旋角逻辑保持不变
+  - **本体 1:1 移植 FlameOut 原版黑洞**（`BlackHoleAttack.drawBlackHole`）：随机归一化彩色光环 + 左右两根水平尖刺 + 7 根绕心旋转随机尖刺（`biasSlope` 偏置斜坡）+ 80 个螺旋内落方块 + 最后盖不透明黑芯；时间轴复用子弹自身（`b.time ↔ blackholeTime`、`b.lifetime ↔ blackHoleDuration`），绘制在 `Layer.effect - 0.1` 层
+  - **shader 螺旋角对齐原版**：`blackHoleSFX` 第 4 参 swirl 由固定 `5.0f` 改为 `-(b.time / 1.5f)`（FlameOut 原版 `-angle`），扭曲旋转随存活时间持续增长，方向与本体尖刺旋转一致
+- **常规炮塔开火特效对齐原版 Spectre**（用户指定）：固定黄色枪焰 `Fx.shootBig` + `Fx.shootBigSmoke`，不再使用随弹药颜色变化的 `CombatFx.muzzleFlash`
+- **巨石派系子弹爆炸配色**：monolith 系子弹补 `hitColor = 4a5866`（CombatFx.blastExplosion 取 e.color，不设默认纯白爆炸白闪刺眼）
 - **electrobomb（电爆弹）修复**：命中特效从 `massiveExplosion`（自带白色扩散圆+六边形轮廓多边形）改回 PU132 原版金色涌浪 `ParticleFx.surgeSplash`（与消散特效统一，纯 surge 金）；碰撞盒 5→16，子弹接近目标即爆，不再擦身而过飞到射程极限（490px）才引爆
 - **dirium 弹药彻底显式化**（根治 injectStrongest 自动扫描拷贝 create-terminum 超模弹导致的属性/颜色污染）：apparition/ghost/banshee 三座炮台的 create-dirium 顶档弹不再走注入 copy 机制，改为弹药表内显式定义——各自钍弹 ×1.35（189 / 202 / 287.55 伤害）、无追踪、无射速削减、pierceCap 2、dirium 本色（不再被 40% 混色染花）；删除 injectFrom 辅助方法；create-terminum 保持全炮台最强弹定位（6666.6 / 6x 穿透 / 强追踪 / 专属特效 / 无射速削减）
 - **banshee dirium 注入弹修复**：`injectStrongest` 自动选"伤害最高"弹药当模板，新增 create-terminum 后误把 6666.6 超模弹当模板拷贝（dirium 注入弹变成 9000 伤害 + 追踪 + 6x 穿透 + 射速削减 + 红绿混色异常）——新增 `Z_VanillaAmmo.injectFrom()`（显式指定模板注入），banshee 的 dirium 弹改回钍弹模板（213×1.35≈287.6，无追踪无穿透常规属性，dirium 正常染色）

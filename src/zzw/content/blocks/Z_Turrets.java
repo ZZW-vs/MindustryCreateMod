@@ -156,7 +156,10 @@ public class Z_Turrets {
                 width = 15f * 1.12f;
                 height = 21f * 1.12f;
                 hitSize = 4.8f;
-                shootEffect = CombatFx.muzzleFlash;
+                // ★ 开火火焰对齐原版 Spectre: 固定黄色枪焰 (Fx.shootBig + shootBigSmoke),
+                //   不再用随弹药颜色变化的 CombatFx.muzzleFlash (用户 2026-10-18 指定)
+                shootEffect = Fx.shootBig;
+                smokeEffect = Fx.shootBigSmoke;
                 ammoMultiplier = 4;
                 reloadMultiplier = 1.7f;
                 knockback = 0.3f;
@@ -169,7 +172,10 @@ public class Z_Turrets {
                 width = 15f * 1.12f;
                 height = 21f * 1.12f;
                 hitSize = 4.8f;
-                shootEffect = CombatFx.muzzleFlash;
+                // ★ 开火火焰对齐原版 Spectre: 固定黄色枪焰 (Fx.shootBig + shootBigSmoke),
+                //   不再用随弹药颜色变化的 CombatFx.muzzleFlash (用户 2026-10-18 指定)
+                shootEffect = Fx.shootBig;
+                smokeEffect = Fx.shootBigSmoke;
                 ammoMultiplier = 4;
                 reloadMultiplier = 1.3f;
                 knockback = 0.3f;
@@ -183,7 +189,10 @@ public class Z_Turrets {
                 width = 16f * 1.12f;
                 height = 21f * 1.12f;
                 hitSize = 5f;
-                shootEffect = CombatFx.muzzleFlash;
+                // ★ 开火火焰对齐原版 Spectre: 固定黄色枪焰 (Fx.shootBig + shootBigSmoke),
+                //   不再用随弹药颜色变化的 CombatFx.muzzleFlash (用户 2026-10-18 指定)
+                shootEffect = Fx.shootBig;
+                smokeEffect = Fx.shootBigSmoke;
                 frontColor = Pal.lightishOrange;
                 backColor = Pal.lightOrange;
                 status = mindustry.content.StatusEffects.burning;
@@ -201,7 +210,10 @@ public class Z_Turrets {
                 width = 16f * 1.12f;
                 height = 23f * 1.12f;
                 hitSize = 5f;
-                shootEffect = CombatFx.muzzleFlash;
+                // ★ 开火火焰对齐原版 Spectre: 固定黄色枪焰 (Fx.shootBig + shootBigSmoke),
+                //   不再用随弹药颜色变化的 CombatFx.muzzleFlash (用户 2026-10-18 指定)
+                shootEffect = Fx.shootBig;
+                smokeEffect = Fx.shootBigSmoke;
                 pierceCap = 2;
                 pierceBuilding = true;
                 knockback = 0.7f;
@@ -213,7 +225,10 @@ public class Z_Turrets {
                 width = 16f * 1.12f;
                 height = 23f * 1.12f;
                 hitSize = 5f;
-                shootEffect = CombatFx.muzzleFlash;
+                // ★ 开火火焰对齐原版 Spectre: 固定黄色枪焰 (Fx.shootBig + shootBigSmoke),
+                //   不再用随弹药颜色变化的 CombatFx.muzzleFlash (用户 2026-10-18 指定)
+                shootEffect = Fx.shootBig;
+                smokeEffect = Fx.shootBigSmoke;
                 pierceCap = 2;
                 pierceBuilding = true;
                 knockback = 0.7f;
@@ -254,7 +269,10 @@ public class Z_Turrets {
                 width = 15f * 1.32f;
                 height = 21f * 1.32f;
                 hitSize = 4.8f;
-                shootEffect = CombatFx.muzzleFlash;
+                // ★ 开火火焰对齐原版 Spectre: 固定黄色枪焰 (Fx.shootBig + shootBigSmoke),
+                //   不再用随弹药颜色变化的 CombatFx.muzzleFlash (用户 2026-10-18 指定)
+                shootEffect = Fx.shootBig;
+                smokeEffect = Fx.shootBigSmoke;
                 ammoMultiplier = 4;
                 reloadMultiplier = 1.7f;
                 knockback = 0.3f;
@@ -267,7 +285,10 @@ public class Z_Turrets {
                 width = 15f * 1.19f;
                 height = 21f * 1.19f;
                 hitSize = 4.8f;
-                shootEffect = CombatFx.muzzleFlash;
+                // ★ 开火火焰对齐原版 Spectre: 固定黄色枪焰 (Fx.shootBig + shootBigSmoke),
+                //   不再用随弹药颜色变化的 CombatFx.muzzleFlash (用户 2026-10-18 指定)
+                shootEffect = Fx.shootBig;
+                smokeEffect = Fx.shootBigSmoke;
                 ammoMultiplier = 4;
                 reloadMultiplier = 1.3f;
                 knockback = 0.3f;
@@ -281,7 +302,10 @@ public class Z_Turrets {
                 width = 16f * 1.32f;
                 height = 21f * 1.32f;
                 hitSize = 5f;
-                shootEffect = CombatFx.muzzleFlash;
+                // ★ 开火火焰对齐原版 Spectre: 固定黄色枪焰 (Fx.shootBig + shootBigSmoke),
+                //   不再用随弹药颜色变化的 CombatFx.muzzleFlash (用户 2026-10-18 指定)
+                shootEffect = Fx.shootBig;
+                smokeEffect = Fx.shootBigSmoke;
                 frontColor = Pal.lightishOrange;
                 backColor = Pal.lightOrange;
                 status = mindustry.content.StatusEffects.burning;
@@ -299,7 +323,10 @@ public class Z_Turrets {
                 width = 16f * 1.32f;
                 height = 23f * 1.32f;
                 hitSize = 5f;
-                shootEffect = CombatFx.muzzleFlash;
+                // ★ 开火火焰对齐原版 Spectre: 固定黄色枪焰 (Fx.shootBig + shootBigSmoke),
+                //   不再用随弹药颜色变化的 CombatFx.muzzleFlash (用户 2026-10-18 指定)
+                shootEffect = Fx.shootBig;
+                smokeEffect = Fx.shootBigSmoke;
                 pierceCap = 2;
                 pierceBuilding = true;
                 knockback = 0.7f;
@@ -311,7 +338,10 @@ public class Z_Turrets {
                 width = 16f * 1.32f;
                 height = 23f * 1.32f;
                 hitSize = 5f;
-                shootEffect = CombatFx.muzzleFlash;
+                // ★ 开火火焰对齐原版 Spectre: 固定黄色枪焰 (Fx.shootBig + shootBigSmoke),
+                //   不再用随弹药颜色变化的 CombatFx.muzzleFlash (用户 2026-10-18 指定)
+                shootEffect = Fx.shootBig;
+                smokeEffect = Fx.shootBigSmoke;
                 pierceCap = 2;
                 pierceBuilding = true;
                 knockback = 0.7f;
@@ -356,7 +386,10 @@ public class Z_Turrets {
                 width = 15f * 1.34f * 1.15f;
                 height = 21f * 1.34f * 1.15f;
                 hitSize = 4.8f;
-                shootEffect = CombatFx.muzzleFlash;
+                // ★ 开火火焰对齐原版 Spectre: 固定黄色枪焰 (Fx.shootBig + shootBigSmoke),
+                //   不再用随弹药颜色变化的 CombatFx.muzzleFlash (用户 2026-10-18 指定)
+                shootEffect = Fx.shootBig;
+                smokeEffect = Fx.shootBigSmoke;
                 ammoMultiplier = 4;
                 reloadMultiplier = 1.7f;
                 knockback = 0.3f;
@@ -369,7 +402,10 @@ public class Z_Turrets {
                 width = 15f * 1.21f * 1.15f;
                 height = 21f * 1.21f * 1.15f;
                 hitSize = 4.8f;
-                shootEffect = CombatFx.muzzleFlash;
+                // ★ 开火火焰对齐原版 Spectre: 固定黄色枪焰 (Fx.shootBig + shootBigSmoke),
+                //   不再用随弹药颜色变化的 CombatFx.muzzleFlash (用户 2026-10-18 指定)
+                shootEffect = Fx.shootBig;
+                smokeEffect = Fx.shootBigSmoke;
                 ammoMultiplier = 4;
                 reloadMultiplier = 1.3f;
                 knockback = 0.3f;
@@ -383,7 +419,10 @@ public class Z_Turrets {
                 width = 16f * 1.34f * 1.15f;
                 height = 21f * 1.34f * 1.15f;
                 hitSize = 5f;
-                shootEffect = CombatFx.muzzleFlash;
+                // ★ 开火火焰对齐原版 Spectre: 固定黄色枪焰 (Fx.shootBig + shootBigSmoke),
+                //   不再用随弹药颜色变化的 CombatFx.muzzleFlash (用户 2026-10-18 指定)
+                shootEffect = Fx.shootBig;
+                smokeEffect = Fx.shootBigSmoke;
                 frontColor = Pal.lightishOrange;
                 backColor = Pal.lightOrange;
                 status = mindustry.content.StatusEffects.burning;
@@ -401,7 +440,10 @@ public class Z_Turrets {
                 width = 16f * 1.34f * 1.15f;
                 height = 23f * 1.34f * 1.15f;
                 hitSize = 5f;
-                shootEffect = CombatFx.muzzleFlash;
+                // ★ 开火火焰对齐原版 Spectre: 固定黄色枪焰 (Fx.shootBig + shootBigSmoke),
+                //   不再用随弹药颜色变化的 CombatFx.muzzleFlash (用户 2026-10-18 指定)
+                shootEffect = Fx.shootBig;
+                smokeEffect = Fx.shootBigSmoke;
                 pierceCap = 2;
                 pierceBuilding = true;
                 knockback = 0.7f;
@@ -413,7 +455,10 @@ public class Z_Turrets {
                 width = 16f * 1.34f * 1.15f;
                 height = 23f * 1.34f * 1.15f;
                 hitSize = 5f;
-                shootEffect = CombatFx.muzzleFlash;
+                // ★ 开火火焰对齐原版 Spectre: 固定黄色枪焰 (Fx.shootBig + shootBigSmoke),
+                //   不再用随弹药颜色变化的 CombatFx.muzzleFlash (用户 2026-10-18 指定)
+                shootEffect = Fx.shootBig;
+                smokeEffect = Fx.shootBigSmoke;
                 pierceCap = 2;
                 pierceBuilding = true;
                 knockback = 0.7f;
@@ -426,7 +471,10 @@ public class Z_Turrets {
                 width = 18f;
                 height = 27f;
                 hitSize = 6f;
-                shootEffect = CombatFx.muzzleFlash;
+                // ★ 开火火焰对齐原版 Spectre: 固定黄色枪焰 (Fx.shootBig + shootBigSmoke),
+                //   不再用随弹药颜色变化的 CombatFx.muzzleFlash (用户 2026-10-18 指定)
+                shootEffect = Fx.shootBig;
+                smokeEffect = Fx.shootBigSmoke;
                 ammoMultiplier = 4;
                 homingPower = 0.09f;        // ★ 强追踪 ≈320°/s (moveToward 速度 = homingPower × 60°/tick)
                 homingRange = 96f;          // ★ 追踪索敌 12 格

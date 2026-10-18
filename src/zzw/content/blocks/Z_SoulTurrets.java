@@ -156,6 +156,9 @@ public class Z_SoulTurrets {
                 height = 20f;
                 frontColor = Color.valueOf("4a5866");  // UnityPal.monolith
                 backColor = Color.valueOf("2c3640");    // UnityPal.monolithDark
+                // ★ 爆炸特效颜色: hitEffect (CombatFx.blastExplosion) 取 e.color = hitColor,
+                //   不设的话默认纯白, 爆炸一片白闪很难看 —— 补上巨石派系配色 (用户 2026-10-18 指定)
+                hitColor = Color.valueOf("4a5866");
                 hitEffect = despawnEffect = zzw.content.units.effects.CombatFx.blastExplosion;
                 splashDamage = 90f;
                 splashDamageRadius = 3.2f * tilesize;

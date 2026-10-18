@@ -18,10 +18,15 @@ vec2 trns(vec2 pos, float deg){
 
 void main(){
     vec2 tp = v_texCoords;
-    float core = 0.0;
-    float ring = 0.0;
 
     for(int i = 0; i < MAX_HOLES; i++){
+        // ★ 修复"整个地图变黑": 必须在处理槽位之前判空 ——
+        //   u_holes_count 为 0 时旧写法仍处理未上传的 u_holes[0] (值未定义),
+        //   smoothstep(0.0, 0.0, dist) 除零产生 NaN, core=1 导致全屏 mix 成黑色
+        if(i >= u_holes_count){
+            break;
+        }
+
         vec2 pos = u_holes[i].xy;
         float intensity = u_holes[i].z;
         float swirl = u_holes[i].w;
@@ -31,15 +36,6 @@ void main(){
 
         vec2 vp = (v_texCoords * u_texsize) - pos;
         float dist = length(vp);
-
-        // 事件视界半径, 与强度同步: intensity -> 0 时收缩到 0
-        float coreR = intensity * 4.2 * u_camscl;
-
-        // 不透明黑核
-        core = max(core, 1.0 - smoothstep(coreR * 0.92, coreR * 1.08, dist));
-        // 外侧光子环
-        ring = max(ring, smoothstep(coreR * 1.02, coreR * 1.12, dist)
-                        * (1.0 - smoothstep(coreR * 1.12, coreR * 1.40, dist)));
 
         if(dist < range){
             float f = (range - dist) / range;          // 1 = 中心, 0 = 边缘
@@ -54,20 +50,11 @@ void main(){
 
             tp += (sw - vp) * u_invsize;
         }
-
-        if(i >= u_holes_count - 1){
-            break;
-        }
     }
 
-    vec4 c = texture2D(u_texture, tp);
-
-    // 黑核: 强制不透明, 不会再透出背景
-    c = mix(c, vec4(0.0, 0.0, 0.0, 1.0), clamp(core, 0.0, 1.0));
-
-    // 光子环
-    c.rgb += vec3(0.55, 0.78, 1.0) * ring;
-    c.a = max(c.a, ring * 0.9);
-
-    gl_FragColor = c;
+    // ★ 纯扭曲输出: 黑核 / 光子环的绘制全部移除 ——
+    //   黑洞本体改由 SingularityBulletType.draw() 按 FlameOut 原版手绘
+    //   (随机彩色光环 + 尖刺 + 内落方块 + 不透明黑芯), shader 只负责空间扭曲,
+    //   不再向画面添加任何颜色, 杜绝全屏发黑
+    gl_FragColor = texture2D(u_texture, tp);
 }
