@@ -46,6 +46,9 @@ public class Teleporter extends Block {
         Color.coral     // 11 珊瑚 (新增)
     };
 
+    /** 颜色频道中文名 (tooltip 与状态栏显示用, 与 selection 一一对应) */
+    protected static final String[] colorNames = {"皇家蓝", "橙", "猩红", "森林绿", "紫", "金", "粉", "黑", "青", "品红", "橄榄", "珊瑚"};
+
     /** 颜色频道: [team.id][color_index] -> 同色同队的传送器集合 */
     protected static final ObjectSet<TeleporterBuild>[][] teleporters;
 
@@ -264,16 +267,31 @@ public class Teleporter extends Block {
         }
 
         @Override
-        public void buildConfiguration(Table table) {
+        public void buildConfiguration(Table table){
             table.clear();
 
-            // ===== 标签页按钮 =====
+            // ===== 顶部: 当前配置状态 (实时刷新) =====
+            Table header = new Table(Tex.pane);
+            header.margin(6f);
+            header.left().add(new Element(){{
+                setSize(12f, 12f);
+            }
+                @Override
+                public void draw(){
+                    Draw.color(displayColor());
+                    Fill.crect(x, y, width, height);
+                    Draw.reset();
+                }
+            }).padRight(5f);
+            header.label(() -> "[lightgray]当前: [white]" + displayName()).left().growX();
+            table.add(header).growX().pad(2f).padBottom(6f).row();
+
+            // ===== 标签页按钮 (默认打开当前配置所在的页) =====
             Table tabBtns = new Table();
             tabBtns.defaults().pad(2f);
-            Button colorBtn = tabBtns.button("颜色频道", Styles.flatTogglet, () -> {}).size(110f, 34f).get();
-            Button signalBtn = tabBtns.button("自定义信号", Styles.flatTogglet, () -> {}).size(110f, 34f).padLeft(6f).get();
+            Button colorBtn = tabBtns.button("颜色频道", Styles.flatTogglet, () -> {}).size(120f, 34f).get();
+            Button signalBtn = tabBtns.button("自定义信号", Styles.flatTogglet, () -> {}).size(120f, 34f).padLeft(6f).get();
 
-            // 内容容器
             Table content = new Table();
 
             colorBtn.clicked(() -> {
@@ -290,64 +308,84 @@ public class Teleporter extends Block {
             table.add(tabBtns).padBottom(4f).row();
             table.add(content).growX();
 
-            // 默认显示颜色频道
-            colorBtn.setChecked(true);
-            rebuildColorTab(content);
+            // 当前绑定的是自定义信号 → 默认打开信号页, 否则打开颜色页
+            if(customSignal != null){
+                signalBtn.setChecked(true);
+                colorBtn.setChecked(false);
+                rebuildSignalTab(content);
+            }else{
+                colorBtn.setChecked(true);
+                signalBtn.setChecked(false);
+                rebuildColorTab(content);
+            }
         }
 
-        /** 重建颜色频道标签页 */
-        private void rebuildColorTab(Table content) {
+        /** 状态栏的色块颜色 (未配置时显示灰色) */
+        protected Color displayColor(){
+            if(customSignal != null) return Color.white;
+            if(toggle != -1) return selection[toggle];
+            return Color.gray;
+        }
+
+        /** 状态栏文字 (当前绑定的频道/信号) */
+        protected String displayName(){
+            if(customSignal != null) return "信号 " + customSignal;
+            if(toggle != -1) return colorNames[toggle] + "频道";
+            return "未配置";
+        }
+
+        /** 重建颜色频道标签页 (4 列色块网格 + 每格 tooltip + 取消选择) */
+        private void rebuildColorTab(Table content){
             content.clear();
             content.table(Tex.pane, t -> {
-                t.add("颜色频道选择").pad(4f).row();
-                for (int i = 0; i < selection.length; i++) {
+                t.margin(8f);
+                for(int i = 0; i < selection.length; i++){
                     int j = i;
-                    ImageButton button = t.button(Tex.whiteui, Styles.clearTogglei, 24f, () -> {}).size(36f).get();
+                    ImageButton button = t.button(Tex.whiteui, Styles.clearTogglei, 24f, () -> {}).size(40f).pad(2f).get();
                     button.changed(() -> configure(button.isChecked() ? j : -1));
                     button.getStyle().imageUpColor = selection[j];
                     button.update(() -> button.setChecked(toggle == j));
-                    if (i % 4 == 3) t.row();
+                    addTooltip(button, "[accent]频道: [white]" + colorNames[j]);
+                    if(i % 4 == 3) t.row();
                 }
                 t.row();
-                t.button("取消选择", Styles.flatt, () -> configure(-1)).size(100f, 28f).padTop(6f);
+                t.button("@cancel", Styles.flatt, () -> configure(-1)).size(110f, 28f).padTop(6f);
             }).growX().pad(4f);
         }
 
-        /** 重建自定义信号标签页 */
-        private void rebuildSignalTab(Table content) {
+        /** 重建自定义信号标签页 (输入区 + 本队信号列表, 显示批注与成员数) */
+        private void rebuildSignalTab(Table content){
             content.clear();
             content.table(Tex.pane, t -> {
-                t.add("自定义信号").pad(4f).row();
+                t.margin(8f);
 
                 // 输入区: 信号名 + 批注
                 final TextField[] fields = new TextField[2];
                 t.table(input -> {
                     input.left().defaults().pad(2f);
                     input.add("信号:");
-                    fields[0] = input.field("", text -> {}).width(130f).get();
+                    fields[0] = input.field("", text -> {}).width(150f).get();
                     fields[0].setMessageText("支持中文");
                     input.add("批注:").padLeft(8f);
-                    fields[1] = input.field("", text -> {}).width(130f).get();
+                    fields[1] = input.field("", text -> {}).width(150f).get();
                     fields[1].setMessageText("可选");
-                }).growX().pad(4f).row();
+                }).growX().padBottom(2f).row();
 
                 // 添加按钮
-                t.button("添加信号", Styles.flatt, () -> {
+                t.button("加入信号", Styles.flatt, () -> {
                     String name = fields[0].getText().trim();
                     String note = fields[1].getText().trim();
-                    if (!name.isEmpty()) {
+                    if(!name.isEmpty()){
                         configure(name + "|" + note);
                         fields[0].clearText();
                         fields[1].clearText();
-                        // 刷新信号列表
                         Table listTable = t.find("signalList");
-                        if (listTable != null) fillSignalList(listTable);
+                        if(listTable != null) fillSignalList(listTable);
                     }
-                }).size(120f, 32f).padTop(4f).row();
+                }).size(110f, 30f).padTop(2f).row();
 
-                // 分隔线
-                t.image().height(4f).color(Color.gray).growX().padTop(6f).padBottom(4f).row();
-                t.add("可用信号:").left().padBottom(4f).row();
+                t.image().height(3f).color(Color.gray).growX().padTop(8f).padBottom(6f).row();
+                t.add("[lightgray]本队信号 (悬停查看批注):").left().padBottom(4f).row();
 
                 // 信号列表容器
                 Table listTable = new Table();
@@ -358,11 +396,13 @@ public class Teleporter extends Block {
             }).growX().pad(4f);
         }
 
-        /** 填充信号列表 (场上所有自定义信号, 单选, 可删除) */
-        private void fillSignalList(Table listTable) {
+        /** 填充信号列表 (仅本队信号, 单选, 可删除, 显示批注与成员数) */
+        private void fillSignalList(Table listTable){
             listTable.clear();
 
-            if (allSignals.isEmpty()) {
+            // 只列出本队的信号 (其他队伍的信号对本传送器不可用)
+            Seq<SignalEntry> mine = allSignals.select(e -> e.teamId == team.id);
+            if(mine.isEmpty()){
                 listTable.add("[gray]暂无自定义信号").pad(4f);
                 return;
             }
@@ -372,11 +412,9 @@ public class Teleporter extends Block {
             group.setMinCheckCount(0);
             group.setMaxCheckCount(1);
 
-            // 遍历副本, 避免删除时 ConcurrentModificationException
-            for (SignalEntry entry : allSignals.copy()) {
+            for(SignalEntry entry : mine.copy()){
                 final String signalName = entry.name;
                 final String signalNote = entry.note;
-                final int entryTeamId = entry.teamId;
 
                 Table signalRow = new Table();
                 signalRow.defaults().pad(2f);
@@ -384,29 +422,31 @@ public class Teleporter extends Block {
                 // 信号按钮 (选择该信号)
                 final Button[] holder = new Button[1];
                 holder[0] = signalRow.button(signalName, Styles.flatTogglet, () -> {
-                    if (holder[0].isChecked()) {
+                    if(holder[0].isChecked()){
                         configure(signalName + "|" + signalNote);
-                    } else {
+                    }else{
                         configure(-1);
                     }
-                }).size(150f, 30f).get();
+                }).minWidth(140f).height(30f).get();
                 Button btn = holder[0];
                 group.add(btn);
                 btn.setChecked(customSignal != null && customSignal.equals(signalName));
 
-                // 鼠标悬停显示批注 tooltip
+                // 鼠标悬停显示完整批注 + 成员数
+                SignalInfo info = customSignals[team.id].get(signalName);
+                int count = info == null ? 0 : info.members.size;
                 String noteText = signalNote.isEmpty() ? "[gray](无批注)" : signalNote;
-                addTooltip(btn, "[accent]信号: [white]" + signalName + "\n[accent]批注: [white]" + noteText);
+                addTooltip(btn, "[accent]信号: [white]" + signalName
+                    + "\n[accent]批注: [white]" + noteText
+                    + "\n[accent]成员: [white]" + count + " 个传送器");
 
-                // 批注预览 (简短)
-                if (!signalNote.isEmpty()) {
-                    String preview = signalNote.length() > 12 ? signalNote.substring(0, 12) + "..." : signalNote;
-                    signalRow.label(() -> "[gray]" + preview).padLeft(6f).growX();
-                }
+                // 批注预览 + 成员数 (自动压缩到剩余宽度)
+                signalRow.label(() -> "[gray]" + (signalNote.isEmpty() ? "" : signalNote) + "  [lightgray](" + count + ")")
+                    .padLeft(6f).growX().left().ellipsis(true);
 
                 // 删除按钮
-                signalRow.button("×", Styles.flatt, () -> {
-                    deleteSignal(signalName, entryTeamId);
+                signalRow.button(Icon.trash, Styles.clearNonei, () -> {
+                    deleteSignal(signalName, entry.teamId);
                     fillSignalList(listTable);
                 }).size(30f, 30f).padLeft(4f).get();
 
