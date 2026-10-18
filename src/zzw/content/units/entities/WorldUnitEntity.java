@@ -520,7 +520,9 @@ public class WorldUnitEntity extends UnitEntity {
             // ★ 其他大地单位不收编: 平台携带平台会把对方位置/朝向每帧强制覆盖,
             //   被携带者一旦被玩家附身就完全无法操控
             if (u instanceof WorldUnitEntity) continue;
-            if (u.isFlying() || u.type.naval) continue;
+            // ★ 跳过纯空中单位与海军; 陆地单位即使当前处于低空飞行/被运输投放的空中状态,
+            //   只要中心落在甲板范围也收编 —— 支持低空飞行落回、单位运输投放进甲板
+            if (u.type.flying || u.type.naval) continue;
             if (subUnits.contains(u)) continue;
             if (fallOffBanned.contains(u.id)) continue;
             if (!containsWorldPoint(u.x, u.y)) continue;
