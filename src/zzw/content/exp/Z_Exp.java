@@ -687,7 +687,7 @@ public class Z_Exp {
             chargeSound = mindustry.gen.Sounds.chargeLancer;
             recoil = 4f;
             targetAir = true;
-            shake = 6f;
+            shake = 2f;  // ★ 用户调整: 6f 震动太强, 对齐原版 Lancer 的 2f
             powerUse = 15f;
 
             shootEffect = mindustry.content.Fx.lancerLaserShoot;

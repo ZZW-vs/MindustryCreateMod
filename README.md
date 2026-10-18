@@ -493,6 +493,7 @@
 - 新增螺旋石油钻井（oil-derrick）：扭矩驱动的石油抽取器（`SolidPump`，`result=Liquids.oil`、`attribute=Attribute.oil`，需建在油层上），绘制为螺旋钻杆样式（类 `zzw.content.mechanics.torque.blocks.production.OilDerrick`）
 
 ## 更新日志
+- **bt-laser-turret 开火镜头震动减弱**：shake 6→2（对齐原版 Lancer 手感）
 - **剁刀（chopper）刀刃默认改为顺时针旋转**：绘制与命中判定共用的扭矩角度取负（arc 角度正方向在屏幕上为逆时针），判定几何随视觉同步翻转
 - **剁刀（chopper）伤害翻倍**：刀刃 32→64、锯齿刀刃 72→144
 - **dark 派系炮台新增迪里姆弹药**：`Z_VanillaAmmo` 新增 `injectStrongest()`（自动扫描炮台弹药表挑伤害最高的子弹复制强化，适合 dark 系自定义 Large/Heavy 子弹体系）——apparition / ghost / banshee 3 座物品炮台注入「自身最强弹药 ×1.35 / 单发 3」的 `create-dirium` 顶档弹药（与 spectre 注入思路一致，迪里姆浅绿染色）；fallout / catastrophe / calamity / extinction 4 座为连续激光炮台（无弹药表），不适用物品弹药注入
