@@ -387,7 +387,7 @@
   - **重写「科技树模板.java」**：补上 VE 核心写法 `planet.techTree = nodeRoot(...)`（自定义星球整棵树），并移植本项目 `Z_TechTree` 的 `attach`/`node`/`nodeProduce` 辅助方法（160 无 `TechTree.get(parent)`，改用 `content.techNode` 字段）；补充 `Objectives` 清单与 VE 倒金字塔布局 `InvertedPyramidTreeLayout` 说明
   - 更新「Mod主类模板.java」加载顺序为 `物品 → 液体 → 状态 → 子弹 → 方块 → 单位 → 星球 → 科技树`，并在 `loadContent()` 方法体补上星球加载步骤
 ## 更新日志
-- **create-desolation 腿部动画优化（小碎步 → 大步缓慢）**：`legMoveSpace` 0.2 → 1.2——原值使步距仅约 36px（`legLength/1.6/(div/2)×0.2`，div=4），对 hitSize 257 的 T6 巨兽来说腿部高频小幅挪动；现步距约 220px，步伐大而缓慢
+- **create-desolation 腿部动画优化（小碎步 → 大步缓慢）**：`legMoveSpace` 0.2 → 0.7——原值使步距仅约 36px（`legLength/1.6/(div/2)×0.2`，div=4），对 hitSize 257 的 T6 巨兽来说腿部高频小幅挪动；先调 1.2 步距约 220px 反馈过大，最终定 0.7（步距约 128px），步伐明显放缓又不显拖沓
 - **create-small-radiator 修复无方向性**：补齐 PU_V8 原版的 2 张朝向变体贴图（small-radiator1 = 横向橙色标记在左右 / small-radiator2 = 纵向橙色标记在上下，此前单张贴图导致 4 个朝向画同一张图），本体与热叠加贴图同步替换为原版样式
 - **create-singularity 扭曲与彩色粒子范围收窄 + 删除消失特效**（用户指定）：shader 空间扭曲影响半径减小 35%（`14+32i → 9.1+20.8i`，intensity 1.5~4.0 约 62~142px → 40~92px）；80 个彩色内落碎片生成距离减小 35%（240~270 → 156~176）；删除黑洞收缩结束时的 `blastExplosion`（白色圆 + 多边形框）despawn 特效，改为 `Fx.none`
 - **create-singularity 黑洞本体改为 PU132 原版样式**：`SingularityBulletType.draw()` 重写为 PU132 五层原版结构——半透明蓝辉光圈（4787ff80）→ 3 层 `UnityDrawf.shiningCircle`（6 根旋转三角尖刺，激光蓝/白/激光蓝）→ 不透明黑芯；保留 80 个彩色螺旋内落碎片与 shader 空间扭曲

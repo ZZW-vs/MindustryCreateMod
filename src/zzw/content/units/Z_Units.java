@@ -2150,8 +2150,8 @@ public class Z_Units {
             legCount = 8;
             legGroupSize = 2;
             legPairOffset = 1f;
-            legMoveSpace = 1.2f;           // ★ 用户调整: 0.2 会导致步距仅约 36px (legLength/1.6/2×0.2), 巨型单位看起来像高频小碎步;
-                                           //   1.2 → 步距约 220px, 步伐大而缓慢, 更符合 T6 巨兽体量
+            legMoveSpace = 0.7f;           // ★ 用户调整: 0.2 步距仅约 36px (高频小碎步), 1.2 步距约 220px (过大);
+                                           //   0.7 折中 → 步距约 128px, 步伐明显放缓又不显拖沓
             legBaseOffset = 25f;           // ★ 减小腿根部偏移, 缩小左右间距 (PU132原值61.25太大)
             legLengthScl = 0.9f;           // Despondency 原值
             baseLegStraightness = 1f;      // Despondency 原值
