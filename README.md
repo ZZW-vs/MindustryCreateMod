@@ -1,6 +1,6 @@
 # Create Mod
 
-一个为Mindustry添加了基础金属加工系统和多节Boss单位的Java模组，灵感来源于Minecraft的Create模组。
+**Create Mod** 是 **ProjectUnity** 模组的高版本移植修改和一些其他小东西的整合模组
 
 **交流QQ群：276860651**
 
@@ -561,9 +561,7 @@
 
 ## 兼容性
 
-- 最低游戏版本：160
-- 推荐游戏版本：160.1（与 Vanilla-Expansion 同版本）
-- v158 兼容：反射适配 ammo/useAmmo 字段移除，Bullet.drag() 方法移除改用每帧 vel 重置，bloom 混合模式陷阱通过显式 Draw.blend() 修复
+- 推荐游戏版本：160.1
 
 ## 开发信息
 
@@ -576,4 +574,5 @@
 
 ## 贡献
 
+注：本mod是的开发工作有ai的参与
 欢迎提交问题报告和功能请求！如果您想贡献代码，请先创建一个分支并提交Pull Request。

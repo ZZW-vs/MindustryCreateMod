@@ -168,6 +168,7 @@ android/libs/
 /mindustry
 
 # 项目结构文档（已加入.gitignore）
+deploy.ps1
 项目结构.md
 手机版日志.txt
 记忆.md
