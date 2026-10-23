@@ -37,6 +37,7 @@ import mindustry.gen.Tex;
 import mindustry.gen.Unit;
 import mindustry.graphics.Drawf;
 import mindustry.graphics.Layer;
+import mindustry.graphics.LightRenderer;
 import mindustry.graphics.Pal;
 import mindustry.input.Binding;
 import mindustry.input.DesktopInput;
@@ -96,6 +97,88 @@ public class WorldUnitType extends UnityUnitType {
      * 普通 SpriteBatch 开 sort 模式即等价的顶点 z 排序)</p>
      */
     public static final Batch altBatch = new SpriteBatch();
+
+    /**
+     * 子世界渲染时保存主投影用的专用矩阵。
+     *
+     * <p>★ 不复用 {@code Tmp.m1}: 子世界建筑 {@code draw()} 内部可能把 Tmp.m1 当
+     * 临时矩阵使用 (例如 Chopper 切换正交投影), 共享同一个临时对象会导致
+     * 恢复时把被污染的值写回投影。</p>
+     */
+    private static final Mat drawSavedProj = new Mat();
+
+    // ===== 子世界光源坐标修正 =====
+    //
+    // 建筑 draw() 里调用 Drawf.light(x, y, ...) 时传入的是"子世界像素坐标",
+    // 但原版 LightRenderer 只是把光源攒起来, 下一帧用主世界相机统一绘制 ——
+    // 结果光晕出现在子世界原点 (地图左下角) 附近, 表现为"跑到大地左边很远的地方"。
+    // 这里在建筑绘制结束后, 把本帧新增的圆形光源坐标逆变换回主世界;
+    // 纹理/线段类光源的坐标被闭包捕获无法改写, 直接丢弃 (极少数情况, 且错位更难看)。
+    private static Field lrCirclesField, lrCircleIndexField, lrLightsField, clXField, clYField;
+    private static boolean lightReflectInited, lightReflectFailed;
+    private static int lightCircleStart, lightRunnableStart;
+    private static final Vec2 lightTmp = new Vec2();
+
+    private static void initLightReflect(){
+        if(lightReflectInited || lightReflectFailed) return;
+        lightReflectInited = true;
+        try{
+            lrCirclesField = LightRenderer.class.getDeclaredField("circles");
+            lrCircleIndexField = LightRenderer.class.getDeclaredField("circleIndex");
+            lrLightsField = LightRenderer.class.getDeclaredField("lights");
+            Class<?> circle = Class.forName("mindustry.graphics.LightRenderer$CircleLight");
+            clXField = circle.getDeclaredField("x");
+            clYField = circle.getDeclaredField("y");
+            for(Field f : new Field[]{lrCirclesField, lrCircleIndexField, lrLightsField, clXField, clYField}){
+                f.setAccessible(true);
+            }
+        }catch(Throwable t){
+            lightReflectFailed = true;
+            arc.util.Log.warn("[Create] 子世界光源坐标修正不可用: " + t);
+        }
+    }
+
+    /** 记录子世界渲染开始前的光源游标 (圆形光源索引 + 闭包光源数量)。 */
+    private static void subLightBegin(){
+        initLightReflect();
+        if(lightReflectFailed) return;
+        try{
+            LightRenderer lr = Vars.renderer.lights;
+            lightCircleStart = lrCircleIndexField.getInt(lr);
+            lightRunnableStart = ((Seq<?>) lrLightsField.get(lr)).size;
+        }catch(Throwable t){
+            lightReflectFailed = true;
+        }
+    }
+
+    /**
+     * 把子世界渲染期间新增的圆形光源坐标映射回主世界, 并丢弃无法改写的闭包光源。
+     *
+     * @param w  甲板单位 (主世界坐标/朝向)
+     * @param r  子世界→主世界的旋转角 (rotation - 90°)
+     * @param cx 子世界中心 x
+     * @param cy 子世界中心 y
+     */
+    private static void subLightEnd(WorldUnitEntity w, float r, float cx, float cy){
+        if(lightReflectFailed) return;
+        try{
+            LightRenderer lr = Vars.renderer.lights;
+            Seq<?> circles = (Seq<?>) lrCirclesField.get(lr);
+            int end = lrCircleIndexField.getInt(lr);
+            for(int i = lightCircleStart; i < end && i < circles.size; i++){
+                Object c = circles.items[i];
+                float lx = clXField.getFloat(c), ly = clYField.getFloat(c);
+                // 与 update() 的子世界→主世界映射完全一致: (sub - center).rotate(r) + unit
+                lightTmp.set(lx - cx, ly - cy).rotate(r).add(w.x, w.y);
+                clXField.setFloat(c, lightTmp.x);
+                clYField.setFloat(c, lightTmp.y);
+            }
+            Seq<?> lights = (Seq<?>) lrLightsField.get(lr);
+            if(lights.size > lightRunnableStart) lights.truncate(lightRunnableStart);
+        }catch(Throwable t){
+            lightReflectFailed = true;
+        }
+    }
 
     public WorldUnitType(String name) {
         super(name);
@@ -205,16 +288,18 @@ public class WorldUnitType extends UnityUnitType {
                 float cx = w.subCX(), cy = w.subCY();
                 float r = w.rotation - 90f;
 
-                // 保存当前投影矩阵
-                Mat proj = Tmp.m1.set(Draw.proj());
+                // 保存当前投影矩阵 (专用实例, 避开 Tmp.m1 —— 见 drawSavedProj 注释)
+                Mat proj = drawSavedProj.set(Draw.proj());
                 Vec2 cam = Core.camera.position;
                 float camX = cam.x, camY = cam.y;
                 float cw = Core.camera.width / 2f, ch = Core.camera.height / 2f;
+                // ★ 必须在移动相机之前冲刷主批: 保证主世界已排队的顶点先落地,
+                //   不会和随后切换批次绘制的子世界内容交错
+                Draw.flush();
                 Tmp.v2.set(-cx, -cy).rotate(r);
                 Tmp.v1.set(unit).sub(camX, camY).add(cw, ch).add(Tmp.v2);
                 cam.set(cw - Tmp.v1.x, ch - Tmp.v1.y);
                 Core.camera.update();
-                Draw.flush();
 
                 // ★ PU132 渲染方案: 切换到 SortedSpriteBatch —— 建筑内部 Draw.z 切层
                 //   生效 (动画/发光/连线正确分层), flush 在单位之后 → 建筑整体在甲板之上
@@ -229,6 +314,10 @@ public class WorldUnitType extends UnityUnitType {
                 //   叠加, 看起来就是"不透明实心色块" (建筑贴图随纹理切换分块渲染不受影响)。
                 //   渲染开始时强制重置为 normal, 保证每一帧都从干净状态开始。
                 Draw.blend();
+
+                // ★ 清掉上一帧可能被某个方块 draw() 泄漏的 transform (平移/旋转/缩放),
+                //   否则 altBatch 会带着脏变换跨帧累积, 整个子世界逐渐偏移到屏幕外
+                Draw.trans(Tmp.m2.idt());
 
                 Draw.proj(Core.camera);
 
@@ -250,6 +339,10 @@ public class WorldUnitType extends UnityUnitType {
                 //   画完立即恢复, 不影响主世界护盾动画
                 boolean oldAnimateShields = Vars.renderer.animateShields;
                 Vars.renderer.animateShields = false;
+
+                // ★ 记录光源游标: 建筑 draw() 里的 Drawf.light 用的是子世界坐标,
+                //   绘制结束后统一映射回主世界 (否则光晕跑到地图左下角)
+                subLightBegin();
 
                 // ★ 建造模式: 子世界边缘呼吸虚线框 (提示当前可建造/拆除)
                 //   虚线框相对平台往左下各偏移半格, 与实际网格覆盖区域一致
@@ -389,6 +482,9 @@ public class WorldUnitType extends UnityUnitType {
                 Draw.blend();
                 Draw.color(Color.clear);
                 Fill.rect(0, 0, 0, 0);
+
+                // ★ 光源坐标回写主世界 (必须在投影上下文内完成, 用本轮 r/cx/cy)
+                subLightEnd(w, r, cx, cy);
 
                 Draw.reset();
                 Draw.flush();

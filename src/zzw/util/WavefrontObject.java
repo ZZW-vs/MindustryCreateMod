@@ -1073,7 +1073,11 @@ public class WavefrontObject{
         // 5. 绑定 shader
         Shader shader = getGpuShader();
         shader.bind();
-        shader.setUniformMatrix4("u_projTrans", Core.camera.mat);
+        // ★ 用当前批次正在使用的投影 (Draw.proj()), 而不是 Core.camera.mat:
+        //   在实体化大地的子世界渲染期间, 投影被临时旋转+平移过, Core.camera.mat
+        //   只包含平移后的相机矩阵 (缺旋转), 直接拿来当 u_projTrans 会让 3D 模型
+        //   方向错误/位置偏移; Draw.proj() 在主世界与子世界都返回正确矩阵。
+        shader.setUniformMatrix4("u_projTrans", Draw.proj());
         shader.setUniformi("u_texture", 0);
 
         // 6. 设置正确的 alpha 混合 (避免透明面叠加变亮)
