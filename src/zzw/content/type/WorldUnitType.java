@@ -107,6 +107,32 @@ public class WorldUnitType extends UnityUnitType {
      */
     private static final Mat drawSavedProj = new Mat();
 
+    // ===== 子世界 drawCached 方块贴图补绘 =====
+    //
+    // drawCached = true 的方块 (电力节点/墙/路由器/核心/传送带等) 的静态贴图
+    // 平时由渲染器按"主世界区块缓存"绘制, draw() 里只剩动态部分
+    // (电力节点: 只有连线, 贴图完全透明)。子世界建筑不在主世界区块缓存里,
+    // 因此这里手动补绘一次静态贴图。
+    // 但未覆写 drawCached() 的方块其默认实现直接委托 draw()
+    // (v160 mindustry.gen.Building#drawCached), 补绘会与随后的 draw() 重复,
+    // 所以先用反射判断该建筑类是否真的覆写了 drawCached(), 结果按类缓存。
+    private static final arc.struct.ObjectMap<Class<?>, Boolean> cachedDrawOverride = new arc.struct.ObjectMap<>();
+
+    /** 该建筑类是否覆写了 {@code drawCached()} (只有覆写者的贴图需要单独补绘)。 */
+    private static boolean hasCustomDrawCached(Building b){
+        Class<?> c = b.getClass();
+        Boolean v = cachedDrawOverride.get(c);
+        if(v == null){
+            try{
+                v = c.getMethod("drawCached").getDeclaringClass() != Building.class;
+            }catch(Throwable t){
+                v = false;
+            }
+            cachedDrawOverride.put(c, v);
+        }
+        return v;
+    }
+
     // ===== 子世界光源坐标修正 =====
     //
     // 建筑 draw() 里调用 Drawf.light(x, y, ...) 时传入的是"子世界像素坐标",
@@ -359,6 +385,16 @@ public class WorldUnitType extends UnityUnitType {
                 for (int i = 0; i < build.size; i++) {
                     Building b = build.get(i);
                     Draw.z(Layer.block);
+
+                    // ★ 补绘 drawCached 方块的静态贴图: 这些方块平时靠主世界区块缓存
+                    //   画贴图 (电力节点/墙/路由器/核心/传送带等), draw() 里只剩动态部分
+                    //   (电力节点仅剩电力连线 → 表现为"贴图透明但功能正常")。子世界建筑
+                    //   不在主世界区块缓存里, 必须在这里手动补绘一次。
+                    //   未覆写 drawCached() 的方块默认实现就是 draw() 本身, 跳过避免重复绘制
+                    if (b.block.drawCached && hasCustomDrawCached(b)) {
+                        b.drawCached();
+                        Draw.z(Layer.block);
+                    }
 
                     // ★ 光束端点子空间变换: TurretBuild.targetPos 是主世界坐标
                     //   (update 阶段写入的索敌/玩家瞄准点), 而本投影期望子世界坐标 ——
