@@ -125,6 +125,10 @@ public class WavefrontObject{
     protected float indexerZ;
     /** ★ 当前帧的模型缩放系数 (defaultScl * size), 高度渐变按它归一化到模型原始单位 */
     protected float lastScl = 1f;
+    /** ★ 当前 draw 调用复用的白色 atlas 区域
+     *  <p>updateFace()/Face.draw() 每个面都要用它做默认贴图, 之前每面都调用一次
+     *  Core.atlas.white() (atlas 内的一次查找)。改为每次 draw 取一次。</p> */
+    protected AtlasRegion whiteRegion;
 
     // ===== 光照升级 1.3 =====
     /** ★ 当前帧的旋转矩阵 (由 draw() 写入, 供着色阶段旋转法线复用)
@@ -317,7 +321,8 @@ public class WavefrontObject{
 
                 if(hasMaterial && line.startsWith("usemtl ")){
                     String key = line.replace("usemtl ", "");
-                    current = materials.get(key);
+                    // ★ 名称不一致时按模糊规则兜底 (见 resolveMaterial)
+                    current = resolveMaterial(key);
                 }
 
                 if(line.startsWith("f ")){
@@ -735,6 +740,8 @@ public class WavefrontObject{
         float scl = defaultScl * size;
         // ★ 记录缩放, 供 updateFace 的高度渐变归一化 (参考实现以模型原始单位计)
         lastScl = scl;
+        // ★ 白色 atlas 区域每次 draw 只取一次, 供全部面复用
+        whiteRegion = Core.atlas.white();
         
         for(int i = 0; i < drawnVertices.size; i++){
             Vec3 src = vertices.get(i);
@@ -765,9 +772,10 @@ public class WavefrontObject{
             vert.ty = Y;
         }
 
-        // ★ 所有singleZLayer模型都用 drawBatched 批量渲染
-        //   Draw.draw(z, runnable) 包裹整个模型, 只创建 1 个 DrawRequest (非78580个)
-        //   runnable 在 flush 阶段执行 (flushing=true), Draw.vert 走 super.draw 直接渲染
+        // ★ 所有 singleZLayer 模型都用 drawBatched 批量渲染: 整个模型只设置一次 Draw.z,
+        //   面序由模型内部按深度预先排好, 不再依赖 batch 的请求排序。
+        //   注: arc v160 的 Batch.draw(Runnable) 是立即执行 (没有延迟到 flush),
+        //   所以不存在"整个模型只创建 1 个 DrawRequest"的做法, 注释已按实际行为修正。
         //   不用 GPU Mesh (GPU Shader 兼容性问题导致 MMD 无法显示, 回退到 CPU 路径)
         if(singleZLayer){
             drawBatched();
@@ -1206,11 +1214,13 @@ public class WavefrontObject{
             return;
         }
 
-        // 基础颜色 (材质色优先, 否则用 lightColor)
+        // 基础颜色 = 材质本色 × 实例染色 (lightColor)
+        //  <p>lightColor 默认白色, 乘上后不影响原观感; 展示方块的颜色选择器
+        //  通过改写 lightColor 染色, 现在也能作用于"带材质的模型" (之前材质色直接覆盖 lightColor)。</p>
         float baseR = lightColor.r, baseG = lightColor.g, baseB = lightColor.b;
         if(face.mat != null && face.mat.hasColor){
             Tmp.c3.rgba8888(face.mat.diffuseCol);
-            baseR = Tmp.c3.r; baseG = Tmp.c3.g; baseB = Tmp.c3.b;
+            baseR *= Tmp.c3.r; baseG *= Tmp.c3.g; baseB *= Tmp.c3.b;
         }
 
         // Light.diffuse 输出区间约 [0.5, 1.04] → 归一到 [0,1] 亮度
@@ -1318,7 +1328,7 @@ public class WavefrontObject{
     protected void updateFace(Face face, float color, float mColor){
         float[] dface = face.data;
 
-        AtlasRegion textureB = texture, region = Core.atlas.white();
+        AtlasRegion textureB = texture, region = whiteRegion != null ? whiteRegion : Core.atlas.white();
         Texture indepTex = null;
         boolean useIndep = false;
 
@@ -1345,13 +1355,23 @@ public class WavefrontObject{
         //   以"面内平均深度"为基准, 顶点相对高度每 1 个模型单位 ±7% 亮度, 上下限 ±14%。
         //   source.z 已按 defaultScl*size 放大, 先除以 lastScl 还原到模型原始单位,
         //   这样与参考实现的观感一致 (与模型缩放无关)。
+        float gradScl = 0.07f / Math.max(0.001f, lastScl);
         boolean grad = heightGradient != 0f;
         float midZ = 0f;
         if(grad){
-            for(Vertex v : face.verts) midZ += v.source.z;
+            float minZ = Float.MAX_VALUE, maxZ = -Float.MAX_VALUE;
+            for(Vertex v : face.verts){
+                float z = v.source.z;
+                midZ += z;
+                if(z < minZ) minZ = z;
+                if(z > maxZ) maxZ = z;
+            }
             midZ /= face.verts.length;
+            // 面内几乎没有高度差 (平的顶面/侧面) 时, 逐顶点亮度完全相同, 直接跳过
+            if((maxZ - minZ) * gradScl < 0.002f) grad = false;
         }
-        float gradScl = 0.07f / Math.max(0.001f, lastScl);
+        // ★ 色值解包提到循环外: 每个面只解一次, 不再每个顶点解一次
+        if(grad) Tmp.c4.abgr8888(color);
 
         for(int i = 0; i < face.verts.length; i++){
             int s = i * 6;
@@ -1360,7 +1380,6 @@ public class WavefrontObject{
             if(grad){
                 // 逐顶点亮度微调 (漫反射色, 保持 alpha)
                 float k = 1f + Mathf.clamp((face.verts[i].source.z - midZ) * gradScl, -0.14f, 0.14f) * heightGradient;
-                Tmp.c4.abgr8888(color);
                 dface[s + 2] = Color.toFloatBits(
                     Mathf.clamp(Tmp.c4.r * k), Mathf.clamp(Tmp.c4.g * k),
                     Mathf.clamp(Tmp.c4.b * k), Tmp.c4.a);
@@ -1374,10 +1393,9 @@ public class WavefrontObject{
                 dface[s + 3] = face.vertexTexture[i].x;
                 dface[s + 4] = 1f - face.vertexTexture[i].y;
             }else if(debugNoTexture || ZObjs.DEBUG_NO_TEXTURE){
-                // ★ 诊断：强制用白色区域 UV
-                AtlasRegion white = Core.atlas.white();
-                dface[s + 3] = white.u;
-                dface[s + 4] = white.v;
+                // ★ 诊断: 强制用白色区域 UV (region 已在上方取好)
+                dface[s + 3] = region.u;
+                dface[s + 4] = region.v;
             }else if(!hasTexture || textureB == null){
                 dface[s + 3] = region.u;
                 dface[s + 4] = region.v;
@@ -1394,6 +1412,41 @@ public class WavefrontObject{
             dface[18] = dface[0]; dface[19] = dface[1]; dface[20] = dface[2];
             dface[21] = dface[3]; dface[22] = dface[4]; dface[23] = dface[5];
         }
+    }
+
+    /** ★ 解析 OBJ 的 usemtl 名称到 MTL 材质
+     *  <p>部分 MC Create 模型的 usemtl 与 mtl 里的 newmtl 名称不一致
+     *  (例: usemtl "waterwheel_log" 对应 newmtl "m_log", "axis_top" 对应 "m_axis",
+     *  "crushing_wheel_insert" 对应 "m_insert"), 直接查表会得到 null,
+     *  结果是这些模型的材质色/贴图完全不生效, 只能吃统一的 lightColor。</p>
+     *  <p>策略: 先精确匹配; 失败后去掉 "m_" 前缀, 在 "包含" 关系里取最长匹配,
+     *  这样 "axis_top"→"axis"、"m_spruce_log_top"→"spruce" 都能正确对上,
+     *  且不会把 "log" 误配到 "spruce_log_top" (最长优先)。</p>
+     */
+    protected Material resolveMaterial(String key){
+        if(materials == null) return null;
+
+        Material exact = materials.get(key);
+        if(exact != null) return exact;
+
+        String k = normalizeMaterialName(key);
+        Material best = null;
+        int bestLen = -1;
+        for(Material m : materials.values()){
+            String n = normalizeMaterialName(m.name);
+            if(n.length() < 2) continue;
+            if((k.contains(n) || n.contains(k)) && n.length() > bestLen){
+                best = m;
+                bestLen = n.length();
+            }
+        }
+        return best;
+    }
+
+    protected static String normalizeMaterialName(String name){
+        String n = name.toLowerCase();
+        if(n.startsWith("m_")) n = n.substring(2);
+        return n;
     }
 
     protected static int faceVertIndex(String node){
@@ -1425,7 +1478,7 @@ public class WavefrontObject{
         public float[] data;
 
         protected void draw(){
-            AtlasRegion textureB = texture, region = Core.atlas.white();
+            AtlasRegion textureB = texture, region = whiteRegion != null ? whiteRegion : Core.atlas.white();
             Texture indepTex = null;
             for(int f = 0; f < (mat != null && mat.emitTex != null ? 2 : 1); f++){
                 boolean emit = f > 0;
