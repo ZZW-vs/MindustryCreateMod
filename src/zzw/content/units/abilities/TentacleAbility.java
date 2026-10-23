@@ -406,7 +406,14 @@ public class TentacleAbility extends Ability {
                 if (reg == null || !reg.found()) continue;
                 unit.type.applyColor(unit);
                 Lines.stroke(reg.height * Draw.scl * Mathf.sign(flipSprite != flip));
-                Lines.line(reg, prevX, prevY, seg.x, seg.y, false);
+                // ★ PU132 原版写法: 每节绘制长度固定为「贴图宽度」(region.width * Draw.scl),
+                //   而不是节长 segmentLength。
+                // 原因: 触手贴图是 160x96 的横向条带 (内含 4 个节纹, 四周留有透明边距)。
+                // 若按节长 37px 绘制, 贴图被压缩 4 倍, 透明边距会在相邻节之间露出明显空隙,
+                // 看起来像一节节分开的粗块; 按贴图宽度绘制则相邻节互相重叠, 节纹间距自然
+                // 对齐节长, 触手连成一体。
+                tv.set(seg.x, seg.y).sub(prevX, prevY).setLength(reg.width * Draw.scl).add(prevX, prevY);
+                Lines.line(reg, prevX, prevY, tv.x, tv.y, false);
                 prevX = seg.x;
                 prevY = seg.y;
             }

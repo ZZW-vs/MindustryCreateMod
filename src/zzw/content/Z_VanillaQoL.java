@@ -112,14 +112,14 @@ public class Z_VanillaQoL{
         Blocks.battery.consumePowerBuffered(5000f);
         Blocks.batteryLarge.consumePowerBuffered(65000f);
 
-        // 发电机组输出: 小幅加强 (+50%~70%, 曾试过大幅上调, 观感过高已收敛)
-        if(Blocks.solarPanel instanceof mindustry.world.blocks.power.SolarGenerator s) s.powerProduction = 0.2f;   // 0.12→0.2
-        if(Blocks.largeSolarPanel instanceof mindustry.world.blocks.power.SolarGenerator s) s.powerProduction = 2.5f; // 1.6→2.5
-        if(Blocks.thoriumReactor instanceof mindustry.world.blocks.power.NuclearReactor n) n.powerProduction = 22f;   // 15→22
-        if(Blocks.differentialGenerator instanceof mindustry.world.blocks.power.ConsumeGenerator g) g.powerProduction = 27f; // 18→27
-        if(Blocks.steamGenerator instanceof mindustry.world.blocks.power.ConsumeGenerator g) g.powerProduction = 8f;  // 5.5→8
-        if(Blocks.combustionGenerator instanceof mindustry.world.blocks.power.ConsumeGenerator g) g.powerProduction = 1.5f;  // 1→1.5
-        if(Blocks.impactReactor instanceof mindustry.world.blocks.power.ImpactReactor i) i.powerProduction = 200f;   // 130→200
+        // 发电机组输出: 轻微加强 (+15%~25%, 两轮收敛结果)
+        if(Blocks.solarPanel instanceof mindustry.world.blocks.power.SolarGenerator s) s.powerProduction = 0.15f;  // 0.12→0.15
+        if(Blocks.largeSolarPanel instanceof mindustry.world.blocks.power.SolarGenerator s) s.powerProduction = 2f;   // 1.6→2
+        if(Blocks.thoriumReactor instanceof mindustry.world.blocks.power.NuclearReactor n) n.powerProduction = 18f;   // 15→18
+        if(Blocks.differentialGenerator instanceof mindustry.world.blocks.power.ConsumeGenerator g) g.powerProduction = 21f; // 18→21
+        if(Blocks.steamGenerator instanceof mindustry.world.blocks.power.ConsumeGenerator g) g.powerProduction = 6.5f; // 5.5→6.5
+        if(Blocks.combustionGenerator instanceof mindustry.world.blocks.power.ConsumeGenerator g) g.powerProduction = 1.2f;  // 1→1.2
+        if(Blocks.impactReactor instanceof mindustry.world.blocks.power.ImpactReactor i) i.powerProduction = 150f;   // 130→150
 
         // ===== 功能方块 =====
 

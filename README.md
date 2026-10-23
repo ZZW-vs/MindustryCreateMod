@@ -388,6 +388,7 @@
   - **重写「科技树模板.java」**：补上 VE 核心写法 `planet.techTree = nodeRoot(...)`（自定义星球整棵树），并移植本项目 `Z_TechTree` 的 `attach`/`node`/`nodeProduce` 辅助方法（160 无 `TechTree.get(parent)`，改用 `content.techNode` 字段）；补充 `Objectives` 清单与 VE 倒金字塔布局 `InvertedPyramidTreeLayout` 说明
   - 更新「Mod主类模板.java」加载顺序为 `物品 → 液体 → 状态 → 子弹 → 方块 → 单位 → 星球 → 科技树`，并在 `loadContent()` 方法体补上星球加载步骤
 ## 更新日志
+- **end 系列触手单位节间缝隙修复**：`TentacleAbility.draw()` 对齐 PU132 原版——每节绘制长度改为「贴图宽度」而非节长（`reg.width * Draw.scl`）。此前按节长 37px 绘制会把 160×96 的条带贴图压缩 4 倍，贴图四周的透明边距在相邻节之间露出明显空隙，触手看起来是一节节分开的粗块
 - **create-mechanical-conveyor 改回 PU_V8 原版形态**：恢复 `ShadowedConveyor`（原版 Conveyor 单件运输机制 + PU 风格立体阴影贴图 `-shadow`），速度 15 物品/秒；删除打包混合版 `MechanicalConveyor`（StackConveyor 状态机弯道误拆包 + 专用贴图缺失两个问题均随回退消除）
 - **原版方块大规模数值加强**（`Z_VanillaQoL`，只调字段/公开方法不改行为）：
   - **存储**：容器 300→500、仓库 1000→1800、液罐 1800→2800、液罐小 700→850
