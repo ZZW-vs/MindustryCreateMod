@@ -483,6 +483,11 @@ public class WorldUnitType extends UnityUnitType {
                 Draw.color(Color.clear);
                 Fill.rect(0, 0, 0, 0);
 
+                // ★ 甲板上的光学光束: 全局光束渲染在 Trigger.draw (早于建筑/单位) 里完成,
+                //   层级低于甲板 → 会被甲板贴图完全遮住。这里把属于本子世界的光束
+                //   在子世界投影内补绘一次 (端点做 主世界→子世界 逆变换)
+                zzw.content.optics.LightRenderer.drawDeck(w.buildings, w.x, w.y, r, cx, cy);
+
                 // ★ 光源坐标回写主世界 (必须在投影上下文内完成, 用本轮 r/cx/cy)
                 subLightEnd(w, r, cx, cy);
 

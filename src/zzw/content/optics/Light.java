@@ -397,6 +397,24 @@ public class Light implements QuadTree.QuadTreeObject {
     // ===== 绘制 (PU132 draw: 加色渐隐光束) =====
 
     public void draw() {
+        drawAt(x, y, endX, endY, true);
+    }
+
+    /**
+     * 在指定坐标绘制光束 (不改变光束自身的坐标字段)。
+     *
+     * <p>★ 供子世界 (实体化大地) 渲染使用: 光束坐标是主世界坐标, 而子世界建筑
+     * 的绘制发生在临时旋转/平移过的投影里, 调用方先把两个端点逆变换到子世界,
+     * 并传入 {@code emitLight=false} —— 甲板下方主世界里的原版光圈本来就被
+     * 甲板完全遮住, 没必要再写进主世界的光照列表。</p>
+     *
+     * @param ox        起点 x (绘制坐标)
+     * @param oy        起点 y (绘制坐标)
+     * @param ex        终点 x (绘制坐标)
+     * @param ey        终点 y (绘制坐标)
+     * @param emitLight 是否同时向原版 LightRenderer 写光照
+     */
+    public void drawAt(float ox, float oy, float ex, float ey, boolean emitLight) {
         if (!valid) return;
 
         float z = Draw.z();
@@ -405,47 +423,47 @@ public class Light implements QuadTree.QuadTreeObject {
 
         float
             stroke = width / 2f,
-            rot = Angles.angle(x, y, endX, endY),
+            rot = Angles.angle(ox, oy, ex, ey),
             op = strength - 1f,
-            dst2 = Mathf.dst2(x, y, endX, endY),
+            dst2 = Mathf.dst2(ox, oy, ex, ey),
 
             startc = Tmp.c1.set(color).a(Mathf.clamp(strength)).toFloatBits(),
             endc = Tmp.c1.set(color).a(Mathf.clamp(endStrength())).toFloatBits();
 
         if (op > 0f) {
-            Tmp.v1.trns(rot, op * yield).limit2(dst2).add(x, y);
+            Tmp.v1.trns(rot, op * yield).limit2(dst2).add(ox, oy);
             float
                 x2 = Tmp.v1.x,
                 y2 = Tmp.v1.y;
 
             float
-                len = Mathf.len(x2 - x, y2 - y),
-                diffx = (x2 - x) / len * stroke,
-                diffy = (y2 - y) / len * stroke;
+                len = Mathf.len(x2 - ox, y2 - oy),
+                diffx = (x2 - ox) / len * stroke,
+                diffy = (y2 - oy) / len * stroke;
 
             Fill.quad(
-                x - diffx - diffy, y - diffy + diffx, startc,
-                x - diffx + diffy, y - diffy - diffx, startc,
+                ox - diffx - diffy, oy - diffy + diffx, startc,
+                ox - diffx + diffy, oy - diffy - diffx, startc,
                 x2 + diffx + diffy, y2 + diffy - diffx, startc,
                 x2 + diffx - diffy, y2 + diffy + diffx, startc
             );
         }
 
-        Tmp.v1.trns(rot, Math.max(op, 0f) * yield).limit2(dst2).add(x, y);
+        Tmp.v1.trns(rot, Math.max(op, 0f) * yield).limit2(dst2).add(ox, oy);
         if (!Mathf.zero(Tmp.v1.len2())) {
             float
                 x2 = Tmp.v1.x,
                 y2 = Tmp.v1.y,
 
-                len = Mathf.len(endX - x2, endY - y2),
-                diffx = (endX - x2) / len * stroke,
-                diffy = (endY - y2) / len * stroke;
+                len = Mathf.len(ex - x2, ey - y2),
+                diffx = (ex - x2) / len * stroke,
+                diffy = (ey - y2) / len * stroke;
 
             Fill.quad(
                 x2 - diffx - diffy, y2 - diffy + diffx, startc,
                 x2 - diffx + diffy, y2 - diffy - diffx, startc,
-                endX + diffx + diffy, endY + diffy - diffx, endc,
-                endX + diffx - diffy, endY + diffy + diffx, endc
+                ex + diffx + diffy, ey + diffy - diffx, endc,
+                ex + diffx - diffy, ey + diffy + diffx, endc
             );
         }
 
@@ -456,15 +474,15 @@ public class Light implements QuadTree.QuadTreeObject {
         //   黑暗地图 (state.rules.lighting) 下光束沿途 (line 光) 与落点 (圆形光)
         //   会真正照亮周围环境, 与原版照明方块/激光的表现一致;
         //   未开启光照规则时 LightRenderer.add/line 内部直接丢弃, 零开销。
-        if (emitVanillaLight) {
+        if (emitLight && emitVanillaLight) {
             float alpha = Mathf.clamp(strength) * 0.45f;
             if (!Mathf.zero(alpha)) {
                 Tmp.c1.set(color);
                 // 光束沿途照亮 (line 光, 宽度放大到可见程度)
-                renderer.lights.line(x, y, endX, endY, width * 8f, Tmp.c1, alpha);
+                renderer.lights.line(ox, oy, ex, ey, width * 8f, Tmp.c1, alpha);
                 // 落点圆形照亮 (半径与残余光强成正比)
                 float endStr = endStrength();
-                renderer.lights.add(endX, endY,
+                renderer.lights.add(ex, ey,
                     Mathf.clamp(endStr, 0.15f, 2f) * yield * 0.3f, Tmp.c1,
                     Mathf.clamp(endStr) * 0.6f);
             }
