@@ -105,8 +105,14 @@ public class WavefrontObject{
     /** ★ 最大暗化程度 (0~1), 控制 normalAngle 着色中法线垂直时面最多变暗多少
      *  默认 0.75, 对于法线朝Y轴的模型(如飞轮)建议设为 0.4 避免全灰 */
     public float maxShade = 0.75f;
-    /** 是否启用屏幕法线背面剔除 (默认 false - 伪3D 中屏幕 Z 轴剔除不适用俯视相机) */
+    /** 是否启用精确透视背面剔除 (对齐参考《RBMK 真3D系统》Cam.facing 算法)
+     *  <p>用"面法线 · (相机位置 - 面中心)"判定面是否朝向相机, 与相机角度无关,
+     *  斜视时不会再像旧版"法线与 Z 轴夹角"实现那样误剔正面。关闭时提交全部面。</p> */
     public boolean cullBackfaces = false;
+    /** ★ 逐顶点高度渐变强度 (0=关闭, 1=参考 RBMK Live.grad 原值)
+     *  <p>以面内平均深度为基准, 按顶点相对高度微调亮度 (±14%),
+     *  为圆柱/齿轮/飞轮这类曲面提供体积感, 避免整面同色的"纸片感"。</p> */
+    public float heightGradient = 1f;
     /** 是否用单一 z 层渲染整个模型 (默认 false, 按面 z 排序)
      *  ★ 设为 true 时所有 face 用同一 z 值, 避免多个实例的 face 在 batch 中交叉穿插
      *  适用于: 多个同类方块同时存在时的展示模型 */
@@ -117,6 +123,8 @@ public class WavefrontObject{
     public float zOffset = 0f;
     protected int indexerA;
     protected float indexerZ;
+    /** ★ 当前帧的模型缩放系数 (defaultScl * size), 高度渐变按它归一化到模型原始单位 */
+    protected float lastScl = 1f;
 
     // ===== 光照升级 1.3 =====
     /** ★ 当前帧的旋转矩阵 (由 draw() 写入, 供着色阶段旋转法线复用)
@@ -725,6 +733,8 @@ public class WavefrontObject{
         rm10 = p10; rm11 = p11; rm12 = p12;
         rm20 = p20; rm21 = p21; rm22 = p22;
         float scl = defaultScl * size;
+        // ★ 记录缩放, 供 updateFace 的高度渐变归一化 (参考实现以模型原始单位计)
+        lastScl = scl;
         
         for(int i = 0; i < drawnVertices.size; i++){
             Vec3 src = vertices.get(i);
@@ -734,7 +744,8 @@ public class WavefrontObject{
             float Y = (p10*vx + p11*vy + p12*vz) * scl;
             float Z = (p20*vx + p21*vy + p22*vz) * scl;
             // 平移到屏幕位置
-            Vec3 v = drawnVertices.get(i).source;
+            Vertex vert = drawnVertices.get(i);
+            Vec3 v = vert.source;
             if(cam != null){
                 // ★ 不要直接用 cam.sy(Y, Z)，它带了 cy 常数偏移。
                 //   用缩放系数 s = D/(D-Z) 直接投影，语义是"相对方块中心的偏移"。
@@ -748,22 +759,10 @@ public class WavefrontObject{
 
             if(cons != null) cons.get(v);
 
-            // ★ 性能优化 (光照升级 1.3): 逐顶点法线旋转只在"需要背面剔除"时才做。
-            //   着色现已改用加载期预计算的 face.localNormal (见 faceNormal), 不再依赖这里的
-            //   drawnNormals; 而 face.normal[] 在运行时的唯一消费者就是 cullBackfaces 判定。
-            //   因此 cullBackfaces=false (默认) 时, 这一整圈法线矩阵变换都是白做的, 直接跳过。
-            if(!cullBackfaces) continue;
-
-            // 法线也用同一矩阵旋转（注意：法线不缩放、不平移）
-            if(i <= drawnNormals.size - 1){
-                Vec3 nsrc = normals.get(i);
-                float nx = nsrc.x, ny = nsrc.y, nz = nsrc.z;
-                drawnNormals.get(i).set(
-                    p00*nx + p01*ny + p02*nz,
-                    p10*nx + p11*ny + p12*nz,
-                    p20*nx + p21*ny + p22*nz
-                );
-            }
+            // ★ 记录变换后的 3D 坐标 (未投影), 供精确背面剔除的"面中心"计算
+            //   source.x/y 已是屏幕投影坐标, 不能再用于 facing() 判定
+            vert.tx = X;
+            vert.ty = Y;
         }
 
         // ★ 所有singleZLayer模型都用 drawBatched 批量渲染
@@ -793,15 +792,11 @@ public class WavefrontObject{
             float z = (indexerZ * zScale) + drawLayer + effectiveZOffset;
             Draw.z(z);
 
-            // TODO [已知问题 2026-09-27]: 斜视时部分面变透明
-            //   现象：从正上方看正常，相机斜视 45° 以上时某些面像是被剔除，
-            //         能透过模型看到背景
-            //   可能原因：cullBackfaces 剔除过严，或 singleZLayer 排序在斜视时错位
-            //   影响：视觉瑕疵，不影响游戏性
-            //   优先级：低（等光照升级 1.3 完成后再排查）
-            if(cullBackfaces && hasNormal){
-                if(Math.abs(face.normal[0].angle(Vec3.Z)) >= 90f) continue;
-            }
+            // ★ 精确透视背面剔除 (参考《RBMK 真3D系统》Cam.facing):
+            //   旧实现用 |法线·Z轴夹角| >= 90° 判定, 只适用于正上方视角 —— 相机斜视时
+            //   会把本该可见的侧面/顶面剔掉 (即"斜视时部分面变透明"), 因此此前全局关闭。
+            //   现改为精确的"面法线 · (相机位置 - 面中心)"判定, 与相机角度无关。
+            if(cullBackfaces && !facingCamera(face)) continue;
 
             switch(shadingType){
                 case zMedian -> zMedianDraw(face);
@@ -864,6 +859,9 @@ public class WavefrontObject{
         int idx = sortIdxInt[i];
         Face f = faces.get(idx);
 
+        // ★ 精确透视背面剔除 (同上面的非批量路径)
+        if(cullBackfaces && !facingCamera(f)) continue;
+
         switch(shadingType){
             case zMedian -> zMedianDraw(f);
             case zDistance -> zDistanceDraw(f);
@@ -878,6 +876,46 @@ public class WavefrontObject{
         f.draw();    // ★ 立即提交，不再延迟
     }
     Draw.z(oz);
+    }
+
+    /**
+     * 精确透视背面剔除 (移植参考《RBMK 真3D系统》Cam.facing 的判定式)。
+     *
+     * <p>判定式: {@code normal · (camera - faceCenter) > 0}。本项目 draw() 的投影公式是
+     * {@code s = D/(D-Z)} (相对方块中心, 无 cy 常数偏移), 等价于相机位于
+     * {@code (0, 0, D)} 的针孔相机, 因此这里直接用 {@code -nx*cx - ny*cy + nz*(D-cz)}。<p>
+     *
+     * <p>法线取加载期预计算的 {@link Face#localNormal} (模型空间), 只需乘当前旋转矩阵;
+     * 面中心取顶点变换后的 3D 坐标 ({@link Vertex#tx}/{@link Vertex#ty} 与 source.z),
+     * 与相机同一坐标系。<p>
+     *
+     * @param face 待判定面
+     * @return true 表示该面朝向相机 (应绘制)
+     */
+    protected boolean facingCamera(Face face){
+        if(!hasNormal || face.localNormal == null || face.verts.length == 0) return true;
+
+        // 1. 法线随模型旋转 (只旋转, 不缩放/平移)
+        Vec3 ln = face.localNormal;
+        float nx = rm00 * ln.x + rm01 * ln.y + rm02 * ln.z;
+        float ny = rm10 * ln.x + rm11 * ln.y + rm12 * ln.z;
+        float nz = rm20 * ln.x + rm21 * ln.y + rm22 * ln.z;
+
+        // 2. 面中心 (变换后的 3D 空间, 不是投影后的屏幕坐标)
+        float cx = 0f, cy = 0f, cz = 0f;
+        for(Vertex v : face.verts){
+            cx += v.tx;
+            cy += v.ty;
+            cz += v.source.z;
+        }
+        int n = face.verts.length;
+        cx /= n;
+        cy /= n;
+        cz /= n;
+
+        // 3. 相机在 (0,0,D), 与投影公式一致
+        float D = cam != null ? cam.D : perspectiveDistance;
+        return -nx * cx - ny * cy + nz * (D - cz) > 0f;
     }
 
     // ===== GPU Mesh 渲染方法 =====
@@ -1292,16 +1330,39 @@ public class WavefrontObject{
 
         // ★ 材质 alpha 调制颜色 (PMX 透明材质)
         if(face.mat != null && face.mat.alpha < 1f){
-            Tmp.c4.rgba8888((int)color);
+            // ★ 从 float 色值解包必须用 abgr8888(float) (内部走 floatToIntColor),
+            //   直接 (int)color 是数值截断, 会丢掉全部颜色位
+            Tmp.c4.abgr8888(color);
             Tmp.c4.a *= face.mat.alpha;
             color = Tmp.c4.toFloatBits();
         }
+
+        // ★ 高度渐变 (对齐参考《RBMK 真3D系统》Live.grad):
+        //   以"面内平均深度"为基准, 顶点相对高度每 1 个模型单位 ±7% 亮度, 上下限 ±14%。
+        //   source.z 已按 defaultScl*size 放大, 先除以 lastScl 还原到模型原始单位,
+        //   这样与参考实现的观感一致 (与模型缩放无关)。
+        boolean grad = heightGradient != 0f;
+        float midZ = 0f;
+        if(grad){
+            for(Vertex v : face.verts) midZ += v.source.z;
+            midZ /= face.verts.length;
+        }
+        float gradScl = 0.07f / Math.max(0.001f, lastScl);
 
         for(int i = 0; i < face.verts.length; i++){
             int s = i * 6;
             dface[s] = face.verts[i].source.x;
             dface[s + 1] = face.verts[i].source.y;
-            dface[s + 2] = color;
+            if(grad){
+                // 逐顶点亮度微调 (漫反射色, 保持 alpha)
+                float k = 1f + Mathf.clamp((face.verts[i].source.z - midZ) * gradScl, -0.14f, 0.14f) * heightGradient;
+                Tmp.c4.abgr8888(color);
+                dface[s + 2] = Color.toFloatBits(
+                    Mathf.clamp(Tmp.c4.r * k), Mathf.clamp(Tmp.c4.g * k),
+                    Mathf.clamp(Tmp.c4.b * k), Tmp.c4.a);
+            }else{
+                dface[s + 2] = color;
+            }
             if(useIndep){
                 // ★ 独立 Texture: UV 翻转 V 轴
                 //   libGDX 从 Pixmap 创建 Texture 时, Pixmap Y=0 在顶部 → Texture V=0 在顶部
@@ -1405,6 +1466,8 @@ public class WavefrontObject{
 
     public static class Vertex{
         public Vec3 source;
+        /** ★ 变换后的 3D 坐标 (未投影), 供精确背面剔除计算面中心 */
+        public float tx, ty;
         public Seq<Vertex> neighbors = new Seq<>();
 
         public Vertex(float x, float y, float z){

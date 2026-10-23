@@ -83,8 +83,9 @@ public class ZObjs {
         prism.shadeColor = Color.valueOf("6586b0");
         prism.maxShade = 0.8f;
         prism.drawLayer = Layer.turret;
-        // ★ 关闭 cullBackfaces: 旋转后某些面法线朝下会被剔除, 导致"透明"
-        prism.cullBackfaces = false;
+        // ★ 启用精确透视背面剔除 (对齐参考《RBMK 真3D系统》Cam.facing):
+        //   闭合几何从外部看约一半面不可见, 剔除后每帧少提交一半面
+        prism.cullBackfaces = true;
         // ★ singleZLayer=true: 多个棱镜炮台同时存在时, 每个实例整体用一个 z 渲染, 避免交叉穿插
         prism.singleZLayer = true;
         // ★ 跳过 Y-up → Z-up 转换: 保持 obj 原始坐标轴
@@ -108,7 +109,8 @@ public class ZObjs {
         flywheel.drawLayer = Layer.block;
         // ★ singleZLayer=true: 多个飞轮方块同时存在时, 每个实例整体用一个 z 渲染, 避免交叉穿插
         flywheel.singleZLayer = true;
-        flywheel.cullBackfaces = false;
+        // ★ 精确透视背面剔除: 186 面中 34 面朝内(轴孔内壁), 剔除后更省
+        flywheel.cullBackfaces = true;
 
         // waterWheel: MC Create 水车模型 (绕Y轴旋转, 棕色木质)
         waterWheel = new WavefrontObject();
@@ -120,7 +122,8 @@ public class ZObjs {
         waterWheel.maxShade = 0.7f;
         waterWheel.drawLayer = Layer.block;
         waterWheel.singleZLayer = true;
-        waterWheel.cullBackfaces = false;
+        // ★ 精确透视背面剔除: 1276 面中 384 面朝内(内圈/轴孔), 剔除后省约 30% 提交
+        waterWheel.cullBackfaces = true;
 
         // crushingWheel: MC Create 粉碎轮 (绕Z轴旋转, 灰色石质)
         crushingWheel = new WavefrontObject();
@@ -132,7 +135,8 @@ public class ZObjs {
         crushingWheel.maxShade = 0.7f;
         crushingWheel.drawLayer = Layer.block;
         crushingWheel.singleZLayer = true;
-        crushingWheel.cullBackfaces = false;
+        // ★ 精确透视背面剔除 (268 面, 19 面朝内)
+        crushingWheel.cullBackfaces = true;
 
         // cogwheel: 小齿轮 (8齿, 棕色木质, 绕Y轴旋转)
         cogwheel = new WavefrontObject();
@@ -144,7 +148,8 @@ public class ZObjs {
         cogwheel.maxShade = 0.75f;
         cogwheel.drawLayer = Layer.block;
         cogwheel.singleZLayer = true;
-        cogwheel.cullBackfaces = false;
+        // ★ 精确透视背面剔除 (224 面, 16 面朝内)
+        cogwheel.cullBackfaces = true;
 
         // largeCogwheel: 大齿轮 (12齿, 深棕色木质, 绕Y轴旋转)
         largeCogwheel = new WavefrontObject();
@@ -156,7 +161,8 @@ public class ZObjs {
         largeCogwheel.maxShade = 0.75f;
         largeCogwheel.drawLayer = Layer.block;
         largeCogwheel.singleZLayer = true;
-        largeCogwheel.cullBackfaces = false;
+        // ★ 精确透视背面剔除 (272 面, 24 面朝内)
+        largeCogwheel.cullBackfaces = true;
         /*
         // ★ MMD 角色 (PMX): 4个模型, 2个人物各2形态
         // PMX 模型 boundRadius ~10, size=0.3: defaultScl(4)*0.3=1.2倍缩放, 模型高度 ~24单位

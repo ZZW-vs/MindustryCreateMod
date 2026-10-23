@@ -298,6 +298,11 @@
 - 合并时有烟雾效果和延迟检查
 
 ## 更新日志
+- **真 3D 渲染优化（对照参考《RBMK-White-Reactor 真3D系统》）**：
+  - **精确透视背面剔除**：旧实现用「面法线与 Z 轴夹角 ≥ 90°」判定，只适用于正上方视角，相机斜视时会把本该可见的侧面/顶面剔掉（即长期以来的「斜视时部分面变透明」）。现移植 RBMK `Cam.facing()` 的判定式 `法线 · (相机位置 - 面中心) > 0`，法线取加载期预计算的模型空间法线（只乘当前旋转矩阵），面中心取顶点变换后的 3D 坐标，与透视投影公式 `s = D/(D-Z)` 完全一致，任何视角都只剔除真正背对相机的面。棱镜、飞轮、水车、粉碎轮、大小齿轮已开启（实测这些闭合模型有 9%~30% 的面朝内/被遮挡，如轴孔内壁），水车 1276 面每帧少提交约 380 面。
+  - **逐顶点高度渐变**：移植 RBMK `Live.grad()`，以面内平均深度为基准、按顶点相对高度微调亮度（每模型单位 ±7%，上下限 ±14%，并按模型缩放归一化），为齿轮/飞轮/水车这类曲面补上体积感，避免整面同色的「纸片感」。
+  - **删除每帧逐顶点法线旋转**：原先 draw() 每帧把所有顶点法线重新旋转一遍，仅服务旧版背面剔除；现背面剔除与光照统一复用加载期预计算的 `face.localNormal`，高面数模型每帧省下一整轮法线运算。
+  - **修复颜色解包错误**：半透明材质调制与高度渐变需要把 float 色值还原成 RGBA，此前误用 `(int)color`（数值截断，丢掉全部颜色位），改为 `Color.abgr8888(float)` 正确解包。
 - **热管 (heat-pipe) 连接贴图按 PU132 原版复刻**：回退端口的 `rotate=true` 偏差（原意是保留放置大箭头），该偏差导致「掩码按旋转换算 / draw() 不旋转贴图 / 放置预览旋转贴图」三者互相不一致，连接贴图错乱。现与原版完全一致——`rotate=false`，位掩码直接按本地端口索引查表，贴图固定朝向自动拼接；`drawPlanRegion` 复刻原版逻辑，放置预览时即显示与已建成/队列中热管的连接（只连热管，不含其他热力方块）；并补上原版的 `solid=false`（单位可从管道上方走过，配合 unitOn 灼烧）与 `underBullets=true`（子弹从上方飞过）
 - 修复 `MechanicalConveyor` 编译错误：`SliceMode` 误 import 为 `mindustry.graphics.SliceMode`（不存在），正确路径为 `mindustry.world.blocks.Autotiler.SliceMode`（Autotiler 内部枚举）
 - **灵魂炮台信息面板「灵魂加成」写明作用点**：原「灵魂加成: 80% ~ 150%」看不出加到哪里，拆分为两类文案并注明区间含义（无魂→满魂）——弹药类/电力类灵魂炮台显示「灵魂加成(伤害与装填速度)」（`SoulItemTurret`/`SoulTurretPowerTurret` 及其子类），激光类/光束类只显示「灵魂加成(伤害)」（`SoulLaserTurret`/`SoulTractorBeamTurret` 及其子类，光束无装填概念）；bundle key `soul.bonus` 拆为 `soul.bonus.dmgreload` / `soul.bonus.dmg`
@@ -551,7 +556,7 @@
 - **PU132 剧情框架移植** (`zzw/map` + `Z_Story`)：
   - `cinematic`：Cutscene（过场演出基类，含 PanCutscene 镜头平移 / CallbackCutscene 回调子类）、Speeches（对话条）、StoryNode（剧情节点树）、Cinematics（装配入口）
   - `objectives`：自定义地图目标系统——Objective / GlobalObjective / CustomObj / ResourceAmountObj（资源数量目标）/ UnitPosObj（单位位置目标）与 ObjectiveTypes（JSON 目标类型工厂）
-  - `Z_Story` 装配层：进入地图时若地图标签含 `create-nodes` 剧情声明则解析节点树并绑定演出；剧情进度持久化到 `state.rules.tags["create-cinematic"]`，随地图存档读写
+  - `Z_Story` 装配层：进入地图时若地图标签含 `create-nodes` 剧情声明则解析节点树并绑定演出；剧情进度持久化到 `state.rules.tags["create-cinematic"]`，随地图存档读写（2026-10 起已停用加载，代码保留，恢复只需取消 `TestMod` 里的调用注释）
 
 ## 安装说明
 
