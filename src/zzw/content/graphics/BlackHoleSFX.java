@@ -16,7 +16,11 @@ public class BlackHoleSFX implements ApplicationListener {
     public static BlackHoleSFX inst;
 
     public FrameBuffer buffer;
+    /** 双后处理同时启用时的中转缓冲 (黑洞先输出到这里, 再由线性透镜输出到屏幕)。 */
+    public FrameBuffer bufferMid;
     public FloatSeq blackHoleQueue = new FloatSeq();
+    /** 线段扭曲队列: 每条 5 个 float (x1, y1, x2, y2, strength)。 */
+    public FloatSeq laserQueue = new FloatSeq();
 
     /** 上一次 resize 时的屏幕宽高, 用于避免每帧重复 resize 帧缓冲。 */
     private int lastWidth = -1, lastHeight = -1;
@@ -31,10 +35,17 @@ public class BlackHoleSFX implements ApplicationListener {
     public void load() {
         // 着色器由 ShaderLib 统一创建, 这里只负责本系统自己的帧缓冲
         buffer = new FrameBuffer(2, 2);
+        bufferMid = new FrameBuffer(2, 2);
     }
 
     public void blackHole(float x, float y, float intensity, float swirl) {
         blackHoleQueue.add(x, y, intensity, swirl);
+    }
+
+    /** 追加一条线性引力透镜 (thalassophobia 奇异点光束用)。 */
+    public void laser(float x1, float y1, float x2, float y2, float strength) {
+        laserQueue.add(x1, y1, x2, y2);
+        laserQueue.add(strength);
     }
 
     @Override
@@ -46,35 +57,55 @@ public class BlackHoleSFX implements ApplicationListener {
     public void dispose() {
         // 本类已注册为 ApplicationListener, 在此释放自身帧缓冲与 ShaderLib 的 GL 资源
         if(buffer != null){ buffer.dispose(); buffer = null; }
+        if(bufferMid != null){ bufferMid.dispose(); bufferMid = null; }
         ShaderLib.dispose();
     }
 
     public void render() {
-        if(buffer == null || ShaderLib.blackHole == null) return;
-        if(blackHoleQueue.isEmpty()) return;
+        if(buffer == null || bufferMid == null) return;
+        if(ShaderLib.blackHole == null || ShaderLib.laserDistortion == null) return;
+
+        boolean hasHole = !blackHoleQueue.isEmpty();
+        boolean hasLine = !laserQueue.isEmpty();
+        if(!hasHole && !hasLine) return;
 
         // ★ 性能: 仅在窗口尺寸变化时重建帧缓冲 (原实现每帧 resize,
         //   会反复触发 GL 纹理重建); 尺寸不变时直接复用。
         int w = graphics.getWidth(), h = graphics.getHeight();
         if(w != lastWidth || h != lastHeight){
             buffer.resize(w, h);
+            bufferMid.resize(w, h);
             lastWidth = w;
             lastHeight = h;
         }
 
-        ShaderLib.blackHole.holes.addAll(blackHoleQueue);
+        if(hasHole) ShaderLib.blackHole.holes.addAll(blackHoleQueue);
+        if(hasLine) ShaderLib.laserDistortion.lines.addAll(laserQueue);
 
         draw(Layer.floor - 1f, () -> buffer.begin(Color.clear));
-        // ★ 捕获范围修正: 原来只到 blockOver(35), 单位/子弹/光束都在 60~115 层,
-        //   根本不会被扭曲 —— 弹丸旁边看起来"没有效果"就是这个原因。
-        //   现在一直捕获到 overlayUI 之前(119), 单位、子弹、激光、特效全部进入缓冲,
-        //   blit 后再整体扭曲, 奇异点才能真正把周围的空间(含光束本身)弯折。
+        // ★ 捕获范围: 一直捕获到 overlayUI 之前(119), 单位、子弹、激光、特效
+        //   全部进入缓冲, blit 后再整体扭曲, 奇异点才能真正弯折周围空间(含光束本身)。
         draw(Layer.overlayUI - 1f, () -> {
             buffer.end();
-            buffer.blit(ShaderLib.blackHole);
+
+            if(hasHole && hasLine){
+                // 两种扭曲同时存在: 先让黑洞着色器输出到中转缓冲, 再用线性透镜输出到屏幕。
+                // 不能直接连续 blit 两次 —— 第二次会采样原始 buffer, 把第一次的结果覆盖掉。
+                bufferMid.begin(Color.clear);
+                buffer.blit(ShaderLib.blackHole);
+                bufferMid.end();
+                bufferMid.blit(ShaderLib.laserDistortion);
+            } else if(hasHole){
+                buffer.blit(ShaderLib.blackHole);
+            } else {
+                buffer.blit(ShaderLib.laserDistortion);
+            }
+
             ShaderLib.blackHole.holes.clear();
+            ShaderLib.laserDistortion.lines.clear();
         });
 
         blackHoleQueue.clear();
+        laserQueue.clear();
     }
 }

@@ -122,19 +122,15 @@ public class ContinuousSingularityLaserBulletType extends AntiCheatBulletTypeBas
     public void update(Bullet b) {
         boolean timer = b.timer(0, 5f);
 
-        // ★ 小美化 (走黑洞着色器, 不再重写 draw):
-        //   沿光束挂 3 个弱引力扭曲点, 让空间与光束本身被轻微吸向奇异点。
-        //   强度 1.15 / 0.95 / 0.75 (黑洞炮 1.5~4.0), 且随光束伸长远端渐弱。
-        //   不再放在枪口: 枪口正上方就是 thalassophobia 的巨大机体, 会被自身贴图遮住。
+        // ★ thalassophobia 专属美化: 不再往光束上打几个黑洞漩涡点 (圆形扭曲很奇怪),
+        //   改为一条线性引力透镜 —— 让光束两侧的空间沿法线被压向光束中线,
+        //   整根光束看起来像把周围空间"吸"进一条线。
+        //   strength 随光束伸长远端渐入, 1.0 时影响带宽约 30px、最大位移约 18px。
         if (BlackHoleSFX.inst != null && b.fdata > 40f) {
-            float cx = Mathf.cosDeg(b.rotation()), cy = Mathf.sinDeg(b.rotation());
-            for (int i = 1; i <= 3; i++) {
-                float t = i / 3f;
-                // 光束还没伸到该位置时只按比例生效, 避免扭曲点凭空出现在空处
-                float k = Mathf.clamp(b.fdata * t / 60f);
-                BlackHoleSFX.inst.blackHole(b.x + cx * b.fdata * t, b.y + cy * b.fdata * t,
-                    (0.75f + 0.6f * (1f - t)) * k, -(b.time / (7f - i * 1.5f) + i * 60f));
-            }
+            float ex = b.x + Mathf.cosDeg(b.rotation()) * b.fdata;
+            float ey = b.y + Mathf.sinDeg(b.rotation()) * b.fdata;
+            float strength = Mathf.clamp(b.fdata / 260f) * Mathf.clamp(b.time / 10f);
+            BlackHoleSFX.inst.laser(b.x, b.y, ex, ey, strength);
         }
 
         if (b.data instanceof VoidLaserData) {
