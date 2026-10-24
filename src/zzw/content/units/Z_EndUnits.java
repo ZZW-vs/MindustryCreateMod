@@ -566,7 +566,7 @@ public class Z_EndUnits {
                     shootSound = Z_Sounds.thalassophobiaLaser;
                     drawRegion = false;
 
-                    bullet = new ContinuousSingularityLaserBulletType(13500f){{
+                    bullet = new ContinuousSingularityLaserBulletType(189000f){{
                         lifetime = 5f * 60f;
                         width = 40f;
                         widthReduction = 6f;
@@ -579,7 +579,7 @@ public class Z_EndUnits {
                         oscScl = 5f;
                         buildingDamageMultiplier = 0.7f;
 
-                        // ★ 伤害调整: 基础伤害 4500 → 13500 (×3), 超量伤害阈值 600000 → 900000 (×1.5)
+                        // ★ 伤害调整: 基础伤害 4500 → 189000 (13500 再 ×14), 超量伤害阈值 600000 → 900000 (×1.5)
                         overDamage = 900000f;
                         overDamagePower = 3f;
                         overDamageScl = 7000f;
