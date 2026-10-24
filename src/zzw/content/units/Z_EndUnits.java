@@ -268,6 +268,8 @@ public class Z_EndUnits {
                     maxLength = 1200f;
                     lifetime = 3f * 60f;
                     width = 17f;
+                    // ★ 方案 A: 体积光束 (多层截面切片 + 滚动能量环 + 尖端透镜光晕)
+                    volumetric = true;
                     antiCheatScl = 5f;
                     laserSpeed = 70f;
                     buildingDamageMultiplier = 0.4f;

@@ -1,5 +1,6 @@
 package zzw.content.units.bullets;
 
+import arc.graphics.Blending;
 import arc.graphics.Color;
 import arc.graphics.g2d.Draw;
 import arc.graphics.g2d.Fill;
@@ -45,6 +46,9 @@ public class EndCutterLaserBulletType extends AntiCheatBulletTypeBase {
     public float antiCheatScl = 1f;
     public float fadeTime = 60f;
     public float fadeInTime = 8f;
+    /** ★ 体积光束模式 (方案 A: 2.5D 投影 + 叠加混合, 不引入真 3D 管线)
+     *  仅 quetzalcoatl 主炮启用, tenmeikiri 等其他使用者保持原版细线渲染 */
+    public boolean volumetric = false;
 
     // PU132 颜色常量 (UnityPal)
     public Color[] colors = {
@@ -115,6 +119,11 @@ public class EndCutterLaserBulletType extends AntiCheatBulletTypeBase {
 
     @Override
     public void draw(Bullet b) {
+        // ★ 体积光束模式 (quetzalcoatl 主炮): 走独立绘制
+        if (volumetric) {
+            drawVolumetric(b);
+            return;
+        }
         // ★ 原版不调用 Draw.blend(), 让激光保持 additive 渲染 (红色激光在 additive 模式下更亮更粗)
         // (黑色激光才需要 Draw.blend() 重置为 alpha 混合, 红色激光不需要)
         float fade = Mathf.clamp(b.time > b.lifetime - fadeTime ? 1f - (b.time - (lifetime - fadeTime)) / fadeTime : 1f) * Mathf.clamp(b.time / fadeInTime);
@@ -153,6 +162,144 @@ public class EndCutterLaserBulletType extends AntiCheatBulletTypeBase {
         Tmp.v2.trns(b.rotation(), b.fdata + tipHeight).add(b);
         // ★ v158 Drawf.light 无 Team 参数版本: light(x1, y1, x2, y2, stroke, color, alpha)
         Drawf.light(b.x, b.y, Tmp.v2.x, Tmp.v2.y, width * 2f, colors[0], 0.5f);
+        Draw.reset();
+    }
+
+    /**
+     * ★ 体积光束绘制 (方案 A: 2.5D 投影 + 叠加混合)。
+     *
+     * <p>不引入真 3D 管线/深度缓冲, 仍然全部走 SpriteBatch, 靠"多层截面切片"
+     * 制造圆柱体积感 (参考 FlameOut empathy 的 2.5D 思路):</p>
+     * <ol>
+     *   <li><b>体积壳</b>: 沿光束垂直方向做 5 层平行切片 (±0.9 宽), 叠加混合后
+     *       强度从中心向边缘平滑衰减, 像一根发光的圆柱而不是一根线</li>
+     *   <li><b>能量环</b>: 沿光束按固定间距滚动, 每环是一条横向截面线 + 中心亮点,
+     *       强化"透视截面"的立体感</li>
+     *   <li><b>炽白核心</b>: 中心细线, 让光束有明确的高能内核</li>
+     *   <li><b>炮口/尖端</b>: 炮口发光 + 扩散环, 尖端透镜光晕 + 旋转尖刺</li>
+     * </ol>
+     *
+     * <p>性能: 最多约 10 条线 + 每 52px 一个能量环 (1200px 约 23 个),
+     * 全部是矢量绘制, 无纹理采样, 开销远低于逐帧 mesh。</p>
+     */
+    private void drawVolumetric(Bullet b){
+        float rot = b.rotation();
+        float dx = Mathf.cosDeg(rot), dy = Mathf.sinDeg(rot);
+        // 光束的垂直方向 (截面方向)
+        float px = -dy, py = dx;
+        float len = Math.max(b.fdata, 0f);
+        float ex = b.x + dx * len, ey = b.y + dy * len;
+
+        // 渐入渐出: 前 fadeInTime 帧渐入, 末 fadeTime 帧渐出
+        float fade = Mathf.clamp(b.time > b.lifetime - fadeTime ? 1f - (b.time - (lifetime - fadeTime)) / fadeTime : 1f)
+                   * Mathf.clamp(b.time / fadeInTime);
+        if (fade <= 0.001f) return;
+
+        float baseZ = Draw.z();
+        Draw.blend(Blending.additive);
+
+        // ---------- 1. 体积壳: 5 层平行切片, 叠加后形成柔和圆柱 ----------
+        //   偏移从 -0.9w 到 +0.9w, 每层宽度 0.85w, 中心最亮
+        Draw.color(colors[0]);
+        if (len > 0.01f) {
+            for (int i = -2; i <= 2; i++) {
+                float o = i * width * 0.45f;
+                float layerAlpha = (1f - Math.abs(i) / 3f) * 0.22f * fade;
+                Draw.alpha(layerAlpha);
+                Lines.stroke(width * 0.85f);
+                Lines.line(b.x + px * o, b.y + py * o, ex + px * o, ey + py * o, false);
+            }
+        }
+
+        // ---------- 2. 主体: 3 层切片, 猩红色, 更集中 ----------
+        Draw.color(colors[1]);
+        if (len > 0.01f) {
+            for (int i = -1; i <= 1; i++) {
+                float o = i * width * 0.20f;
+                Draw.alpha((i == 0 ? 0.75f : 0.28f) * fade);
+                Lines.stroke(width * (i == 0 ? 0.65f : 0.45f));
+                Lines.line(b.x + px * o, b.y + py * o, ex + px * o, ey + py * o, false);
+            }
+        }
+
+        // ---------- 3. 炽白核心 (单线) ----------
+        Draw.color(colors[2]);
+        Draw.alpha(0.95f * fade);
+        Lines.stroke(width * 0.30f);
+        if (len > 0.01f) Lines.line(b.x, b.y, ex, ey, false);
+
+        Draw.color(colors[3]);
+        Draw.alpha(0.90f * fade);
+        Lines.stroke(width * 0.12f);
+        if (len > 0.01f) Lines.line(b.x, b.y, ex, ey, false);
+
+        // ---------- 4. 沿光束滚动的能量环 (横向截面线 + 中心亮点) ----------
+        float spacing = 52f;
+        // 环从炮口向尖端滚动, 循环出现
+        float travel = (b.time * 3.2f) % spacing;
+        for (float d = travel; d < len; d += spacing) {
+            float f = d / Math.max(len, 1f);
+            // 远处略细 (假透视), 透明度随距离衰减
+            float ringR = width * (1.30f - 0.40f * f) * fade;
+            float cx = b.x + dx * d, cy = b.y + dy * d;
+            float alpha = (0.34f - 0.16f * f) * fade;
+
+            Draw.color(colors[2]);
+            Draw.alpha(alpha);
+            Lines.stroke(width * 0.10f * fade);
+            Lines.line(cx + px * ringR, cy + py * ringR, cx - px * ringR, cy - py * ringR, false);
+
+            Draw.color(colors[3]);
+            Draw.alpha(alpha * 0.85f);
+            Fill.circle(cx, cy, width * 0.10f * (1f - f * 0.5f) * fade);
+        }
+
+        // ---------- 5. 炮口: 发光核心 + 周期扩散环 ----------
+        float muzzlePulse = 1f + Mathf.absin(0.9f, 0.18f);
+        Draw.color(colors[1]);
+        Draw.alpha(0.55f * fade);
+        Fill.circle(b.x, b.y, width * 1.05f * muzzlePulse * fade);
+        Draw.color(colors[3]);
+        Draw.alpha(0.85f * fade);
+        Fill.circle(b.x, b.y, width * 0.35f * fade);
+
+        float ringT = (b.time % 24f) / 24f;
+        Draw.color(colors[1]);
+        Draw.alpha(0.30f * (1f - ringT) * fade);
+        Lines.stroke(width * 0.28f * (1f - ringT) * fade);
+        Lines.circle(b.x, b.y, width * 0.9f + ringT * width * 3.2f);
+
+        // ---------- 6. 尖端: 透镜光晕 + 旋转尖刺 ----------
+        if (len > 0.01f) {
+            Draw.color(colors[0]);
+            Draw.alpha(0.45f * fade);
+            Fill.circle(ex, ey, width * 2.2f * muzzlePulse * fade);
+            Draw.color(colors[1]);
+            Draw.alpha(0.75f * fade);
+            Fill.circle(ex, ey, width * 1.25f * muzzlePulse * fade);
+            Draw.color(colors[2]);
+            Draw.alpha(0.95f * fade);
+            Fill.circle(ex, ey, width * 0.62f * fade);
+            Draw.color(colors[3]);
+            Draw.alpha(fade);
+            Fill.circle(ex, ey, width * 0.24f * fade);
+
+            // 4 根旋转尖刺, 让尖端像"切割焦点"
+            Draw.color(colors[2]);
+            Draw.alpha(0.65f * fade);
+            for (int i = 0; i < 4; i++) {
+                float a = rot + Time.time * 2.4f + i * 90f;
+                Drawf.tri(ex, ey, width * 0.30f * fade, width * 2.1f * fade, a);
+            }
+
+            Drawf.light(b.x, b.y, ex, ey, width * 2.2f, colors[1], 0.55f * fade);
+        } else {
+            Drawf.light(b.x, b.y, width * 2.2f, colors[1], 0.55f * fade);
+        }
+
+        // 还原混合模式与绘制状态, 避免影响后续实体
+        Draw.blend();
+        Draw.z(baseZ);
         Draw.reset();
     }
 
