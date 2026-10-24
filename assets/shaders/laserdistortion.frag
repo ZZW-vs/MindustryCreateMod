@@ -47,7 +47,8 @@ void main(){
         if(dist < range){
             float f = 1.0 - dist / range;
             // 两端渐弱, 避免枪口/命中点出现硬边
-            float ends = smoothstep(0.0, 0.10, t) * smoothstep(1.0, 0.90, t);
+            // (注意: smoothstep 的 edge0 必须小于 edge1, 反向写法在 GLSL 里是未定义行为)
+            float ends = smoothstep(0.0, 0.10, t) * (1.0 - smoothstep(0.90, 1.0, t));
 
             vec2 dir = normalize(d + vec2(0.0001));
 
