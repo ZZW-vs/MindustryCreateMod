@@ -123,14 +123,17 @@ public class ContinuousSingularityLaserBulletType extends AntiCheatBulletTypeBas
         boolean timer = b.timer(0, 5f);
 
         // ★ 小美化 (走黑洞着色器, 不再重写 draw):
-        //   奇异点本体与光束尖端各挂一个弱引力扭曲点, 让背景空间被轻微吸向光束;
-        //   强度远低于黑洞炮 (0.7 / 0.4 vs 1.5~4.0), 不会盖过 PU132 原版光束。
-        if (BlackHoleSFX.inst != null) {
-            BlackHoleSFX.inst.blackHole(b.x, b.y, 0.7f, -(b.time / 5f));
-            if (b.fdata > 60f) {
-                float ex = b.x + Mathf.cosDeg(b.rotation()) * b.fdata;
-                float ey = b.y + Mathf.sinDeg(b.rotation()) * b.fdata;
-                BlackHoleSFX.inst.blackHole(ex, ey, 0.4f, -(b.time / 4f + 90f));
+        //   沿光束挂 3 个弱引力扭曲点, 让空间与光束本身被轻微吸向奇异点。
+        //   强度 1.15 / 0.95 / 0.75 (黑洞炮 1.5~4.0), 且随光束伸长远端渐弱。
+        //   不再放在枪口: 枪口正上方就是 thalassophobia 的巨大机体, 会被自身贴图遮住。
+        if (BlackHoleSFX.inst != null && b.fdata > 40f) {
+            float cx = Mathf.cosDeg(b.rotation()), cy = Mathf.sinDeg(b.rotation());
+            for (int i = 1; i <= 3; i++) {
+                float t = i / 3f;
+                // 光束还没伸到该位置时只按比例生效, 避免扭曲点凭空出现在空处
+                float k = Mathf.clamp(b.fdata * t / 60f);
+                BlackHoleSFX.inst.blackHole(b.x + cx * b.fdata * t, b.y + cy * b.fdata * t,
+                    (0.75f + 0.6f * (1f - t)) * k, -(b.time / (7f - i * 1.5f) + i * 60f));
             }
         }
 

@@ -63,11 +63,11 @@ public class VoidPelletBulletType extends AntiCheatBulletTypeBase {
         }
 
         // ★ 引力扭曲改由黑洞后处理着色器完成 (与黑洞炮共用同一条 GPU 管线)。
-        //   不再在 draw() 里画透镜: 着色器直接弯折屏幕背景, 才有真实的"空间被吸进去"感。
-        //   强度取 0.22 (黑洞炮是 1.5~4.0): 影响半径约 12px, 中心位移约 2px,
-        //   对 3px 的弹体刚好是"轻微扭曲", 不会喧宾夺主。
+        //   不再在 draw() 里画透镜: 着色器直接弯折屏幕内容, 才有真实的"空间被吸进去"感。
+        //   强度 0.45 (黑洞炮 1.5~4.0): 影响半径约 18px、中心位移约 7px,
+        //   对 3px 弹体是"轻微扭曲"但已经能看清。
         if (BlackHoleSFX.inst != null) {
-            BlackHoleSFX.inst.blackHole(b.x(), b.y(), 0.22f * b.fout(), -(b.time / 6f));
+            BlackHoleSFX.inst.blackHole(b.x(), b.y(), 0.45f * b.fout(), -(b.time / 6f));
         }
     }
 

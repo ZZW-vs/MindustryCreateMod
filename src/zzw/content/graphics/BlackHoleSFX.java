@@ -65,7 +65,11 @@ public class BlackHoleSFX implements ApplicationListener {
         ShaderLib.blackHole.holes.addAll(blackHoleQueue);
 
         draw(Layer.floor - 1f, () -> buffer.begin(Color.clear));
-        draw(Layer.blockOver + 0.1f, () -> {
+        // ★ 捕获范围修正: 原来只到 blockOver(35), 单位/子弹/光束都在 60~115 层,
+        //   根本不会被扭曲 —— 弹丸旁边看起来"没有效果"就是这个原因。
+        //   现在一直捕获到 overlayUI 之前(119), 单位、子弹、激光、特效全部进入缓冲,
+        //   blit 后再整体扭曲, 奇异点才能真正把周围的空间(含光束本身)弯折。
+        draw(Layer.overlayUI - 1f, () -> {
             buffer.end();
             buffer.blit(ShaderLib.blackHole);
             ShaderLib.blackHole.holes.clear();
