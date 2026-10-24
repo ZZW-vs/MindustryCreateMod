@@ -1,5 +1,6 @@
 package zzw.content.units.bullets;
 
+import arc.graphics.Blending;
 import arc.graphics.Color;
 import arc.graphics.g2d.Draw;
 import arc.graphics.g2d.Fill;
@@ -236,42 +237,152 @@ public class ContinuousSingularityLaserBulletType extends AntiCheatBulletTypeBas
     }
 
     /**
-     * 5 层嵌套光束绘制 (PU132 draw)。
+     * ★ 美化版奇异点激光绘制 (PU132 五层嵌套光束 + 方案 A 的体积/引力层)。
      *
-     * <p>每层: 根部圆球 (baseScl 放大) → 直线束 → 根部三角翼 (±90°) →
-     * 末端三角; 宽度带 oscScl 呼吸 + fade 渐入渐出。</p>
+     * <p>层级 (从外到内, 保证黑色核心可见):</p>
+     * <ol>
+     *   <li><b>引力透镜外壳</b> (additive): 沿截面 7 层切片 + 两侧向内弯折的透镜弧,
+     *       让光束周围像被引力扭曲的空间</li>
+     *   <li><b>PU132 原版 5 层嵌套光束</b>: 保留红→黑、呼吸宽度与抖动</li>
+     *   <li><b>滚动引力环</b>: 每 72px 一个黑色横向环 + 猩红细边 + 两端光点,
+     *       环随光束向前滚动, 像被奇点吸入的物质环</li>
+     *   <li><b>炮口奇点</b>: 黑色球体 + 红环 + 两段对向旋转的吸积盘弧</li>
+     *   <li><b>末端接触点</b>: 黑芯 + 红环 + 白点</li>
+     * </ol>
+     *
+     * <p>全部为矢量绘制, 单条光束每帧约 10 条线 + 6 个圆 + 14 个滚动环,
+     * 无纹理采样与历史缓存。</p>
      */
     @Override
     public void draw(Bullet b) {
         float fadeIn = fadeInTime <= 0f ? 1f : Mathf.clamp(b.time / fadeInTime);
         float fade = Mathf.clamp(b.time > b.lifetime - fadeTime ? 1f - (b.time - (b.lifetime - fadeTime)) / fadeTime : 1f) * fadeIn;
         float tipHeight = width / 2f;
+        float rot = b.rotation();
+        float dx = Mathf.cosDeg(rot), dy = Mathf.sinDeg(rot);
+        float px = -dy, py = dx;              // 截面方向
+        float len = b.fdata;
+        float baseZ = Draw.z();
 
-        Lines.lineAngle(b.x, b.y, b.rotation(), b.fdata);
+        // ---------- 1. 引力透镜外壳 (additive) ----------
+        Draw.blend(Blending.additive);
+        if (len > 0.01f) {
+            // 截面 7 层切片: 中心亮、两边暗, 叠加后形成圆柱体积感
+            for (int i = -3; i <= 3; i++) {
+                float o = i * width * 0.42f;
+                float a = (1f - Math.abs(i) / 4f) * 0.09f * fade;
+                Draw.color(colors[1]);
+                Draw.alpha(a);
+                Lines.stroke(width * 1.15f);
+                Lines.line(b.x + px * o, b.y + py * o,
+                    b.x + dx * len + px * o, b.y + dy * len + py * o, false);
+            }
+
+            // 两侧引力透镜弧: 中段向光束收拢的折线 (近似弧线)
+            Draw.color(colors[2]);
+            Draw.alpha(0.22f * fade);
+            Lines.stroke(width * 0.10f);
+            for (int s : Mathf.signs) {
+                float off = width * 2.1f * s;
+                float x1 = b.x + px * off, y1 = b.y + py * off;
+                float x2 = b.x + dx * len * 0.5f + px * off * 0.72f,
+                      y2 = b.y + dy * len * 0.5f + py * off * 0.72f;
+                float x3 = b.x + dx * len + px * off, y3 = b.y + dy * len + py * off;
+                Lines.line(x1, y1, x2, y2, false);
+                Lines.line(x2, y2, x3, y3, false);
+            }
+        }
+        Draw.blend();
+
+        // ---------- 2. PU132 原版 5 层嵌套光束 (红 → 黑) ----------
         for (int i = 0; i < colors.length; i++) {
             float rx = Mathf.range(laserInstability),
             ry = Mathf.range(laserInstability);
             float f = 1f - ((widthReduction * i) / width);
             float w = f * (width + Mathf.absin(Time.time + (i * oscOffset), oscScl, width / 8)) * fade;
 
-            Tmp.v2.trns(b.rotation(), b.fdata - tipHeight).add(b);
-            Tmp.v1.trns(b.rotation(), width * 2f).add(Tmp.v2);
+            Tmp.v2.trns(rot, len - tipHeight).add(b);
+            Tmp.v1.trns(rot, width * 2f).add(Tmp.v2);
             Draw.color(colors[i]);
             Fill.circle(b.x + rx, b.y + ry, (w / 2f) * baseScl);
             Lines.stroke(w);
             Lines.line(b.x + rx, b.y + ry, Tmp.v2.x + rx, Tmp.v2.y + ry, false);
             for (int s : Mathf.signs) {
-                Drawf.tri(b.x + rx, b.y + ry, w, baseTriangleSize + w, b.rotation() + 90f * s);
+                Drawf.tri(b.x + rx, b.y + ry, w, baseTriangleSize + w, rot + 90f * s);
 
-                Tmp.v3.trns(b.rotation(), w * -0.7f, w * s);
+                Tmp.v3.trns(rot, w * -0.7f, w * s);
                 Fill.tri(Tmp.v2.x + rx, Tmp.v2.y + ry,
                 Tmp.v1.x + rx, Tmp.v1.y + ry,
                 Tmp.v2.x + Tmp.v3.x + rx, Tmp.v2.y + Tmp.v3.y + ry);
             }
         }
-        Tmp.v2.trns(b.rotation(), b.fdata + tipHeight).add(b);
+
+        // ---------- 3. 滚动引力环 (黑环 + 猩红细边 + 两端光点) ----------
+        if (len > 0.01f) {
+            float spacing = 72f;
+            float travel = (b.time * 2.4f) % spacing;
+            for (float d = travel; d < len; d += spacing) {
+                float f = d / Math.max(len, 1f);
+                float rr = width * (1.45f - 0.40f * f) * fade;
+                float cx = b.x + dx * d, cy = b.y + dy * d;
+
+                Draw.color(Color.black);
+                Draw.alpha(0.62f * fade);
+                Lines.stroke(width * 0.30f * fade);
+                Lines.line(cx + px * rr, cy + py * rr, cx - px * rr, cy - py * rr, false);
+
+                Draw.color(colors[2]);
+                Draw.alpha((1f - f) * 0.55f * fade);
+                Lines.stroke(width * 0.08f * fade);
+                Lines.line(cx + px * rr * 1.16f, cy + py * rr * 1.16f,
+                    cx - px * rr * 1.16f, cy - py * rr * 1.16f, false);
+
+                Draw.color(colors[3]);
+                Draw.alpha((1f - f) * 0.55f * fade);
+                Fill.circle(cx + px * rr, cy + py * rr, width * 0.09f * fade);
+                Fill.circle(cx - px * rr, cy - py * rr, width * 0.09f * fade);
+            }
+        }
+
+        // ---------- 4. 炮口奇点: 黑球 + 红环 + 两段旋转吸积盘 ----------
+        float pulse = 1f + Mathf.absin(0.7f, 0.15f);
+        Draw.color(Color.black);
+        Draw.alpha(0.88f * fade);
+        Fill.circle(b.x, b.y, width * 1.5f * pulse * fade);
+        Draw.color(colors[2]);
+        Draw.alpha(0.95f * fade);
+        Lines.stroke(width * 0.14f);
+        Lines.circle(b.x, b.y, width * 1.72f * pulse * fade);
+        Draw.color(colors[3]);
+        Draw.alpha(0.90f * fade);
+        Fill.circle(b.x, b.y, width * 0.30f * fade);
+
+        Draw.color(colors[2]);
+        Draw.alpha(0.55f * fade);
+        Lines.stroke(width * 0.20f);
+        Lines.arc(b.x, b.y, width * 2.35f * pulse * fade, 0.5f, Time.time * 2.2f);
+        Lines.arc(b.x, b.y, width * 2.35f * pulse * fade, 0.5f, Time.time * 2.2f + 180f);
+
+        // ---------- 5. 末端接触点: 黑芯 + 红环 + 白点 ----------
+        if (len > 0.01f) {
+            float ex = b.x + dx * len, ey = b.y + dy * len;
+            Draw.color(Color.black);
+            Draw.alpha(0.75f * fade);
+            Fill.circle(ex, ey, width * 1.05f * fade);
+            Draw.color(colors[2]);
+            Draw.alpha(0.85f * fade);
+            Lines.stroke(width * 0.12f);
+            Lines.circle(ex, ey, width * 1.30f * pulse * fade);
+            Draw.color(colors[3]);
+            Draw.alpha(0.95f * fade);
+            Fill.circle(ex, ey, width * 0.24f * fade);
+        }
+
+        Tmp.v2.trns(rot, len + tipHeight).add(b);
         // v155.4 无 light(Team,x,y,x2,y2,radius,...) 8参重载, 用 7 参线段光照等价替代
-        Drawf.light(b.x, b.y, Tmp.v2.x, Tmp.v2.y, width * 2f, colors[0], 0.5f);
+        Drawf.light(b.x, b.y, Tmp.v2.x, Tmp.v2.y, width * 2f, colors[0], 0.5f * fade);
+        Draw.blend();
+        Draw.z(baseZ);
         Draw.reset();
     }
 
