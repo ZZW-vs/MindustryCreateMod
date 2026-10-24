@@ -567,7 +567,8 @@ public class Z_EndUnits {
                     drawRegion = false;
 
                     bullet = new ContinuousSingularityLaserBulletType(189000f){{
-                        lifetime = 5f * 60f;
+                        // ★ 持续时间 +10s (5s → 15s, 与武器 reload 一致, 光束不再中途断档)
+                        lifetime = 15f * 60f;
                         width = 40f;
                         widthReduction = 6f;
                         collisionWidth = 17f;
@@ -581,7 +582,8 @@ public class Z_EndUnits {
 
                         // ★ 伤害调整: 基础伤害 4500 → 189000 (13500 再 ×14), 超量伤害阈值 600000 → 900000 (×1.5)
                         overDamage = 900000f;
-                        overDamagePower = 3f;
+                        // ★ 最高伤害更猛: 超量伤害指数 3 → 4 (血量越高的目标承受的超量伤害增长越快)
+                        overDamagePower = 4f;
                         overDamageScl = 7000f;
                         ratioDamage = 1f / 200f;
                         ratioStart = 20000f;
