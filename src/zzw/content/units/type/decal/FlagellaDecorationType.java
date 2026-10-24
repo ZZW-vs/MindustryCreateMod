@@ -2,7 +2,10 @@ package zzw.content.units.type.decal;
 
 import arc.Core;
 import arc.func.Func;
+import arc.graphics.Blending;
+import arc.graphics.Color;
 import arc.graphics.Pixmap;
+import arc.graphics.Texture;
 import arc.graphics.g2d.Draw;
 import arc.graphics.g2d.Lines;
 import arc.graphics.g2d.TextureRegion;
@@ -18,7 +21,7 @@ import mindustry.type.UnitType;
  * 鞭毛尾巴装饰 (移植自 PU132 type/decal/FlagellaDecorationType 原版,
  * thalassophobia 的 4 段贴图 × 15 节长尾)
  *
- * <p>动画原理 (对照 PU132 原版, 未做任何改动):</p>
+ * <p>动画原理 (对照 PU132 原版):</p>
  * <p>1. 尾巴由 segments 节组成, 每节用 Lines.line 沿贴图拉伸绘制
  *    (贴图从尾根 tail-0 过渡到尾尖 tail-end);
  * <br>2. 两遍模拟:
@@ -41,6 +44,29 @@ public class FlagellaDecorationType extends UnitDecorationType{
     public float angleLimit = 25f;
     /** 贴图名 (含 create- 前缀) */
     public String name;
+    /**
+     * ★ ribbon 拖尾鞭击: 在尾巴外侧叠加一条 additive 发光飘带。
+     *
+     * <p>方案 A (2.5D 叠加投影) 的延伸: 不引入真 3D 管线, 沿现有 15 节链条
+     * 用逐顶点着色的三角带 (Draw.vert) 画出"软边 + 炽白核心"两层飘带,
+     * 亮度按链条移动距离做脉冲滚动, 形成鞭击的残影感。</p>
+     */
+    public boolean ribbon = false;
+    /** 飘带宽度倍率 (相对尾巴贴图高度): 外层光晕 / 内层核心 */
+    public float ribbonWidthScl = 2.1f, ribbonCoreScl = 0.62f;
+    /** 飘带颜色 (根部 → 尖端) */
+    public Color ribbonColor = Color.valueOf("f53036"), ribbonTipColor = Color.valueOf("ffd8d0");
+    /** 飘带整体强度 */
+    public float ribbonIntensity = 0.85f;
+    /** 鞭击脉冲的空间间隔 (越大, 明暗节距越长) */
+    public float ribbonPulseSpacing = 18f;
+    /** 鞭击脉冲的周期缩放 (越大越慢) */
+    public float ribbonPulseScl = 30f;
+
+    // ★ 绘制用临时数组 (绘制线程单线程, 同类装饰共享)
+    private float[] ribbonXs = new float[32], ribbonYs = new float[32];
+    private final float[] ribbonVerts = new float[24];
+    private final Color ribbonTmp = new Color();
     /** 每节长度 / 总节数 */
     float segmentLength;
     int segments;
@@ -138,6 +164,9 @@ public class FlagellaDecorationType extends UnitDecorationType{
         float sz = unit.elevation > 0.5f ? (t.lowAltitude ? Layer.flyingUnitLow : Layer.flyingUnit) : t.groundLayer + Mathf.clamp(t.hitSize / 4000f, 0, 0.01f);
         sz = Math.min(sz - 0.01f, Layer.bullet - 1f);
 
+        // ★ ribbon 拖尾鞭击 (在尾巴贴图之下, 阴影之上; 尾巴摆动时可见发光残影)
+        if (ribbon) drawRibbon(Tmp.v1.x, Tmp.v1.y, d, sz);
+
         // 从尾尖 (end) 往回画到尾根, 贴图按节数比例从 tail-0 过渡到 tail-end
         while(cur != null){
             int reg = Mathf.clamp(regL - Mathf.round((idx / (float)segments) * regL), 0, regL);
@@ -169,6 +198,109 @@ public class FlagellaDecorationType extends UnitDecorationType{
             cur = cur.prev;
         }
         Draw.reset();
+    }
+
+    /**
+     * ★ ribbon 拖尾鞭击绘制 (方案 A: 逐顶点着色的 2.5D 三角带)。
+     *
+     * <p>步骤:</p>
+     * <ol>
+     *   <li>从尾根锚点到尾尖收集节点 (root → end, 共 segments+1 个点);</li>
+     *   <li>相邻两点按"中心差分法线"向两侧展开成四边形, 用 {@link Draw#vert} 提交,
+     *       每个顶点单独写颜色/透明度, 所以飘带有平滑的宽度与亮度渐变;</li>
+     *   <li>画两层: 外层宽而暗的光晕 + 内层窄而亮的炽白核心;</li>
+     *   <li>亮度用 {@code d.progress} 做脉冲, 每节相位错开, 形成沿尾巴流动的鞭击能量。</li>
+     * </ol>
+     *
+     * <p>性能: 15 节 × 2 层 × 4 条尾巴 = 120 次 quad 提交, 全部是一次性顶点数组,
+     * 无纹理采样压力, 也不做历史点缓存, 不会随移动距离增长。</p>
+     */
+    void drawRibbon(float rootX, float rootY, FlagellaDecoration d, float z){
+        if (regions.length == 0 || segments < 1) return;
+
+        int n = segments + 1;
+        if (ribbonXs.length < n) {
+            ribbonXs = new float[n];
+            ribbonYs = new float[n];
+        }
+        ribbonXs[0] = rootX;
+        ribbonYs[0] = rootY;
+        int count = 1;
+        for (FlagellaSegment c = d.root; c != null && count < n; c = c.next) {
+            ribbonXs[count] = c.x;
+            ribbonYs[count] = c.y;
+            count++;
+        }
+        if (count < 2) return;
+
+        // 基准宽度取尾巴贴图高度, 保证飘带比贴图宽 (露出光晕)
+        float baseW = Math.max(regions[0].height, end.height) * Draw.scl;
+        TextureRegion white = Core.atlas.white();
+        Texture tex = white.texture;
+        float u = white.u, v = white.v;
+        float mix = Color.white.toFloatBits();
+
+        Draw.z(z + 0.001f);
+        Draw.blend(Blending.additive);
+
+        // pass 0: 外层光晕; pass 1: 内层炽白核心
+        for (int pass = 0; pass < 2; pass++) {
+            float wMul = pass == 0 ? 1f : ribbonCoreScl;
+            float aMul = pass == 0 ? 0.34f : 1f;
+
+            for (int k = 0; k < count - 1; k++) {
+                float f0 = k / (float) (count - 1), f1 = (k + 1f) / (count - 1);
+
+                // 中心差分法线 (首尾退化为相邻段方向)
+                float dx0 = ribbonXs[Math.min(k + 1, count - 1)] - ribbonXs[Math.max(k - 1, 0)];
+                float dy0 = ribbonYs[Math.min(k + 1, count - 1)] - ribbonYs[Math.max(k - 1, 0)];
+                float dx1 = ribbonXs[Math.min(k + 2, count - 1)] - ribbonXs[k];
+                float dy1 = ribbonYs[Math.min(k + 2, count - 1)] - ribbonYs[k];
+
+                float inv0 = 1f / Math.max(0.0001f, Mathf.len(dx0, dy0));
+                float inv1 = 1f / Math.max(0.0001f, Mathf.len(dx1, dy1));
+                float nx0 = -dy0 * inv0, ny0 = dx0 * inv0;
+                float nx1 = -dy1 * inv1, ny1 = dx1 * inv1;
+
+                // 宽度: 根部最宽 → 尖端收束; 核心层再乘 ribbonCoreScl
+                float w0 = baseW * ribbonWidthScl * Mathf.lerp(1f, 0.22f, f0) * wMul;
+                float w1 = baseW * ribbonWidthScl * Mathf.lerp(1f, 0.22f, f1) * wMul;
+
+                // 鞭击脉冲: 相位随节数错开, 亮度沿尾巴流动
+                float pulse0 = Mathf.absin(d.progress - k * ribbonPulseSpacing, ribbonPulseScl, 1f);
+                float pulse1 = Mathf.absin(d.progress - (k + 1) * ribbonPulseSpacing, ribbonPulseScl, 1f);
+                float a0 = ribbonIntensity * aMul * (0.30f + 0.70f * pulse0) * (1f - 0.35f * f0);
+                float a1 = ribbonIntensity * aMul * (0.30f + 0.70f * pulse1) * (1f - 0.35f * f1);
+
+                float c0 = ribbonColorAt(f0, a0, pass == 1);
+                float c1 = ribbonColorAt(f1, a1, pass == 1);
+
+                float ax0 = ribbonXs[k] + nx0 * w0 * 0.5f, ay0 = ribbonYs[k] + ny0 * w0 * 0.5f;
+                float bx0 = ribbonXs[k] - nx0 * w0 * 0.5f, by0 = ribbonYs[k] - ny0 * w0 * 0.5f;
+                float ax1 = ribbonXs[k + 1] + nx1 * w1 * 0.5f, ay1 = ribbonYs[k + 1] + ny1 * w1 * 0.5f;
+                float bx1 = ribbonXs[k + 1] - nx1 * w1 * 0.5f, by1 = ribbonYs[k + 1] - ny1 * w1 * 0.5f;
+
+                // 4 顶点 = 1 quad (A0 → B0 → B1 → A1)
+                ribbonVerts[0] = ax0;  ribbonVerts[1] = ay0;  ribbonVerts[2] = c0; ribbonVerts[3] = u; ribbonVerts[4] = v; ribbonVerts[5] = mix;
+                ribbonVerts[6] = bx0;  ribbonVerts[7] = by0;  ribbonVerts[8] = c0; ribbonVerts[9] = u; ribbonVerts[10] = v; ribbonVerts[11] = mix;
+                ribbonVerts[12] = bx1; ribbonVerts[13] = by1; ribbonVerts[14] = c1; ribbonVerts[15] = u; ribbonVerts[16] = v; ribbonVerts[17] = mix;
+                ribbonVerts[18] = ax1; ribbonVerts[19] = ay1; ribbonVerts[20] = c1; ribbonVerts[21] = u; ribbonVerts[22] = v; ribbonVerts[23] = mix;
+
+                Draw.vert(tex, ribbonVerts, 0, ribbonVerts.length);
+            }
+        }
+
+        // 还原混合模式与层级
+        Draw.blend();
+        Draw.z(z);
+    }
+
+    /** 飘带顶点颜色: 根部猩红 → 尖端珊瑚; 核心层再混入白色 */
+    float ribbonColorAt(float f, float alpha, boolean core){
+        ribbonTmp.set(ribbonColor).lerp(ribbonTipColor, f);
+        if (core) ribbonTmp.lerp(Color.white, 0.45f);
+        ribbonTmp.a = Mathf.clamp(alpha);
+        return ribbonTmp.toFloatBits();
     }
 
     /** 沿轴节间距 = cosDeg(摆动角) × segmentLength (PU132 offset) */

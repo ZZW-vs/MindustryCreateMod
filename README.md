@@ -305,6 +305,11 @@
 - 合并时有烟雾效果和延迟检查
 
 ## 更新日志
+- **thalassophobia 鞭毛改为 ribbon 拖尾鞭击（方案 A：逐顶点着色 2.5D 三角带）**：
+  - `FlagellaDecorationType` 新增 `ribbon` 开关，在尾巴外侧叠加发光飘带；仅 thalassophobia 的 4 条鞭毛启用，其它装饰不受影响
+  - 沿 15 节链条用中心差分法线展开四边形，`Draw.vert` 逐顶点写颜色/透明度，宽度从根部到尖端平滑收束
+  - 两层绘制：外层宽而暗的光晕 + 内层窄而亮的炽白核心，叠加混合
+  - 亮度按 `progress` 做脉冲、每节相位错开，形成沿尾巴流动的鞭击能量；不做历史点缓存，绘制开销恒定
 - **quetzalcoatl 主炮体积光束特效（方案 A：2.5D 叠加投影）**：
   - 新增 `EndCutterLaserBulletType.volumetric` 模式，仅 apocalypse 主炮启用，tenmeikiri 等其它使用者保持原细线渲染
   - 体积壳：沿光束垂直方向 5 层平行切片，叠加混合形成柔和的圆柱截面

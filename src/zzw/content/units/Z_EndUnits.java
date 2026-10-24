@@ -429,6 +429,8 @@ public class Z_EndUnits {
                 y = -172f;
                 swayScl = hitSize / speed;
                 swayOffset = 67f;
+                // ★ 方案 A: ribbon 拖尾鞭击 (两层叠加飘带 + 沿尾巴滚动的鞭击脉冲)
+                ribbon = true;
             }});
 
             //region thalassophobia weapons
