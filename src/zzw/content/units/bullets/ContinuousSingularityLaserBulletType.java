@@ -18,7 +18,6 @@ import mindustry.gen.Groups;
 import mindustry.gen.Unit;
 import mindustry.graphics.Drawf;
 import mindustry.graphics.Layer;
-import zzw.content.graphics.BlackHoleSFX;
 import zzw.content.graphics.UnityPal;
 
 /**
@@ -61,6 +60,11 @@ public class ContinuousSingularityLaserBulletType extends AntiCheatBulletTypeBas
     public boolean fastUpdateLength = true;
     /** 穿透计分上限 (0 = 不穿透, 光束碰到大型目标即停) */
     public float pierceCap = 0f;
+    /**
+     * ★ 伤害/碰撞结算间隔 (tick)。PU132 原版为 5;
+     * 调小可让伤害生效更快 (thalassophobia 配成 2)。
+     */
+    public float damageInterval = 5f;
     public Color[] colors = {
         UnityPal.scarColor.cpy().a(0.4f), UnityPal.scarColor, UnityPal.endColor,
         Color.white, Color.black
@@ -88,12 +92,12 @@ public class ContinuousSingularityLaserBulletType extends AntiCheatBulletTypeBas
 
     @Override
     public float estimateDPS() {
-        return damage * (lifetime / 2f) / 5f * 3f;
+        return damage * (lifetime / 2f) / damageInterval * 3f;
     }
 
     @Override
     public float continuousDamage() {
-        return damage / 5f * 60f;
+        return damage / damageInterval * 60f;
     }
 
     /**
@@ -120,18 +124,8 @@ public class ContinuousSingularityLaserBulletType extends AntiCheatBulletTypeBas
      */
     @Override
     public void update(Bullet b) {
-        boolean timer = b.timer(0, 5f);
-
-        // ★ thalassophobia 专属美化: 不再往光束上打几个黑洞漩涡点 (圆形扭曲很奇怪),
-        //   改为一条线性引力透镜 —— 让光束两侧的空间沿法线被压向光束中线,
-        //   整根光束看起来像把周围空间"吸"进一条线。
-        //   strength 随光束伸长远端渐入, 1.0 时影响带宽约 30px、最大位移约 18px。
-        if (BlackHoleSFX.inst != null && b.fdata > 40f) {
-            float ex = b.x + Mathf.cosDeg(b.rotation()) * b.fdata;
-            float ey = b.y + Mathf.sinDeg(b.rotation()) * b.fdata;
-            float strength = Mathf.clamp(b.fdata / 260f) * Mathf.clamp(b.time / 10f);
-            BlackHoleSFX.inst.laser(b.x, b.y, ex, ey, strength);
-        }
+        // ★ 伤害/碰撞结算间隔 (tick): 越小伤害生效越快; thalassophobia 配成 2
+        boolean timer = b.timer(0, damageInterval);
 
         if (b.data instanceof VoidLaserData) {
             VoidLaserData data = (VoidLaserData)b.data;

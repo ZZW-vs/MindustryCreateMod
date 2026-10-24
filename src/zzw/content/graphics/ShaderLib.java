@@ -66,8 +66,6 @@ public class ShaderLib{
     public static StencilShader stencil;
     /** 黑洞/引力扭曲后处理着色器 (见 {@link BlackHoleShader})。 */
     public static BlackHoleShader blackHole;
-    /** 线性引力透镜着色器 (thalassophobia 奇异点光束, 见 {@link LaserDistortionShader})。 */
-    public static LaserDistortionShader laserDistortion;
 
     /** 公用帧缓冲: 碎裂 / 汽化特效共用 (仅当 begin() 与 end() 在同一函数内时使用)。 */
     public static FrameBuffer bufferAlt;
@@ -91,7 +89,6 @@ public class ShaderLib{
         vapourize = new VapourizeShader();
         stencil = new StencilShader();
         blackHole = new BlackHoleShader();
-        laserDistortion = new LaserDistortionShader();
 
         loaded = true;
     }
@@ -106,7 +103,6 @@ public class ShaderLib{
         if(vapourize != null){ vapourize.dispose(); vapourize = null; }
         if(stencil != null){ stencil.dispose(); stencil = null; }
         if(blackHole != null){ blackHole.dispose(); blackHole = null; }
-        if(laserDistortion != null){ laserDistortion.dispose(); laserDistortion = null; }
         if(bufferAlt != null){ bufferAlt.dispose(); bufferAlt = null; }
 
         loaded = false;
@@ -328,71 +324,6 @@ public class ShaderLib{
 
             setUniformi("u_holes_count", holes.size / 4);
             setUniform4fv("u_holes", uniforms.items, 0, uniforms.size);
-        }
-    }
-
-    /**
-     * 线性引力透镜着色器 (laserdistortion.frag)。
-     *
-     * <p>与黑洞的"圆形漩涡"不同, 这里把屏幕上一条线段两侧的内容沿法线压向该线段,
-     * 用于 thalassophobia 的奇异点光束: 看起来像光束把左右两侧的空间挤向中线。</p>
-     *
-     * <p>每条线 5 个 float: x1, y1, x2, y2, strength; 最多同时 4 条。</p>
-     */
-    public static class LaserDistortionShader extends Shader{
-        public static final int maxLines = 4;
-
-        /** 待投影的线段世界坐标。 */
-        public FloatSeq lines = new FloatSeq(maxLines * 5);
-        /** 投影后送 GPU 的端点数据 (每条 4 个 float)。 */
-        public FloatSeq uniforms = new FloatSeq(maxLines * 4);
-        /** ★ 两个独立缓存: Core.camera.project(float,float) 返回的是共享的 tmpVector,
-         * 同一条线的两个端点若都用它投影会互相覆盖 → 线段退化成点 (扭曲变成一个
-         * 藏在机体贴图下的小圆, 看起来就是"完全没效果")。 */
-        private final Vec2 vecA = new Vec2(), vecB = new Vec2();
-
-        public LaserDistortionShader(){
-            super(defaultVert, file("laserdistortion.frag").readString());
-        }
-
-        /** 追加一条线 (超过上限或强度非正时忽略)。 */
-        public void add(float x1, float y1, float x2, float y2, float strength){
-            if(lines.size >= maxLines * 5 || strength <= 0) return;
-            lines.add(x1, y1, x2, y2);
-            lines.add(strength);
-        }
-
-        @Override
-        public void apply(){
-            FrameBuffer b = BlackHoleSFX.inst.buffer;
-            setUniformf("u_texsize", b.getWidth(), b.getHeight());
-            setUniformf("u_camscl", mindustry.Vars.renderer.getDisplayScale());
-
-            uniforms.clear();
-            float[] items = lines.items;
-            float s0 = 0f, s1 = 0f, s2 = 0f, s3 = 0f;
-            int count = lines.size / 5;
-
-            for(int i = 0; i < count; i++){
-                int o = i * 5;
-                vecA.set(items[o], items[o + 1]);
-                vecB.set(items[o + 2], items[o + 3]);
-                arc.Core.camera.project(vecA);
-                arc.Core.camera.project(vecB);
-                uniforms.add(vecA.x, vecA.y, vecB.x, vecB.y);
-                float s = items[o + 4];
-                if(i == 0) s0 = s;
-                else if(i == 1) s1 = s;
-                else if(i == 2) s2 = s;
-                else s3 = s;
-            }
-
-            setUniformi("u_lines_count", count);
-            setUniform4fv("u_lines", uniforms.items, 0, uniforms.size);
-            setUniformf("u_s0", s0);
-            setUniformf("u_s1", s1);
-            setUniformf("u_s2", s2);
-            setUniformf("u_s3", s3);
         }
     }
 

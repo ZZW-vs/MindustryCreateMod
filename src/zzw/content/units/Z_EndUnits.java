@@ -580,6 +580,8 @@ public class Z_EndUnits {
                         oscScl = 5f;
                         buildingDamageMultiplier = 0.7f;
 
+                        // ★ 伤害结算间隔 5 tick → 2 tick: 激光伤害生效速度提升 2.5 倍
+                        damageInterval = 2f;
                         // ★ 伤害调整: 基础伤害 4500 → 189000 (13500 再 ×14), 超量伤害阈值 600000 → 900000 (×1.5)
                         overDamage = 900000f;
                         // ★ 最高伤害更猛: 超量伤害指数 3 → 4 (血量越高的目标承受的超量伤害增长越快)
