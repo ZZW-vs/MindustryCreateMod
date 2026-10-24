@@ -180,25 +180,32 @@ public class CombatFx{
     /* ==================== 弹道命中类 ==================== */
 
     /**
-     * 激光命中 (14f) —— 替代原版 {@code Fx.hitLancer}。
+     * 激光命中 (14f) —— 替代原版 {@code Fx.hitLaser}。
      *
-     * <p>★ 重写为十字星形态: 四向旋转主光线 + 斜向菱形碎片散射 +
-     * 极小白芯, 告别"扩散圆环"。</p>
+     * <p>★ 重写 (用户反馈末端的"白色 X"很丑): 原实现用 4 条 90° 均分的线
+     * (e.rotation + 90*i) 并在进度末尾混成纯白, 看起来就是一个白色十字/X。
+     * 新版改为:</p>
+     * <ul>
+     *   <li>沿弹道方向的正/反双向冲击线 (不再是规则十字)</li>
+     *   <li>4 个旋转方形碎片, 颜色只用弹色, 白混入上限 40%</li>
+     *   <li>弹色小芯, 替代原来的纯白圆点</li>
+     * </ul>
      */
     laserHit = new Effect(14f, e -> {
-        color(e.color, Color.white, e.fin());
-        for(int i = 0; i < 4; i++){
-            stroke(e.fout() * 1.5f + 0.3f);
-            lineAngle(e.x, e.y, e.rotation + 90f * i + e.finpow() * 80f, e.finpow() * 14f);
-        }
+        color(e.color);
+        stroke(e.fout() * 1.2f + 0.3f);
+        // 沿弹道的双向冲击线: 正向长、反向短
+        lineAngle(e.x, e.y, e.rotation, e.finpow() * 12f);
+        lineAngle(e.x, e.y, e.rotation + 180f, e.finpow() * 7f);
 
         randLenVectors(e.id, 4, e.finpow() * 15f, (x, y) -> {
             float a = Mathf.angle(x, y);
-            color(e.color, Color.white, e.fout());
+            color(e.color, Color.white, e.fout() * 0.4f);
             poly(e.x + x, e.y + y, 4, e.fout() * 2.2f + 0.5f, a + e.fin() * 60f);
         });
 
-        color(Color.white);
+        // 弹色小芯 (替代原白点)
+        color(e.color);
         circle(e.x, e.y, e.fout() * 2f);
 
         Drawf.light(e.x, e.y, e.fout() * 15f, e.color, 0.7f);

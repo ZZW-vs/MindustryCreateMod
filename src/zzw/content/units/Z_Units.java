@@ -819,11 +819,15 @@ public class Z_Units {
         // ★ 注册 devourer 段身配置 ★
         // PU132: segmentLength=60, segmentOffset=(41f*1.55)+7f ≈ 70.55f
         // PU132: splittable=false, chainable=false (不可分裂合并)
-        // PU132: 无 regen (初始就60段)
+        // ★ 用户需求: 加入"身段再生", 参数与 toxobyte 一致 (regenTime = 6f*60f)
+        //    段身改为可独立受伤 (splittable=true) → 被击毁后每 6 秒在尾部补回一节
+        //    preventSplit=true: 死段直接摘除, 不分裂出新虫 (避免复制出第二个满血 BOSS)
         // PU132 原版: segmentCast=7, anglePhysicsSmooth=0.5f, jointStrength=1f, preventDrifting=true, headOffset=27.75f
         SegmentWormEntity.configs.put(devourer.name,
-            new SegmentWormEntity.SegmentConfig(devourerSegment, 60, 70.55f, 0f, 60, false, false, false,
+            new SegmentWormEntity.SegmentConfig(devourerSegment, 60, 70.55f, 6f * 60f, 60, false, true, false,
                 30f, 6f, 0.1f, 1f, 7, 0.5f, true, 27.75f, 240f));
+        // ★ 只再生不分裂
+        SegmentWormEntity.configs.get(devourer.name).preventSplit = true;
         // 吞噬者: 每秒回120血
         SegmentWormEntity.configs.get(devourer.name).healPerSecond = 120f;
         // 吞噬者: 受到伤害 × 0.9 (减伤10%)
@@ -1084,7 +1088,7 @@ public class Z_Units {
             lowAltitude = true;
             rotateSpeed = 2.2f;
             engineSize = -1f;
-            armor = 30f;
+            armor = 100000f;  // ★ 用户指定: 30f → 100000f (近乎免疫常规弹丸)
             // PU132: angleLimit=35f
             // PU132: outlineColor=UnityPal.darkerOutline (#2e3142)
             outlineColor = Color.valueOf("2e3142");

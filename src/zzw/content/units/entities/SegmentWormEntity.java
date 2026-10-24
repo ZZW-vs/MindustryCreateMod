@@ -211,6 +211,10 @@ public class SegmentWormEntity extends UnitEntity {
     public boolean splittable = false;
     /** 是否启用链式合并 (PU132 chainable, 两条同类型虫子靠近时合并) */
     public boolean chainable = false;
+    /** ★ 段身死亡时是否禁止分裂出新虫
+     *  false: PU132 原版行为 (中段死亡 → 后半段变成新虫)
+     *  true: 只移除死亡段, 尾部重新衔接, 由 regenTime 慢慢补回 (不会复制 BOSS) */
+    public boolean preventSplit = false;
     /** 链式合并扫描计时器 (每 5 秒扫描一次附近尾部虫子) */
     protected float chainScanTimer = 0f;
     /** 分裂音效 (PU132 默认 Sounds.door) */
@@ -224,9 +228,7 @@ public class SegmentWormEntity extends UnitEntity {
     // ===== 防作弊系统 (移植自 PU132 EndWormUnit) =====
     /** 真实血量 (防止被外部代码直接修改 health 秒杀) */
     protected float lastHealth = 0f;
-    /** 无敌帧计时器 (30帧内免疫伤害, PU132 EndWormUnit.invTime) */
-    protected float invTime = 0f;
-    /** 抗性 (受击递增, 缓慢衰减, PU132 EndWormUnit.immunity) */
+    /** 抗性 (仅对单次超量伤害生效, 缓慢衰减, PU132 EndWormUnit.immunity) */
     protected float immunity = 1f;
     /** 流氓伤害抗性 (受击递增, 缓慢衰减, PU132 EndWormUnit.rogueDamageResist) */
     protected float rogueDamageResist = 1f;
@@ -253,6 +255,10 @@ public class SegmentWormEntity extends UnitEntity {
          *  true: 头部每 5 秒扫描附近尾部虫子, 合并成更长虫子
          *  false: 不合并 (默认) */
         public final boolean chainable;
+        /** ★ 段身死亡时是否禁止分裂出新虫 (构造后按单位单独设置, 默认 false)
+         *  false: PU132 原版行为 (中段死亡 → 后半段变成新虫)
+         *  true: 只移除死亡段, 尾部重新衔接, 由 regenTime 补回 (不会复制 BOSS) */
+        public boolean preventSplit = false;
         /** 段身朝向相对父段的最大角度差 (度, PU132 angleLimit)
          *  调小 = 段身更硬 (转向幅度小), 调大 = 段身更软 (转向幅度大)
          *  PU132 toxobyte 30f, arcnelidia 默认 25f */
@@ -415,7 +421,6 @@ public class SegmentWormEntity extends UnitEntity {
         super.update();
 
         // ★ 防秒杀: 抗性衰减 (PU132 EndWormUnit.update L38-43)
-        invTime += Time.delta;
         immunity = Math.max(1f, immunity - (Time.delta / 2f));
         rogueDamageResist = Math.max(1f, rogueDamageResist - Time.delta);
 
@@ -462,6 +467,7 @@ public class SegmentWormEntity extends UnitEntity {
                     wobbleEnabled = cfg.wobble;
                     splittable = cfg.splittable;
                     chainable = cfg.chainable;
+                    preventSplit = cfg.preventSplit;
                     angleLimit = cfg.angleLimit;
                     segmentDamageScl = cfg.segmentDamageScl;
                     healthDistributionRate = cfg.healthDistribution;
@@ -607,8 +613,9 @@ public class SegmentWormEntity extends UnitEntity {
         newSeg.isTail = true;
         newSeg.texturePrefix = type.name + "-";
         newSeg.elevation = elevation;
-        newSeg.health = health;
-        newSeg.maxHealth = maxHealth;
+        // ★ 不再用头部血量覆盖新段血量:
+        //   非分裂模式每帧会同步 health = head.health, 无需在此设置;
+        //   分裂模式(独立血量)必须保留 segmentType 自己的血量, 否则新段只有残余头部血量
         newSeg.dead = false;
         newSeg.add();
 
@@ -619,16 +626,21 @@ public class SegmentWormEntity extends UnitEntity {
     }
 
     /**
-     * ★ 防秒杀 damage (移植自 PU132 EndWormUnit.damage L103-113)
+     * ★ 防秒杀 damage (移植自 PU132 EndWormUnit.damage L103-113, v160 手感优化)
      *
-     * 三层防护:
-     * 1. 无敌帧 (30帧内免疫, invTime < 30f 时直接 return)
-     * 2. 单次最大伤害限制 = max(220, maxHealth/700), 超过部分转化为抗性
-     * 3. 抗性递增 (immunity + rogueDamageResist), 缓慢衰减
+     * <p>★ 用户反馈 End 单位"打不动", 原版三层防护的问题:</p>
+     * <ul>
+     *   <li>无敌帧 <b>15 tick</b>: 高射速武器 0.25 秒内只有 1 发生效, DPS 被硬压到 1/4</li>
+     *   <li>单次上限 <b>剩余血量 1%</b>: 大威力单发也被砍掉 99%</li>
+     *   <li>任何伤害都会叠加抗性, 打得越久越打不动</li>
+     * </ul>
      *
-     * 这样即使被代码 damage(99999999) 也不会被秒杀:
-     * - 99999999 / immunity / rogueDamageResist 后 clamp 到 max
-     * - 超出 max 的部分转化为 immunity 指数增长
+     * <p>★ 新规则 (仍保留防秒杀):</p>
+     * <ul>
+     *   <li>取消无敌帧: 每一发子弹都正常结算</li>
+     *   <li>单次上限 = max(2000, 剩余血量 5%): 正常武器伤害全额生效</li>
+     *   <li>只有超出上限的"超量伤害"(作弊/秒杀)才被 clamp, 并转化为抗性</li>
+     * </ul>
      */
     @Override
     public void damage(float amount) {
@@ -642,27 +654,27 @@ public class SegmentWormEntity extends UnitEntity {
         if (cfg != null && cfg.damageMultiplier != 1f) {
             amount *= cfg.damageMultiplier;
         }
+        if (Float.isNaN(amount) || Float.isInfinite(amount) || amount <= 0f) return;
 
-        // ★ 防秒杀: 无敌帧内免疫 (PU132 EndWormUnit L104)
-        if (invTime < 15f) return;
-        invTime = 0f;
+        // ★ 单次上限 = max(2000, 剩余血量 5%)
+        float max = Math.max(2000f, lastHealth / 20f);
+        float trueDamage = Math.min(amount, max);
 
-        // ★ 单次最大伤害 = max(220, 最大血量/700) (PU132 EndWormUnit L106)
-        float max = Math.max(500f, lastHealth / 100f);
-
-        // ★ 抗性减免后 clamp 限制 (PU132 EndWormUnit L107)
-        float trueDamage = Mathf.clamp((amount / immunity) / rogueDamageResist, 0f, max);
-
-        // ★ 抗性递增 (PU132 EndWormUnit L108-110)
-        rogueDamageResist += 0.5f;
-        max *= 1.2f;
-        float immunityAdd = (float)Math.pow(Math.max(amount - max, 0f) / max, 2) * 2f;
-        immunity += Math.min(immunityAdd, 50f);  // 限制单次增长上限为50
+        // ★ 只有超量伤害才触发抗性 (正常弹丸不再被抗性削减)
+        if (amount > max) {
+            rogueDamageResist = Math.min(rogueDamageResist + 0.5f, 5f);
+            float immunityAdd = (float)Math.pow((amount - max) / max, 2) * 2f;
+            immunity = Math.min(immunity + Math.min(immunityAdd, 10f), 100f);
+            trueDamage = max / immunity / rogueDamageResist;
+        }
 
         // ★ 扣真实血量
         lastHealth -= trueDamage;
         super.damage(trueDamage);
-        healthDistributionEfficiency = Mathf.clamp(healthDistributionEfficiency - (amount / 15f));
+
+        // ★ 血量分布效率: 按"本次伤害占最大血量的比例"衰减, 不再是一下子清零
+        healthDistributionEfficiency = Mathf.clamp(
+            healthDistributionEfficiency - amount / Math.max(1f, maxHealth) * 300f);
     }
 
     /**
@@ -921,8 +933,9 @@ public class SegmentWormEntity extends UnitEntity {
             // ★ Step 7: 同步到 Vec2 位置 (用于 draw 等)
             seg.set(segU.x, segU.y);
 
-            // 血量分布
-            if (healthDistributionRate > 0) distributeHealth(i);
+            // 血量分布 (★ 仅非分裂模式: 分裂模式段身拥有独立血量,
+            //   若仍做邻居平均会把受伤段身瞬间"回血", 导致段身永远打不死 → 再生失效)
+            if (!splittable && healthDistributionRate > 0) distributeHealth(i);
 
             // ★ Step 8: 更新 last 为当前段, 继续下一段
             last = segU;
@@ -1001,7 +1014,9 @@ public class SegmentWormEntity extends UnitEntity {
      *  ★ 分裂逻辑 (PU132 WormComp.remove L397-424):
      *  - splittable=true 且中间段身死亡: 后半段创建为新虫子
      *  - splittable=true 且尾部段身死亡: 直接移除尾部
-     *  - splittable=false: 伤害已转移给头部, 段身死亡只移除自己 */
+     *  - splittable=false: 伤害已转移给头部, 段身死亡只移除自己
+     *  ★ preventSplit=true: 不分裂, 中间段死亡后把死段从链条里摘掉, 后续段重新衔接,
+     *    再由 regenTime 每 6 秒补回一节 (用户需求: 只再生不分裂, 避免复制 BOSS) */
     public void onSegmentDied(SegmentUnitEntity seg) {
         int deadIdx = -1;
         for (int i = 0; i < segments.length; i++) {
@@ -1010,7 +1025,7 @@ public class SegmentWormEntity extends UnitEntity {
         if (deadIdx < 0) return;
 
         // ★ 分裂: 中间段身死亡, 后半段创建为新虫子 (PU132 splittable)
-        if (splittable && deadIdx < segments.length - 1) {
+        if (splittable && !preventSplit && deadIdx < segments.length - 1) {
             // 后半段段身 [deadIdx+1, end)
             int tailLen = segments.length - deadIdx - 1;
             SegmentUnitEntity[] tailSegs = new SegmentUnitEntity[tailLen];
@@ -1051,15 +1066,15 @@ public class SegmentWormEntity extends UnitEntity {
             } catch (Throwable t) {
                 Log.err("[分裂] 创建新头部失败", t);
             }
-        } else if (splittable && splitSound != null) {
+        } else if (splittable && !preventSplit && splitSound != null) {
             // 尾部段身死亡, 播放分裂音效
             splitSound.at(this);
         }
 
         // 从当前头部列表中移除死段及后半段 (分裂时后半段已转移给新头部)
-        int newLen = splittable ? deadIdx : 0;
-        if (!splittable) {
-            // 非分裂模式: 保留所有存活段身
+        int newLen = (splittable && !preventSplit) ? deadIdx : 0;
+        if (!splittable || preventSplit) {
+            // 非分裂 / 只再生不分裂: 保留所有存活段身 (死段被摘掉, 后续段自动衔接)
             for (SegmentUnitEntity s : segments) {
                 if (s != null && s != seg && s.isAdded()) newLen++;
             }
@@ -1069,7 +1084,7 @@ public class SegmentWormEntity extends UnitEntity {
         Vec2[] newVel = new Vec2[newLen];
         float[] newRot = new float[newLen];
         int idx = 0;
-        if (splittable) {
+        if (splittable && !preventSplit) {
             // 分裂模式: 只保留死段之前的段身 [0, deadIdx)
             for (int i = 0; i < deadIdx; i++) {
                 if (segments[i] != null && segments[i].isAdded()) {
@@ -1256,6 +1271,7 @@ public class SegmentWormEntity extends UnitEntity {
                 wobbleEnabled = cfg.wobble;
                 splittable = cfg.splittable;
                 chainable = cfg.chainable;
+                preventSplit = cfg.preventSplit;
                 angleLimit = cfg.angleLimit;
                 segmentDamageScl = cfg.segmentDamageScl;
                 healthDistributionRate = cfg.healthDistribution;
