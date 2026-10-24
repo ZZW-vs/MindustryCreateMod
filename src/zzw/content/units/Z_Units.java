@@ -899,6 +899,8 @@ public class Z_Units {
                 bullet = new EndRailBulletType() {{
                     damage = 15000f;
                     length = 850f;
+                    // ★ 炮口符文 (只在开火时生成一次, 不随弹体逐帧绘制)
+                    shootEffect = zzw.content.units.effects.RuneFx.railSeal;
                     collisionWidth = 4f;
                     // PU132: pierceDamageFactor=0.001 几乎不衰减穿透
                     pierceDamageFactor = 0.001f;
@@ -960,6 +962,8 @@ public class Z_Units {
                 bullet = new EndSweepLaser(7000f) {{
                     lifetime = 130f;
                     length = 850f;
+                    // ★ 炮口虚空收束阵 (开火瞬间一次)
+                    shootEffect = zzw.content.units.effects.RuneFx.sweepSeal;
                     overDamage = 640000f;
                     overDamagePower = 2.7f;
                     overDamageScl = 4000f;
@@ -1036,6 +1040,8 @@ public class Z_Units {
                     length = 800f;
                     width = 95f;
                     lifetime = 4f * 60f;
+                    // ★ 炮口双层菱形阵 (与门户菱形轮廓呼应)
+                    shootEffect = zzw.content.units.effects.RuneFx.portalSeal;
                     // 防作弊参数 (PU132 VoidPortal 原版配置)
                     ratioStart = 100000f;
                     ratioDamage = 1f / 60f;
@@ -1531,7 +1537,7 @@ public class Z_Units {
                 reload = 4f * 60f;
                 shootSound = zzw.content.Z_Sounds.devourerMainLaser;
 
-                bullet = new mindustry.entities.bullet.LaserBulletType(1700f) {{
+                bullet = new zzw.content.units.bullets.RunicLaserBulletType(1700f) {{
                     colors = new Color[]{Color.valueOf("f5303690"), Color.valueOf("f53036"), Color.valueOf("ff786e"), Color.white};
                     hitColor = Color.valueOf("f53036");
                     width = 30f;
@@ -1555,7 +1561,7 @@ public class Z_Units {
                 shoot.shotDelay = 2f;
                 shootSound = zzw.content.Z_Sounds.endMissile;
 
-                bullet = new mindustry.entities.bullet.MissileBulletType(6f, 170f) {{
+                bullet = new zzw.content.units.bullets.RunicMissileBulletType(6f, 170f) {{
                     lifetime = 55f;
                     frontColor = Color.valueOf("ff786e");
                     backColor = trailColor = lightColor = Color.valueOf("f53036");
@@ -1648,6 +1654,9 @@ public class Z_Units {
                     hitEffect = zzw.content.units.effects.CombatFx.laserHit;
 
                     laserColors = new Color[]{Color.valueOf("f5303690"), Color.valueOf("f53036"), Color.valueOf("ff786e"), Color.black};
+
+                    // ★ 两侧噩梦激光的菱形符文装饰 (枪口十字星阵 + 束内菱形 + 尖端高光)
+                    runic = true;
 
                     modules = new zzw.content.units.anticheat.AntiCheatBulletModule[]{
                         new zzw.content.units.anticheat.ArmorDamageModule(1f / 15f, 5f, 70f, 8f),

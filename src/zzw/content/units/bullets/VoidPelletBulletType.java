@@ -8,6 +8,8 @@ import arc.util.Time;
 import mindustry.content.Fx;
 import mindustry.gen.Bullet;
 import mindustry.graphics.Layer;
+import zzw.content.graphics.UnityPal;
+import zzw.content.units.effects.RuneFx;
 
 /**
  * 虚空弹丸 (完全复刻 PU132 VoidPelletBulletType)
@@ -63,12 +65,16 @@ public class VoidPelletBulletType extends AntiCheatBulletTypeBase {
     }
 
     /**
-     * ★ 完全按 PU132 原版 draw (L46-50)
-     * 纯黑色方块
+     * ★ 完全按 PU132 原版 draw (L46-50) 的纯黑方块,
+     * 额外叠加一层极弱的引力透镜 (弹体很小, 只做"光线被轻微弯折"的暗示)。
      */
     @Override
     public void draw(Bullet b) {
         drawTrail(b);
+
+        // 引力透镜: 透明度过低会看不见, 过高会喧宾夺主, 0.22 刚好
+        RuneFx.lens(b.x(), b.y(), b.rotation(), 9f, 0.22f, UnityPal.scarColor);
+
         Draw.color(Color.black);
         Fill.square(b.x(), b.y(), 2f, b.rotation() + 45f);
     }

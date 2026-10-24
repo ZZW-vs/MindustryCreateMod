@@ -38,6 +38,16 @@ public class Z_StatusEffects{
     /** 扭曲 (PU132 UnityStatusEffects.distort): 力场内单位移速降至 35% */
     public static StatusEffect distort;
 
+    /**
+     * 时间停止 (chronos 能力): 移速 / 转向 / 装填 / 伤害全部归零。
+     *
+     * <p>★ 替代 PU132 的全局 TimeStop 系统: v160 没有暂停世界的接口,
+     * 这里用三个归零倍率让敌方单位在时停期间"定住"—— 不移动、不转向、
+     * 装填条不前进、打出的子弹伤害为 0。已发射的旧子弹不受影响 (原版
+     * TimeStop 同样不暂停子弹实体)。</p>
+     */
+    public static StatusEffect timeStop;
+
     public static void load(){
         blueBurn = new StatusEffect("blue-burn"){{
             damage = 0.14f;
@@ -83,5 +93,16 @@ public class Z_StatusEffects{
                 }
             }
         };
+
+        // chronos 时间停止: 冻结敌方单位的移动/转向/装填/输出
+        timeStop = new StatusEffect("time-stop"){{
+            speedMultiplier = 0f;
+            reloadMultiplier = 0f;
+            damageMultiplier = 0f;
+            color = Color.valueOf("e04a50");
+            // 单位身上不额外喷粒子 (战场视觉交给 RuneFx.timeField 的大魔法阵)
+            effect = Fx.none;
+            show = false;
+        }};
     }
 }

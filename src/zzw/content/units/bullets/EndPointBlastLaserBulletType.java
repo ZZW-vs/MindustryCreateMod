@@ -1,5 +1,6 @@
 package zzw.content.units.bullets;
 
+import arc.graphics.Blending;
 import arc.graphics.Color;
 import arc.graphics.g2d.Draw;
 import arc.graphics.g2d.Fill;
@@ -7,12 +8,14 @@ import arc.graphics.g2d.Lines;
 import arc.math.Mathf;
 import arc.math.geom.Intersector;
 import arc.struct.IntSet;
+import arc.util.Time;
 import arc.util.Tmp;
 import mindustry.Vars;
 import mindustry.entities.Units;
 import mindustry.gen.Bullet;
 import mindustry.graphics.Drawf;
 import zzw.content.units.effects.HitEffect;
+import zzw.content.units.effects.RuneFx;
 
 /**
  * PU132 EndPointBlastLaserBulletType 移植版 (简化)
@@ -37,6 +40,13 @@ public class EndPointBlastLaserBulletType extends AntiCheatBulletTypeBase {
     public float auraWidthReduction = 3f;
     /** 多层颜色渲染 */
     public Color[] laserColors = {Color.white};
+
+    /**
+     * ★ 符文装饰开关 (ravager 两侧噩梦激光启用)。
+     *
+     * <p>其它使用者 (250 伤害的小型点爆激光) 保持原样, 避免视觉过度。</p>
+     */
+    public boolean runic = false;
 
     /** 去重集合 (每次 init 清空) */
     private static final IntSet collided = new IntSet();
@@ -168,6 +178,32 @@ public class EndPointBlastLaserBulletType extends AntiCheatBulletTypeBase {
         if (baseLen > 0) {
             Drawf.light(b.x(), b.y(), width * 1.4f * b.fout(), laserColors[0], 0.5f);
         }
+
+        // ★ 符文装饰 (ravager 两侧噩梦激光): 菱形主题, 与其它单位区分
+        if (runic && baseLen > 8f) {
+            float cx = Mathf.cosDeg(b.rotation()), cy = Mathf.sinDeg(b.rotation());
+            float fade = b.fout();
+
+            Draw.blend(Blending.additive);
+            // 枪口菱形阵 (旋转的十字星)
+            RuneFx.starSeal(b.x(), b.y(), width * 0.85f, Time.time * 2.4f, 0.6f * fade, laserColors[1]);
+
+            // 束内 2 个实心菱形, 随弹体推进轻微缩放
+            Draw.color(laserColors[1]);
+            Draw.alpha(0.55f * fade);
+            for (int i = 1; i <= 2; i++) {
+                float d = baseLen * i / 3f;
+                float s = width * (0.30f + 0.05f * Mathf.absin(Time.time + i * 30f, 6f, 1f));
+                Fill.poly(b.x() + cx * d, b.y() + cy * d, 4, s * fade, b.rotation() + 45f);
+            }
+
+            // 尖端菱形高光
+            Draw.color(Color.white);
+            Draw.alpha(0.75f * fade);
+            Fill.poly(b.x() + cx * baseLen, b.y() + cy * baseLen, 4, width * 0.26f * fade, b.rotation() + Time.time * 3f);
+            Draw.blend();
+        }
+
         Draw.blend();
         Draw.z(oldZ);
     }

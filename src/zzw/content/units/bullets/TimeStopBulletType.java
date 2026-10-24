@@ -3,11 +3,13 @@ package zzw.content.units.bullets;
 import zzw.content.units.anticheat.AntiCheatBulletModule;
 import zzw.content.units.anticheat.ArmorDamageModule;
 
+import arc.graphics.Blending;
 import arc.graphics.Color;
 import arc.graphics.g2d.Draw;
 import mindustry.content.Fx;
 import mindustry.gen.Bullet;
 import mindustry.graphics.Drawf;
+import zzw.content.units.effects.RuneFx;
 
 /**
  * 时间停止子弹 (移植自 PU132 TimeStopBulletType, 简化版)
@@ -34,13 +36,26 @@ public class TimeStopBulletType extends AntiCheatBulletTypeBase {
         };
     }
 
+    /**
+     * ★ 美化版绘制: 弹体本体变成一枚旋转的"钟面"符文 ——
+     * 12 刻度 + 时针/分针 + 中心白芯, 与 chronos 的时停主题呼应。
+     */
     @Override
     public void draw(Bullet b) {
         drawTrail(b);
-        Draw.color(trailColor);
-        Drawf.tri(b.x(), b.y(), trailWidth * 2 * 1.22f, 14f, b.rotation());
-        Drawf.tri(b.x(), b.y(), trailWidth * 2 * 1.22f, 7f, b.rotation() + 180f);
-        Draw.color();
+
+        float rot = b.rotation();
+
+        Draw.blend(Blending.additive);
+        // 钟面随弹体前进缓慢旋转, 指针始终指向飞行方向
+        RuneFx.clockFace(b.x(), b.y(), 7.5f, b.time * 3.2f, rot, 0.9f, trailColor);
+
+        // 前向尖刺 (保留原版的"突进"轮廓)
+        Draw.color(Color.white);
+        Draw.alpha(0.85f);
+        Drawf.tri(b.x(), b.y(), 3.2f, 13f, rot);
+        Draw.blend();
+        Draw.reset();
     }
 
     @Override
