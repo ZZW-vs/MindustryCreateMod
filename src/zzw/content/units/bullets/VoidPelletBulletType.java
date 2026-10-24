@@ -76,6 +76,7 @@ public class VoidPelletBulletType extends AntiCheatBulletTypeBase {
         RuneFx.lens(b.x(), b.y(), b.rotation(), 9f, 0.22f, UnityPal.scarColor);
 
         Draw.color(Color.black);
+        Draw.alpha(1f);
         Fill.square(b.x(), b.y(), 2f, b.rotation() + 45f);
     }
 
