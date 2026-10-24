@@ -346,6 +346,10 @@ public class ShaderLib{
         public FloatSeq lines = new FloatSeq(maxLines * 5);
         /** 投影后送 GPU 的端点数据 (每条 4 个 float)。 */
         public FloatSeq uniforms = new FloatSeq(maxLines * 4);
+        /** ★ 两个独立缓存: Core.camera.project(float,float) 返回的是共享的 tmpVector,
+         * 同一条线的两个端点若都用它投影会互相覆盖 → 线段退化成点 (扭曲变成一个
+         * 藏在机体贴图下的小圆, 看起来就是"完全没效果")。 */
+        private final Vec2 vecA = new Vec2(), vecB = new Vec2();
 
         public LaserDistortionShader(){
             super(defaultVert, file("laserdistortion.frag").readString());
@@ -371,9 +375,11 @@ public class ShaderLib{
 
             for(int i = 0; i < count; i++){
                 int o = i * 5;
-                Vec2 a = arc.Core.camera.project(items[o], items[o + 1]);
-                Vec2 c = arc.Core.camera.project(items[o + 2], items[o + 3]);
-                uniforms.add(a.x, a.y, c.x, c.y);
+                vecA.set(items[o], items[o + 1]);
+                vecB.set(items[o + 2], items[o + 3]);
+                arc.Core.camera.project(vecA);
+                arc.Core.camera.project(vecB);
+                uniforms.add(vecA.x, vecA.y, vecB.x, vecB.y);
                 float s = items[o + 4];
                 if(i == 0) s0 = s;
                 else if(i == 1) s1 = s;
