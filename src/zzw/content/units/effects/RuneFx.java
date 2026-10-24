@@ -119,32 +119,6 @@ public class RuneFx{
         Fill.circle(x, y, radius * 0.10f);
     }
 
-    /** 微弱引力透镜: 两条被拉弯的细弧 + 外侧暗环 (enigma 专用)。 */
-    public static void lens(float x, float y, float rotation, float radius, float alpha, Color color){
-        float px = -Mathf.sinDeg(rotation), py = Mathf.cosDeg(rotation);
-
-        Draw.blend(Blending.additive);
-        Draw.color(color);
-        Draw.alpha(alpha);
-
-        // 两侧向内弯折的短弧: 用两段折线近似
-        for(int s : Mathf.signs){
-            float ox = x + px * radius * s, oy = y + py * radius * s;
-            float bx = x + px * radius * 0.45f * s + Mathf.cosDeg(rotation) * radius * 0.9f;
-            float by = y + py * radius * 0.45f * s + Mathf.sinDeg(rotation) * radius * 0.9f;
-            Lines.stroke(radius * 0.09f);
-            Lines.line(x - Mathf.cosDeg(rotation) * radius * 0.9f + px * radius * s,
-                y - Mathf.sinDeg(rotation) * radius * 0.9f + py * radius * s, ox, oy, false);
-            Lines.line(ox, oy, bx, by, false);
-        }
-
-        // 中心压暗, 制造"光线被弯折"的错觉
-        Draw.blend();
-        Draw.color(Color.black);
-        Draw.alpha(alpha * 0.5f);
-        Fill.circle(x, y, radius * 0.55f);
-    }
-
     /* ==================== 炮口特效 (只在开火瞬间生成一次) ==================== */
 
     /**

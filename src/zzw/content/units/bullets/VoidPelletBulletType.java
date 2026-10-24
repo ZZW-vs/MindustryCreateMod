@@ -8,8 +8,7 @@ import arc.util.Time;
 import mindustry.content.Fx;
 import mindustry.gen.Bullet;
 import mindustry.graphics.Layer;
-import zzw.content.graphics.UnityPal;
-import zzw.content.units.effects.RuneFx;
+import zzw.content.graphics.BlackHoleSFX;
 
 /**
  * 虚空弹丸 (完全复刻 PU132 VoidPelletBulletType)
@@ -62,19 +61,24 @@ public class VoidPelletBulletType extends AntiCheatBulletTypeBase {
                 b.fdata(-361f);
             }
         }
+
+        // ★ 引力扭曲改由黑洞后处理着色器完成 (与黑洞炮共用同一条 GPU 管线)。
+        //   不再在 draw() 里画透镜: 着色器直接弯折屏幕背景, 才有真实的"空间被吸进去"感。
+        //   强度取 0.22 (黑洞炮是 1.5~4.0): 影响半径约 12px, 中心位移约 2px,
+        //   对 3px 的弹体刚好是"轻微扭曲", 不会喧宾夺主。
+        if (BlackHoleSFX.inst != null) {
+            BlackHoleSFX.inst.blackHole(b.x(), b.y(), 0.22f * b.fout(), -(b.time / 6f));
+        }
     }
 
     /**
-     * ★ 完全按 PU132 原版 draw (L46-50) 的纯黑方块,
-     * 额外叠加一层极弱的引力透镜 (弹体很小, 只做"光线被轻微弯折"的暗示)。
+     * ★ 完全按 PU132 原版 draw (L46-50): 纯黑方块 + 原版拖尾。
+     *
+     * <p>空间扭曲已移到 {@link #update} 交给黑洞着色器, 这里不再有任何 draw 特效。</p>
      */
     @Override
     public void draw(Bullet b) {
         drawTrail(b);
-
-        // 引力透镜: 透明度过低会看不见, 过高会喧宾夺主, 0.22 刚好
-        RuneFx.lens(b.x(), b.y(), b.rotation(), 9f, 0.22f, UnityPal.scarColor);
-
         Draw.color(Color.black);
         Draw.alpha(1f);
         Fill.square(b.x(), b.y(), 2f, b.rotation() + 45f);
