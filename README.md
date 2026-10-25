@@ -242,7 +242,8 @@
 - ★ 武器总数 21 门（主炮1 + 点防4 + end-mount8 + end-mount-2 8），对齐 PU132
 - 8 腿行走，每腿落地造成 1700 范围伤害
 - 免疫所有状态效果
-- ★ constructor 改用 `EndGroundUnit::create`（extends LegsUnit），同时具备防作弊系统和正常显示腿
+- ★ **陆地单位 + 低空飞行**（对照 FlameOut `flameout-despondency`）：新增专用实体 `DesolationUnit extends EndGroundUnit`，`flying = true; lowAltitude = true;` 且 `solidity()` 返回 null、`isGrounded()` 恒为 true —— 腿照常摆动，但可以直接跨过高墙/建筑；对空/对地武器的目标判定仍按地面单位处理
+- ★ constructor 改用 `DesolationUnit::create`（extends EndGroundUnit extends LegsUnit），同时具备防作弊系统、正常显示腿和跨墙低空特性
 
 ### 世界单位 (PU132 移植)
 

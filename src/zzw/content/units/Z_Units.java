@@ -75,6 +75,7 @@ import zzw.content.units.entities.SegmentWormEntity;
 import zzw.content.units.entities.SlowLightningEntity;
 import zzw.content.units.entities.TimeReflect;
 import zzw.content.units.entities.DecorationUnitEntity;
+import zzw.content.units.entities.DesolationUnit;
 import zzw.content.units.entities.WorldUnitEntity;
 import zzw.content.type.WorldUnitType;
 import zzw.content.units.rotor.Rotor;
@@ -184,6 +185,8 @@ public class Z_Units {
         ZEntityRegister.register(SegmentUnitEntity.class, SegmentUnitEntity::new);
         // ★ 注册 EndGroundUnit (End 阵营腿单位防作弊类, extends LegsUnit)
         ZEntityRegister.register(EndGroundUnit.class, EndGroundUnit::new);
+        // ★ 注册 DesolationUnit (desolation 专用: 陆地腿单位 + 低空飞行, 可跨墙)
+        ZEntityRegister.register(DesolationUnit.class, DesolationUnit::create);
         // ★ 注册 CopterUnitEntity (直升机单位, extends UnitEntity, 带旋翼渲染)
         ZEntityRegister.register(CopterUnitEntity.class, CopterUnitEntity::create);
         // ★ 注册 WorldUnitEntity (世界单位, extends UnitEntity, 携带子世界)
@@ -2192,8 +2195,12 @@ public class Z_Units {
             groundLayer = mindustry.graphics.Layer.flyingUnitLow + 1f;
             outlineColor = Color.valueOf("2e3142");  // PU132 UnityPal.darkerOutline
 
-            // ★ desolation (End 阵营 8 腿单位): 用 EndGroundUnit (extends LegsUnit), 有防作弊系统且能正常显示腿
-            constructor = EndGroundUnit::create;
+            // ★ desolation (End 阵营 8 腿单位): 用 DesolationUnit (extends EndGroundUnit),
+            //   保留防作弊系统与腿部显示, 同时带低空飞行特性 (可跨过高墙, 见 DesolationUnit)
+            flying = true;
+            lowAltitude = true;
+            canDrown = false;
+            constructor = DesolationUnit::create;
             aiController = () -> new mindustry.ai.types.GroundAI();
 
             // ===== 身后鞭子触手 (完整移植 PU132 NewTentacle, 4条×mirror=8条) =====
