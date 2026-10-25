@@ -311,6 +311,7 @@
   - **opticaecus 主炮（激光突刺）**：新 `RunicLaserBulletType`，枪口**六刻度**魔法阵 + 束内 3 个向前滚动并收束的符文环 + 尖端十字星芒
   - **opticaecus 两侧 doeg 发射器**：新 `RunicMissileBulletType`，弹尾左右各一条"撕裂"斜线，像空间被划开
   - **oppression 攻击特效**（55 段大体积单位，按性能优先设计）：不逐帧装饰弹体，而是给三件标志性武器各挂一个**只在开火瞬间生成一次**的炮口魔法阵 —— soul-destroyer 用快速旋转的 10 刻度猩红阵 + 扩散能量环，oppressor 用由外向内的黑色收束环 + 6 条符线，void 门户用双层菱形 + 四角短刺阵
+  - **ravager 数值对照与防作弊放宽**：`speed 0.5 → 0.65`、`outlineColor` 改用 `UnityPal.darkerOutline`（对齐 PU132）；防作弊曲线上限 `h/190 → h/60`（原版超过 ≈8684 的单次伤害会被曲线完全归零，导致高伤武器 0 伤害）、无敌帧 `4 槽 × 35t → 1 槽 × 10t`，单次上限 `h/560` 与抗性系统保留
   - **ravager 两侧噩梦激光**：`EndPointBlastLaserBulletType` 新增 `runic` 开关（仅 1500 伤害主激光启用），枪口十字星阵 + 束内 2 个实心菱形 + 尖端菱形高光，菱形主题与其它单位刻意区分
   - 全部图案只用 `Lines`/`Fill` 基础图元，单个图案 ≤ 30 图元，无纹理采样与逐帧 mesh
 - **thalassophobia 奇异点激光（已按反馈回滚 draw 重写，继续简化）**：

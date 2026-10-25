@@ -1590,15 +1590,21 @@ public class Z_Units {
         // ═══════════════════════════════════════════════════════════
         ravager = new zzw.content.type.UnityUnitType("ravager") {{
             health = 1650000f;
-            speed = 0.5f;
+            // ★ 对照 PU132 L4506: 原版 speed = 0.65 (此前误写 0.5)
+            speed = 0.65f;
             drag = 0.16f;
             armor = 15f;
             hitSize = 138f;
             rotateSpeed = 1.1f;
 
-            // PU132: antiCheatType = (h/610, h/190, h/560, h/120, 0.6, 7m, 8m, 35, 4)
+            // PU132 原版: antiCheatType = (h/610, h/190, h/560, h/120, 0.6, 7m, 8m, 35, 4)
+            // ★ 放宽到可击杀 (对照用户反馈):
+            //   - 曲线上限 maxDamageThreshold: h/190 → h/60 (原版超过 h/190≈8684 的伤害会被
+            //     曲线完全归零, 高伤武器打上去 0 伤害);
+            //   - 无敌帧: 4 槽 × 35 tick → 1 槽 × 10 tick (原版连续输出约 6 发/秒上限);
+            //   - 单次伤害上限 (h/560) 与抗性系统 (h/120, 0.6) 保留。
             antiCheatType = new zzw.content.units.anticheat.EndCheatVars(
-                health / 610f, health / 190f, health / 560f, health / 120f, 0.6f, 7f * 60f, 8f * 60f, 35f, 4);
+                health / 610f, health / 60f, health / 560f, health / 120f, 0.6f, 7f * 60f, 8f * 60f, 10f, 1);
 
             immunities.addAll(mindustry.Vars.content.getBy(mindustry.ctype.ContentType.status));
 
@@ -1618,7 +1624,7 @@ public class Z_Units {
 
             legSplashRange = 90f;
             legSplashDamage = 1400f;
-            outlineColor = Color.valueOf("1a1a2e");
+            outlineColor = zzw.content.graphics.UnityPal.darkerOutline;
             range = 500f;
             // ★ ravager (End 阵营): 用 EndGroundUnit (extends LegsUnit), 有防作弊系统且能正常显示腿
             constructor = EndGroundUnit::create;
