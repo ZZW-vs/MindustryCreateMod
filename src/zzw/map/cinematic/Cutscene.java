@@ -38,6 +38,8 @@ public class Cutscene{
 
     private final boolean isRoot;
     private boolean acting;
+    /** 客户端初始化是否已完成 (幂等保护: 重复 init 会因 root 已存在而抛异常) */
+    private static boolean initialized;
 
     protected Floatf<Cutscene> zoom = c -> Scl.scl(4f);
     protected Cutscene parent;
@@ -53,6 +55,9 @@ public class Cutscene{
 
     /** 客户端初始化: 创建 root 演出 + 上下黑边绘制元素 (每局游戏只调一次)。 */
     public static void init(){
+        if(initialized) return;
+        initialized = true;
+
         new Cutscene(true);
         Core.scene.add(new Element(){
             @Override

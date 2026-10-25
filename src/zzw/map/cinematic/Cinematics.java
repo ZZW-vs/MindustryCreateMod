@@ -71,6 +71,10 @@ public class Cinematics{
         }
         if(!bound) return;
 
+        // 演出期间冻结剧情判定: 避免"演出还没播完, 下一节点目标就已达成并触发下一段",
+        // 造成演出叠演出 / 打字机对话被跳过
+        if(acting()) return;
+
         nodes.each(StoryNode::update);
     }
 
@@ -81,6 +85,11 @@ public class Cinematics{
 
     public boolean valid(){
         return validator.get();
+    }
+
+    /** 当前是否有过场演出正在进行 (含结束后镜头拉回玩家的 52 帧)。 */
+    public static boolean acting(){
+        return Cutscene.root != null && Cutscene.root.acting();
     }
 
     public boolean bound(){

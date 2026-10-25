@@ -91,6 +91,10 @@ public class StoryNode{
             if(o.executed()) continue;
             if(o.shouldUpdate()) o.update();
             if(o.qualified()) o.execute();
+
+            // 目标执行可能已启动演出: 本帧不再继续判定本节点剩余目标,
+            // 防止多个 executor 在同一帧连锁触发
+            if(Cinematics.acting()) return;
         }
     }
 

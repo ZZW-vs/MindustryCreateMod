@@ -26,7 +26,10 @@ import static mindustry.Vars.*;
  * @author PU132 原作 (GlennFolker), 移植: zzw
  */
 public class ResourceAmountObj extends Objective{
+    /** HUD 面板的内层容器 (资源列表) */
     protected Table container;
+    /** HUD 面板的外层容器 (ui.hudGroup.fill 创建的表), 移除时整块删除避免残留空表 */
+    protected Table hudRoot;
 
     public ItemStack[] items = new ItemStack[0];
     public Team team;
@@ -42,8 +45,10 @@ public class ResourceAmountObj extends Objective{
     public void init(){
         super.init();
 
-        if(headless || completed) return;
+        // 幂等: 已创建过面板就不再重复创建 (剧情重新绑定时由 reset 先移除)
+        if(headless || completed || hudRoot != null) return;
         ui.hudGroup.fill(table -> {
+            hudRoot = table;
             table.name = name;
 
             table.actions(
@@ -124,15 +129,35 @@ public class ResourceAmountObj extends Objective{
     @Override
     public void stop(){
         super.stop();
-        if(container != null){
-            container.actions(
-                Actions.moveBy(-container.getWidth(), 0f, 2f, Interp.pow3In),
+
+        // 完成时内层滑出, 随后连同外层容器一起移除
+        if(container != null && hudRoot != null){
+            Table pane = container;
+            pane.actions(
+                Actions.moveBy(-pane.getWidth(), 0f, 2f, Interp.pow3In),
                 Actions.visible(false),
-                Actions.run(() -> {
-                    container.parent.removeChild(container);
-                    container = null;
-                })
+                Actions.run(this::removeHud)
             );
+        }else{
+            removeHud();
+        }
+    }
+
+    @Override
+    public void reset(){
+        super.reset();
+
+        // 剧情重新绑定 (切图/读档重进) 时立即移除旧面板, 防止 HUD 叠加
+        removeHud();
+    }
+
+    /** 移除本目标在 HUD 上的整块面板 (外层 fill 表一并删除)。 */
+    protected void removeHud(){
+        container = null;
+
+        if(hudRoot != null){
+            hudRoot.remove();
+            hudRoot = null;
         }
     }
 }

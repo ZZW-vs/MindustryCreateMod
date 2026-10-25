@@ -269,8 +269,10 @@ public class TestMod extends Mod{
         // 研究制 (2026-10): 挂树内容需研究解锁; 扭矩/坩埚/经验系等未挂树内容兜底直接解锁
         Z_TechTree.load();
 
-        // ★ 剧情系统 (PU132 Cutscene/Speeches/StoryNode 移植): 地图标签 create-nodes 驱动
-        zzw.content.Z_Story.load();
+        // ★ 剧情系统已停用 (2026-10): 框架代码保留在 zzw/map 与 Z_Story, 未删除;
+        //   当前没有任何地图带 create-nodes 声明、JSON 目标也无演出执行器, 暂不加载。
+        //   需要恢复时取消下面一行注释即可。
+        // zzw.content.Z_Story.load();
     }
     
     /**
