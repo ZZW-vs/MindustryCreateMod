@@ -367,7 +367,8 @@ public class Z_Torque{
         // 冷却液机制: 通水(8/秒) 散热更快, 最低降到 5℃; 通冷冻液(8/秒) 更快, 最低降到 -100℃
         smallRadiator = new HeatRadiator("small-radiator"){{
             requirements(Category.power, with(Z_Items.nickel, 30, Items.graphite, 30, Items.copper, 100, Z_Items.cupronickel, 30));
-            size = 1;
+            // ★ 用户调整: 尺寸 1x1 → 2x2 (对照 PU160 原版 YoungchaBlocks L555 size = 2)
+            size = 2;
             health = 1100;
             waterMinTemp = 278.15f;    // 5℃
             cryoMinTemp = 173.15f;     // -100℃
