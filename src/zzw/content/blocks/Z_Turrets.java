@@ -362,7 +362,7 @@ public class Z_Turrets {
             size = 12;
             health = 22000;
             // ★ 用户调整回归原版写法: 基础射程恢复 PU_V8 原值 370f, create-terminium 弹
-            //   的射程延伸改用原版 {@code BulletType.rangeChange} 机制 (+96f → 466f),
+            //   的射程延伸改用原版 {@code BulletType.rangeChange} 机制 (+224f → 594f),
             //   索敌/放置预览/子弹存活时间全套跟随原版 {@code TurretBuild.range()} 与
             //   {@code limitRange()} 自动换算 (见块尾 limitRange 调用)
             range = 370f;
@@ -475,7 +475,8 @@ public class Z_Turrets {
                 // ★ 射程延伸改用原版机制: {@code rangeChange} —— 索敌射程 ({@code TurretBuild.range()})
                 //   / 放置预览圈 / limitRange 存活时间换算全部自动跟随, 无需手调寿命
                 //   (原手调 lifetime=75f 只延长弹程, 索敌仍锁在炮台 range 上, 两套数值互相打架)
-                rangeChange = 96f;  // 基础 370f + 96f = 466f (+12 格)
+                // ★ 用户调整: 射程加成 12 格 → 28 格 (28 × 8 = 224f)
+                rangeChange = 224f;  // 基础 370f + 224f = 594f (+28 格)
                 width = 18f;
                 height = 27f;
                 hitSize = 6f;
@@ -483,7 +484,8 @@ public class Z_Turrets {
                 //   不再用随弹药颜色变化的 CombatFx.muzzleFlash (用户 2026-10-18 指定)
                 shootEffect = Fx.shootBig;
                 smokeEffect = Fx.shootBigSmoke;
-                ammoMultiplier = 4;
+                // ★ 用户调整: 装填倍率 4 → 8 (每份终末可装填的弹药量翻倍)
+                ammoMultiplier = 8;
                 homingPower = 0.09f;        // ★ 强追踪 ≈320°/s (moveToward 速度 = homingPower × 60°/tick)
                 homingRange = 96f;          // ★ 追踪索敌 12 格
                 pierce = true;
@@ -497,7 +499,7 @@ public class Z_Turrets {
             requirements(Category.turret, ItemStack.with(Items.copper, 2800, Items.graphite, 2980, Items.silicon, 2300, Items.titanium, 1900, Items.phaseFabric, 1760, Items.thorium, 1780, Z_Items.darkAlloy, 1280));
             // ★ 原版写法 (同原版 Blocks.java duo/scatter 的块尾 limitRange 调用):
             //   对全部弹药按「炮台射程 + 该弹 rangeChange + 裕量」自动换算存活时间 ——
-            //   石墨/硅/火成岩/钍/迪里姆 → 370f+裕量; terminum → 466f+裕量
+            //   石墨/硅/火成岩/钍/迪里姆 → 370f+裕量; terminum → 594f+裕量
             limitRange(12f);
         }};
 
