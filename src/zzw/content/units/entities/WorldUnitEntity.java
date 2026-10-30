@@ -1129,11 +1129,11 @@ public class WorldUnitEntity extends UnitEntity {
         if (unitWorld == null) return false;
         float r = -(rotation - 90f);
         out.set(worldX - x, worldY - y).rotate(r).add(subCX(), subCY());
-        // ★ 半格容差: 鼠标略超出平台边缘 (半格内) 仍算命中 ——
-        //   最边上一圈 tile 的贴边像素落在 platW/platH 边界之外, 严格判定
-        //   导致边缘方块"点了没反应"难以建造和拆除, 放宽半格改善手感
-        float half = Vars.tilesize / 2f;
-        return out.x >= -half && out.x < platW + half && out.y >= -half && out.y < platH + half;
+        // ★ 一格半容差: 甲板贴图上的棋盘格比实际建造网格外扩 (底边约一格半), 半格容差
+        //   会让这圈"看着是甲板"的边缘带点不上; 放宽后可命中, 实际落位由建造接管
+        //   按网格范围钳制到最近可落位格 (WorldUnitType.clampSubX/Y)
+        float pad = Vars.tilesize * 1.5f;
+        return out.x >= -pad && out.x < platW + pad && out.y >= -pad && out.y < platH + pad;
     }
 
     /**

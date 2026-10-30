@@ -652,6 +652,25 @@ public class WorldUnitType extends UnityUnitType {
     }
 
     /**
+     * 把光标的子世界 tile 坐标钳制到平台网格内 (按方块尺寸收紧).
+     * <p>甲板贴图上的棋盘格区域比实际建造网格略微外扩 (底边约一格), 光标落在这一圈
+     * "看着是甲板" 的边缘带时, 取整得到的 tile 会落到网格外 → 预览消失/永远无效.
+     * 这里把坐标吸附到最近的可落位格 (多方块按 {@link #canBuildSub} 的
+     * {@code offset = -(size-1)/2} 铺开规则收紧), 让最外一圈也能正常建造.</p>
+     */
+    private static int clampSubX(WorldUnitEntity w, int x, Block block) {
+        int size = block == null ? 1 : block.size;
+        int offset = -(size - 1) / 2;
+        return Mathf.clamp(x, -offset, Math.max(-offset, w.unitWorld.width() - size - offset));
+    }
+
+    private static int clampSubY(WorldUnitEntity w, int y, Block block) {
+        int size = block == null ? 1 : block.size;
+        int offset = -(size - 1) / 2;
+        return Mathf.clamp(y, -offset, Math.max(-offset, w.unitWorld.height() - size - offset));
+    }
+
+    /**
      * 建造接管主逻辑 (每帧由 {@link #updateInteraction} 调用).
      * <p>复刻原版拖拽体验 (光标落在平台范围内时作用于子世界):
      * <ul>
@@ -693,8 +712,9 @@ public class WorldUnitType extends UnityUnitType {
                               && !Core.scene.hasMouse();
         int tx = 0, ty = 0;
         if (hit != null) {
-            tx = World.toTile(tmpVec.x);
-            ty = World.toTile(tmpVec.y);
+            // ★ 钳制到网格内: 甲板边缘带 (贴图上看着能建、实际在网格外) 吸附到最近可落位格
+            tx = clampSubX(hit, World.toTile(tmpVec.x), in.block);
+            ty = clampSubY(hit, World.toTile(tmpVec.y), in.block);
         }
 
         // ===== 拖拽开始 =====
@@ -727,10 +747,12 @@ public class WorldUnitType extends UnityUnitType {
             } else {
                 buildPreviewUnit = subDragUnit;
                 if (Core.input.keyDown(Binding.select)) {
-                    // 光标移出平台也继续拖拽 (worldToSubPixel 越界时仍写出连续映射坐标)
+                    // 光标移出平台也继续拖拽 (worldToSubPixel 越界时仍写出连续映射坐标),
+                    // 端点同样钳制到网格, 拖到甲板外时线在边界处收住
                     subDragUnit.worldToSubPixel(mx, my, tmpVec);
                     updateSubLinePlans(subDragUnit, in.block, dragStartX, dragStartY,
-                        World.toTile(tmpVec.x), World.toTile(tmpVec.y), in.rotation);
+                        clampSubX(subDragUnit, World.toTile(tmpVec.x), in.block),
+                        clampSubY(subDragUnit, World.toTile(tmpVec.y), in.block), in.rotation);
                     // 拖拽中手动旋转 → 后续预览/提交改用手动朝向 (原版 overrideLineRotation 行为)
                     if ((int)Core.input.axisTap(Binding.rotate) != 0) {
                         subOverrideLineRotation = true;
@@ -745,8 +767,9 @@ public class WorldUnitType extends UnityUnitType {
             buildPreviewUnit = subDragUnit;
             if (Core.input.keyDown(Binding.breakBlock)) {
                 subDragUnit.worldToSubPixel(mx, my, tmpVec);
-                subDragCursorX = World.toTile(tmpVec.x);
-                subDragCursorY = World.toTile(tmpVec.y);
+                // 拆除框选端点同样钳制, 框不出网格 (避免外侧越界格被反复判无效)
+                subDragCursorX = clampSubX(subDragUnit, World.toTile(tmpVec.x), null);
+                subDragCursorY = clampSubY(subDragUnit, World.toTile(tmpVec.y), null);
             } else {
                 commitSubBreak(subDragUnit, dragStartX, dragStartY, subDragCursorX, subDragCursorY);
                 resetSubDrag();
