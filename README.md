@@ -261,6 +261,11 @@
   - 子世界里的主大地核心**不可拆除**；也**不能往子世界里放**新的大地核心
   - 读档后自动识别恢复主核心（扫描子世界内 TerraCore，无需存档格式变更）
 - **渲染升级**（PU132 altBatch 方案）：子世界渲染切换到独立 SpriteBatch + z 排序 —— 建筑内部自由切层（炮台热度发光/电力连线/传送带物品动画等）与原版渲染管线一致；每个建筑绘制**柔和阴影**（放大的黑色贴图，贴图边缘透明渐变形成模糊黑边）；建筑整体显示在单位甲板之上
+- **护盾渲染与原版一致**（修复"甲板护盾变成不透明色块" / "只显示一个框、框里的特效没了"）
+  - 原版护盾（`ForceProjector` / `BaseShield` 系列 / 护盾墙 / 单位 `ForceFieldAbility`·`ShieldArcAbility`）在开启动画护盾时**只画一个 alpha=1 的纯色多边形**，真正的"半透明 + 边缘高亮 + 斜向流光"来自 `Renderer` 在帧末对 `z ∈ [Layer.shields-1, Layer.shields+1]` 的绘制做离屏后处理（`effectBuffer` + `Shaders.shield`）
+  - 甲板是嵌套子场景（在单位的 `Draw.draw` 回调里、切到独立 batch 直渲染），它的绘制不进主批 z 排序队列 → 永远落在那个 z 区间之外：直接开动画分支是**不透明色块**，关掉动画分支又只剩**一圈描边**（没有流光）
+  - 现在甲板子场景统一走"非动画"分支作为底板（淡填充 + 细描边），再额外做一遍**原版同款离屏后处理**：清空 `effectBuffer` → 只把护盾几何（`drawShield()` 反射调用，护盾墙单独复刻 `Fill.square`）画进去 → `Shaders.shield` 叠回主帧缓冲；单位护盾同理（遍历 `ForceFieldAbility` / `ShieldArcAbility` 的 `draw`）
+  - 兼容性：任何带无参 `drawShield()` 的方块（原版 `BaseShield`/`ForceProjector`、本模组 `ShieldWall`/`ClassicProjector`）以及原版 `ShieldWall` 自动生效，无需逐个方块登记；关闭"动画护盾"设置时自动退回原版描边外观；没有护盾的子世界直接跳过该 pass（零额外开销）
 - **长方形碰撞箱**：与子世界平台同样大小（72x152 像素），随单位旋转
   - 敌方子弹打在整个平台范围被要塞吸收（不再穿过平台）
   - 原版悬停检测覆盖全平台

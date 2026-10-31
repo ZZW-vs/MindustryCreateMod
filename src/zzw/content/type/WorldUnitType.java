@@ -27,6 +27,9 @@ import mindustry.Vars;
 import mindustry.ai.types.CommandAI;
 import mindustry.content.Blocks;
 import mindustry.core.World;
+import mindustry.entities.abilities.Ability;
+import mindustry.entities.abilities.ForceFieldAbility;
+import mindustry.entities.abilities.ShieldArcAbility;
 import mindustry.entities.units.BuildPlan;
 import mindustry.entities.units.UnitController;
 import mindustry.game.EventType;
@@ -39,6 +42,7 @@ import mindustry.graphics.Drawf;
 import mindustry.graphics.Layer;
 import mindustry.graphics.LightRenderer;
 import mindustry.graphics.Pal;
+import mindustry.graphics.Shaders;
 import mindustry.input.Binding;
 import mindustry.input.DesktopInput;
 import mindustry.input.InputHandler;
@@ -53,6 +57,7 @@ import zzw.ui.SubConfigFragment;
 import zzw.ui.SubInventoryFragment;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 
 import static mindustry.Vars.ui;
 
@@ -132,6 +137,172 @@ public class WorldUnitType extends UnityUnitType {
         }
         return v;
     }
+
+    // ===== 子世界护盾离屏后处理 =====
+    //
+    // 原版护盾 (ForceProjector / BaseShield / 护盾墙 / ForceFieldAbility 等) 在
+    // animateShields 开启时只画一个 alpha=1 的纯色多边形 (Fill.poly / Fill.square),
+    // 真正的"半透明 + 边缘高亮 + 斜向流光"外观来自 Renderer 在全帧末尾对
+    // z ∈ [Layer.shields - 1, Layer.shields + 1] 的绘制做离屏后处理
+    // (effectBuffer + Shaders.shield)。
+    //
+    // 子世界是一个嵌套子场景 (在单位的 Draw.draw 回调里、切到独立 batch 直渲染),
+    // 它的绘制不进主批的 z 排序队列, 永远落在这个区间之外 —— 直接开动画分支只会得到
+    // "完全不透明的色块", 关掉动画分支又只剩一圈描边 (没有流光)。
+    //
+    // 这里在子场景里额外做一遍同样的后处理: 清空离屏缓冲 → 只把护盾几何 (alpha=1)
+    // 画进去 → 用 Shaders.shield 叠加回主帧缓冲。着色器读的是 Core.camera,
+    // 所以建筑 pass 里是子世界相机 (流光相对甲板坐标连续), 单位 pass 里是主世界相机
+    // (单位本来就在主世界坐标绘制) —— 观感与原版完全一致。
+
+    /** 无参 drawShield() 方法缓存 (按建筑类)。 */
+    private static final arc.struct.ObjectMap<Class<?>, Method> shieldMethodCache = new arc.struct.ObjectMap<>();
+
+    /**
+     * 该建筑类是否有无参 {@code drawShield()}。
+     * <p>原版 {@code BaseShield}/{@code ForceProjector}、本模组 {@code ShieldWall}/{@code ClassicProjector}
+     * 都把它单独抽成了方法; 找不到的方块 (护盾内联在 draw() 里的少数情况) 返回 null。</p>
+     */
+    private static Method shieldMethod(Class<?> c) {
+        if (shieldMethodCache.containsKey(c)) return shieldMethodCache.get(c);
+
+        Method m = null;
+        for (Class<?> k = c; k != null && k != Building.class; k = k.getSuperclass()) {
+            try {
+                m = k.getDeclaredMethod("drawShield");
+                m.setAccessible(true);
+                break;
+            } catch (NoSuchMethodException ignored) {
+                // 继续往父类找
+            } catch (Throwable ignored) {
+                break;
+            }
+        }
+        shieldMethodCache.put(c, m);
+        return m;
+    }
+
+    /** 该建筑是否是"有护盾可画"的方块 (用于跳过没有护盾的子世界, 避免白跑后处理)。 */
+    private static boolean hasShieldGeometry(Building b) {
+        if (b instanceof mindustry.world.blocks.defense.ShieldWall.ShieldWallBuild sw) {
+            return sw.shieldRadius > 0f;
+        }
+        return shieldMethod(b.getClass()) != null;
+    }
+
+    /** 只把护盾几何画进当前帧缓冲 (不画建筑本体), 供离屏后处理采样。 */
+    private static void drawShieldGeometry(Building b) {
+        // 原版 ShieldWall 的护盾内联在 draw() 里 (没有独立方法) → 复刻它的填充部分
+        // (原版 ShieldWall.ShieldWallBuild#draw: Fill.square(x, y, shieldRadius * ts * size / 2))
+        if (b instanceof mindustry.world.blocks.defense.ShieldWall.ShieldWallBuild sw) {
+            if (sw.shieldRadius <= 0f) return;
+            float radius = sw.shieldRadius * Vars.tilesize * sw.block.size / 2f;
+            Draw.z(Layer.shields);
+            // hit 在 Wall.WallBuild 里是 protected, 这里取不到 → 不额外混白,
+            // 受击闪白仍由上面本体 pass 的描边表现
+            Draw.color(sw.team.color);
+            Fill.square(sw.x, sw.y, radius);
+            Draw.reset();
+            return;
+        }
+
+        Method m = shieldMethod(b.getClass());
+        if (m == null) return;
+        try {
+            m.invoke(b);
+        } catch (Throwable ignored) {
+            // 反射失败当作没有护盾, 不影响建筑本体渲染
+        }
+    }
+
+    /**
+     * 甲板建筑护盾后处理。
+     * <p>调用时相机/投影/世界都处于子世界上下文, 护盾几何自己就落在子世界坐标上,
+     * 画进离屏缓冲后再用原版 {@link Shaders#shield} 叠加。</p>
+     */
+    private static void drawDeckBuildShields(Seq<Building> build) {
+        boolean any = false;
+        for (int i = 0; i < build.size; i++) {
+            if (hasShieldGeometry(build.get(i))) {
+                any = true;
+                break;
+            }
+        }
+        if (!any) return;
+
+        boolean oldAnimate = Vars.renderer.animateShields;
+        // 动画分支: 只画 alpha=1 的纯色几何 (后处理靠 a>0.9 判定边缘, 透明色拿不到)
+        Vars.renderer.animateShields = true;
+
+        Draw.flush();       // 已绘制的甲板内容先落到主帧缓冲
+        Draw.sort(false);   // 关闭排序: 护盾几何立即写进离屏缓冲, 而不是排队等后处理结束
+
+        Vars.renderer.effectBuffer.begin(Color.clear);
+        Draw.reset();
+        for (int i = 0; i < build.size; i++) {
+            drawShieldGeometry(build.get(i));
+        }
+        Draw.flush();
+
+        Vars.renderer.effectBuffer.end();
+        Vars.renderer.effectBuffer.blit(Shaders.shield);
+
+        Draw.reset();
+        Draw.sort(true);
+        Vars.renderer.animateShields = oldAnimate;
+    }
+
+    /** 该单位的护盾是否来自能力 (ForceFieldAbility / ShieldArcAbility), 即需要后处理的多边形护盾。 */
+    private static boolean hasShieldAbility(Unit u) {
+        for (Ability a : u.abilities) {
+            if (a instanceof ForceFieldAbility || a instanceof ShieldArcAbility) return true;
+        }
+        return false;
+    }
+
+    /**
+     * 甲板携带单位的护盾后处理。
+     * <p>调用时相机/投影已还原成主世界 (单位坐标本来就是主世界坐标), 所以这里
+     * 直接用主相机把护盾几何画进离屏缓冲, 再叠加 {@link Shaders#shield}。</p>
+     */
+    private static void drawDeckUnitShields(WorldUnitEntity w) {
+        boolean any = false;
+        for (int i = 0; i < w.subUnits.size; i++) {
+            Unit u = w.subUnits.get(i);
+            if (u.dead || !u.isAdded()) continue;
+            if (hasShieldAbility(u)) {
+                any = true;
+                break;
+            }
+        }
+        if (!any) return;
+
+        boolean oldAnimate = Vars.renderer.animateShields;
+        Vars.renderer.animateShields = true;
+
+        Draw.flush();
+        Vars.renderer.effectBuffer.begin(Color.clear);
+        Draw.reset();
+
+        for (int i = 0; i < w.subUnits.size; i++) {
+            Unit u = w.subUnits.get(i);
+            if (u.dead || !u.isAdded()) continue;
+            for (Ability a : u.abilities) {
+                if (a instanceof ForceFieldAbility || a instanceof ShieldArcAbility) {
+                    Draw.reset();
+                    a.draw(u);
+                }
+            }
+        }
+        Draw.flush();
+
+        Vars.renderer.effectBuffer.end();
+        Vars.renderer.effectBuffer.blit(Shaders.shield);
+
+        Draw.reset();
+        Vars.renderer.animateShields = oldAnimate;
+    }
+
 
     // ===== 子世界光源坐标修正 =====
     //
@@ -357,12 +528,11 @@ public class WorldUnitType extends UnityUnitType {
                 //   即使某次渲染异常未恢复, 也会被 WorldUnitEntity.update() 开头的 healWorldLeak() 兜底
                 WorldUnitEntity.pushWorld(world);
 
-                // ★ 护盾半透明修复: animateShields 开启时原版护盾走 Renderer 的
-                //   drawRange(Layer.shields) → effectBuffer 离屏缓冲 + Shaders.shield
-                //   后处理管线 (半透明流光外观); 子世界手动直渲染没走该管线,
-                //   Fill.poly 以 alpha=1 纯色画出 → 护盾/力墙变成不透明"图形"。
-                //   渲染期间临时关闭 → 护盾走半透明分支 (0.09 alpha 填充 + 描边),
-                //   画完立即恢复, 不影响主世界护盾动画
+                // ★ 护盾: 子世界内容统一走"非动画"分支, 只作为底板 (淡填充 + 细描边),
+                //   真正的半透明流光外观由下面的 drawDeckBuildShields / drawDeckUnitShields
+                //   用原版离屏后处理补上 (见文件上方"子世界护盾离屏后处理"说明)。
+                //   动画分支的 Fill.poly 是 alpha=1 纯色, 必须经 Renderer 的 effectBuffer +
+                //   Shaders.shield 才会变成半透明; 嵌套子场景不在那个 z 区间里, 直接开就是色块。
                 boolean oldAnimateShields = Vars.renderer.animateShields;
                 Vars.renderer.animateShields = false;
 
@@ -417,7 +587,13 @@ public class WorldUnitType extends UnityUnitType {
                     }
                 }
 
-                Vars.renderer.animateShields = oldAnimateShields;
+                // ★ 建筑护盾后处理: 只把护盾几何画进离屏缓冲, 再用原版 Shaders.shield
+                //   叠加 (半透明填充 + 边缘高亮 + 斜向流光)。开启原版动画护盾时才有意义,
+                //   关闭时保持上面"非动画"分支的原版描边外观
+                boolean animatedShields = oldAnimateShields && Shaders.shield != null;
+                if (animatedShields) {
+                    drawDeckBuildShields(build);
+                }
 
                 // ★ 建造光束: 单位中心 → 正在建造/拆除的脚手架 (原版 BuilderComp.drawBuildingBeam 观感:
                 // 橙色三角光束 + 目标方块角标 + 单位端脉冲方点, 拆除时红色)
@@ -548,6 +724,15 @@ public class WorldUnitType extends UnityUnitType {
                     Draw.z(Layer.darkness + 1.2f);
                     u.draw();
                 }
+
+                // ★ 携带单位的护盾后处理: 单位本体走的是"非动画"护盾 (淡填充 + 描边),
+                //   这里再用原版 Shaders.shield 叠加半透明流光。相机/投影已还原成主世界,
+                //   单位坐标本来就是主世界坐标, 直接画即可
+                if (animatedShields) {
+                    drawDeckUnitShields(w);
+                }
+
+                Vars.renderer.animateShields = oldAnimateShields;
             });
         }
 
