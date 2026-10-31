@@ -127,7 +127,7 @@ public class Z_EndUnits {
             speed = 0.75f;
             accel = 0.06f;
             drag = 0.06f;
-            armor = 17f;
+            armor = 14500f;  // ★ End 阵营护甲: 按用户指定数值
             hitSize = 205f;
             rotateSpeed = 0.3f;
             // v158.1 已移除 visualElevation (PU132: 3f)
@@ -405,6 +405,7 @@ public class Z_EndUnits {
             speed = 1.9f;
             accel = 0.2f;
             drag = 0.16f;
+            armor = 17600f;  // ★ End 阵营护甲: 按用户指定数值
             rotateSpeed = 0.3f;
             outlineColor = UnityPal.darkerOutline;
 

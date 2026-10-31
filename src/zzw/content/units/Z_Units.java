@@ -635,7 +635,7 @@ public class Z_Units {
             health = 2500000f;  // ★ 提高段身血量 (头部1250000×2), 避免段身太脆
             speed = 0f;
             hitSize = 52f;  // 原 40f + 12 (用户要求加大12)
-            armor = 16f;  // ★ 提高护甲与头部一致 (原8f)
+            armor = 12500f;  // ★ 段身护甲与头部对齐 (原 16f, 避免头尾强度差过大)
             flying = true;
             rotateSpeed = 1f;
             faceTarget = false;
@@ -742,7 +742,7 @@ public class Z_Units {
             engineSize = -1f;
             lowAltitude = true;
             rotateSpeed = 2.2f;
-            armor = 16f;
+            armor = 12500f;  // ★ End 阵营护甲: 按用户指定数值
             range = 480f;
             outlineColor = Color.valueOf("282828");
             faceTarget = false;
@@ -868,7 +868,7 @@ public class Z_Units {
             speed = 0f;
             // ★ hitSize=180 (用户指定)
             hitSize = 180f;
-            armor = 30f;  // ★ 提高护甲与头部一致 (原10f)
+            armor = 100000f;  // ★ 段身护甲与头部对齐 (原 30f, 避免头尾强度差过大)
             flying = true;
             rotateSpeed = 1f;
             faceTarget = false;
@@ -1356,7 +1356,7 @@ public class Z_Units {
             hitSize = 12f;
             engineOffset = 8f;
             engineSize = 1f;
-            armor = 4f;
+            armor = 150f;  // ★ End 阵营护甲: 按用户指定数值
             rotateSpeed = 5f;
             range = 200f;
             outlineColor = Color.valueOf("2e3142");
@@ -1396,7 +1396,7 @@ public class Z_Units {
             engineSize = 1.5f;
             flying = true;
             lowAltitude = true;
-            armor = 8f;
+            armor = 300f;  // ★ End 阵营护甲: 按用户指定数值
             rotateSpeed = 4f;
             range = 300f;
             outlineColor = Color.valueOf("2e3142");
@@ -1475,7 +1475,7 @@ public class Z_Units {
             engineSize = 4f;
             flying = true;
             lowAltitude = true;
-            armor = 12f;
+            armor = 900f;  // ★ End 阵营护甲: 按用户指定数值
             rotateSpeed = 3f;
             range = 510f;
             outlineColor = Color.valueOf("2e3142");
@@ -1521,7 +1521,7 @@ public class Z_Units {
             flying = true;
             lowAltitude = true;
             circleTarget = false;
-            armor = 12f;
+            armor = 5000f;  // ★ End 阵营护甲: 按用户指定数值
             rotateSpeed = 3f;
             range = 400f;
             outlineColor = Color.valueOf("1a1a2e");
@@ -1596,7 +1596,7 @@ public class Z_Units {
             // ★ 对照 PU132 L4506: 原版 speed = 0.65 (此前误写 0.5)
             speed = 0.65f;
             drag = 0.16f;
-            armor = 15f;
+            armor = 15500f;  // ★ End 阵营护甲: 按用户指定数值
             hitSize = 138f;
             rotateSpeed = 1.1f;
 
@@ -2153,7 +2153,7 @@ public class Z_Units {
             health = 307300f;
             speed = 0.55f;
             drag = 0.16f;
-            armor = 35f;
+            armor = 18900f;  // ★ End 阵营护甲: 按用户指定数值
             hitSize = 257f;
             rotateSpeed = 0.9f;
 

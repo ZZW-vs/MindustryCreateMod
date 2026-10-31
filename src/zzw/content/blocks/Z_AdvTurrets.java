@@ -35,10 +35,12 @@ import zzw.content.blocks.soul.SoulLifeStealerTurret;
 import zzw.content.blocks.soul.SupernovaTurret;
 import zzw.content.blocks.turrets.EndLaserTurret;
 import zzw.content.blocks.turrets.EndGameTurret;
+import zzw.content.blocks.turrets.LonginusTurret;
 import zzw.content.blocks.turrets.ObjPowerTurret;
 import zzw.content.blocks.turrets.PrismTurret;
 import zzw.content.blocks.turrets.WavefrontTurret;
 import zzw.content.units.bullets.EndCutterLaserBulletType;
+import zzw.content.units.bullets.LonginusSpearBulletType;
 import zzw.content.units.bullets.PointBlastLaserBulletType;
 import zzw.content.units.bullets.WavefrontLaserBulletType;
 import zzw.content.units.effects.ChargeEffect;
@@ -83,6 +85,8 @@ public class Z_AdvTurrets {
     // ===== End 阵营非 3D 炮台 =====
     public static EndLaserTurret tenmeikiri;
     public static EndGameTurret endGame;
+    // ===== 朗基努斯 (整杆枪飞出、装填时飞回底座) =====
+    public static LonginusTurret longinus;
     // ===== 3D 模型炮台 (伪 3D, WavefrontObject) =====
     public static ObjPowerTurret cube;
     public static WavefrontTurret wavefront;
@@ -649,6 +653,41 @@ public class Z_AdvTurrets {
             loopSoundVolume = 0.2f;
             consumeItem(Z_Items.terminum, 2);
             coolant = consumeCoolant(0.6f);
+            coolant.boost();
+        }};
+
+        // ===== longinus (朗基努斯: 整杆枪飞出, 装填时飞回底座) =====
+        // 视觉方案:
+        //   - 炮塔贴图 = 那杆长枪本身 (despondency-spear.png, 9.5 格长)
+        //   - 开火瞬间枪从底座消失, 子弹绘制成同一杆枪飞出去
+        //   - 装填到 58% 后枪从前方飞回并淡入, 装填完成刚好插回底座
+        //   - 枪不在时底座中心播放空枪座能量环
+        longinus = new LonginusTurret("longinus") {{
+            requirements(Category.turret, ItemStack.with(
+                Items.phaseFabric, 1200, Items.surgeAlloy, 1600,
+                Z_Items.darkAlloy, 900, Z_Items.terminum, 400, Z_Items.terminaAlloy, 120));
+            health = 14500;
+            size = 6;
+            range = 480f;             // 15 格
+            reload = 5f * 60f;        // 5 秒一发
+            rotateSpeed = 2.2f;
+            shootCone = 5f;
+            inaccuracy = 0f;
+            recoil = 12f;
+            targetBlocks = false;     // 只锁定单位, 不锁定建筑
+            consumePower(120f);
+            absorbLasers = true;
+            shootSound = Z_Sounds.tenmeikiriShoot;
+
+            // 弹药: 终末 (一发一杆枪)
+            ammo(Z_Items.terminum, new LonginusSpearBulletType(12f, 1000000f) {{
+                lifetime = 48f;       // 12 * 48 = 576 单位, 略高于射程
+                drag = 0f;
+            }});
+
+            // 冷却液提高射速 (和 end 系炮台一致)
+            coolantMultiplier = 0.5f;
+            coolant = consumeCoolant(0.5f);
             coolant.boost();
         }};
     }
