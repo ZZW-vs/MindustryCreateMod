@@ -570,6 +570,14 @@ public class Light implements QuadTree.QuadTreeObject {
         return parentsAny(parents -> parents.containsKey(light));
     }
 
+    /** 第一个父光 (无父光时 null); 供甲板归属判定沿父链回溯, 无额外分配 */
+    Light firstParent() {
+        synchronized (parents) {
+            for (var e : parents.entries()) return e.key;
+        }
+        return null;
+    }
+
     void parent(Light light, float mult) {
         parents(parents -> parents.put(light, mult));
     }
