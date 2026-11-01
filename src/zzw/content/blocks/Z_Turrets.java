@@ -247,7 +247,7 @@ public class Z_Turrets {
         ghost = new BarrelsItemTurret("ghost") {{
             size = 8;
             health = 9750;
-            range = 322f;  // ★ 用户调整: 范围 +4 格 (原 290f)
+            range = 365f;  // ★ 用户调整: 范围 +4 格 (原 290f) → 档位重排再抬到 365, 保证 8 格炮台射程高于 5 格的 apparition (355)
             reload = 8.5f;  // ★ 用户调整: 射速微加 (原 9f)
             coolantMultiplier = 0.5f;
             inaccuracy = 3f;
@@ -365,7 +365,7 @@ public class Z_Turrets {
             //   的射程延伸改用原版 {@code BulletType.rangeChange} 机制 (+224f → 594f),
             //   索敌/放置预览/子弹存活时间全套跟随原版 {@code TurretBuild.range()} 与
             //   {@code limitRange()} 自动换算 (见块尾 limitRange 调用)
-            range = 370f;
+            range = 385f;  // ★ 档位重排: 原 370, 抬到 385 保持 12 格炮台 > ghost (365)
             reload = 12f;
             coolantMultiplier = 0.5f;
             inaccuracy = 3f;
@@ -907,7 +907,7 @@ public class Z_Turrets {
             health = 4000;
             size = 5;
             reload = 90f;
-            range = 250f;
+            range = 275f;  // ★ 档位重排: 原 250, 抬到 275 保证 5 格炮台 > proton(245)/neutron(235)
             rotateSpeed = 2.5f;
             shootCone = 20f;
             heatColor = Pal.turretHeat;
@@ -967,7 +967,7 @@ public class Z_Turrets {
             health = 4000;
             size = 5;
             reload = 40f;
-            range = 230f;
+            range = 265f;  // ★ 档位重排: 原 230, 抬到 265 (原值比 4 格的 proton/neutron 还低)
             shootCone = 20f;
             heatColor = Pal.turretHeat;
             rotateSpeed = 2.7f;
@@ -1017,7 +1017,7 @@ public class Z_Turrets {
             //   → 每次只发 1 颗, 双炮管交替 (v158 用 ShootAlternate + shots=1 复刻)
             reload = 13f;
             shoot = new ShootAlternate(17.25f);
-            range = 260f;
+            range = 300f;  // ★ 档位重排: 原 260, 抬到 300 保证 6 格炮台 > 5 格的 wBoson(275)/zBoson(265)
             shootCone = 20f;
             heatColor = Pal.turretHeat;
             rotateSpeed = 2.2f;
@@ -1124,7 +1124,7 @@ public class Z_Turrets {
             requirements(Category.turret, ItemStack.with(Items.silicon, 290, Z_Items.luminum, 430, Items.titanium, 190, Items.thorium, 120, Z_Items.lightAlloy, 25));
             size = 8;
             health = 9800;
-            range = 310f;
+            range = 340f;  // ★ 档位重排: 原 310 (与 7 格的 singularity 相同), 抬到 340
             shoot = new ShootSpread(9, 12f);
             shoot.shots = 9;
             reload = 90f;
@@ -1446,7 +1446,7 @@ public class Z_Turrets {
             requirements(Category.turret, ItemStack.with(Items.titanium, 360, Items.thorium, 630, Items.silicon, 240, Z_Items.sparkAlloy, 420));
             health = 3650;
             size = 5;
-            range = 480f;  // 统一为 60 格显示 (60 × tilesize 8 = 480)
+            range = 520f;  // ★ 档位重排: 原 480, 抬到 520, 保证 5 格炮台射程不低于 4 格的 plasma(520)
             minRange = 60f;
             reload = 320f;
             shootCone = 20f;

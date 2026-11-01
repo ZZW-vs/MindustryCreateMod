@@ -443,7 +443,8 @@ public class Z_AdvTurrets {
             shootCone = 15f;
             // ★ 范围一致性修复: 显示圈 = 实际光束长度 (PU132 length=280),
             //   之前 range=250 < length=280, 玩家看到的目标在圈内却打不到/反之
-            range = 280f;
+            // ★ 档位重排: 原 range/length 均为 280, 比 4 格的 prism(320) 还短; 两者同步抬到 330
+            range = 330f;
             shootSound = Z_Sounds.supernovaShoot;
             loopSound = Z_Sounds.supernovaActive;
             loopSoundVolume = 1f;
@@ -473,7 +474,7 @@ public class Z_AdvTurrets {
                 });
 
                 {
-                    length = 280f;
+                    length = 330f;  // ★ 与 range 同步 (原 280)
                     colors = new Color[]{
                         Color.valueOf("4be3ca55"),
                         Color.valueOf("91eedeaa"),
