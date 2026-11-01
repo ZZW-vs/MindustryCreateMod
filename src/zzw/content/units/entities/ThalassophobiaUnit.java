@@ -88,6 +88,8 @@ public class ThalassophobiaUnit extends DecorationUnitEntity implements WaterMov
 
     /** 死亡拒绝+复活: 台账未耗尽时播放红色蓄力特效并复活 */
     private boolean denyDeath() {
+        // ★ 终局炮台封印: 被湮灭时不走任何复活逻辑
+        if (zzw.util.ReviveSeal.isSealed(this)) return false;
         if (ac != null && trueHealth > 0f) {
             health = Math.max(health, Math.min(trueHealth, maxHealth));
             hitTime = 1f;

@@ -93,7 +93,7 @@ public class EndGroundUnit extends LegsUnit {
         //   死亡拒绝永远不触发 (PU132 的 health 由原版 rawDamage 扣减, 与此不同步)
         if (maxHealth < trueMaxHealth || Float.isNaN(maxHealth)) maxHealth = trueMaxHealth;
         trueMaxHealth = maxHealth;
-        if (trueHealth > 0f) dead = false;
+        if (trueHealth > 0f && !zzw.util.ReviveSeal.isSealed(this)) dead = false;
 
         // 抗性衰减 (按单位配置参数 resistDuration, 无配置回退 6*60)
         float resistDuration = ac != null ? ac.resistDuration : 6f * 60f;
@@ -221,6 +221,8 @@ public class EndGroundUnit extends LegsUnit {
      * 台账 (trueHealth) 未耗尽时, 播放红色蓄力特效并复活。
      */
     private boolean denyDeath() {
+        // ★ 终局炮台封印: 被湮灭时不走任何复活逻辑
+        if (zzw.util.ReviveSeal.isSealed(this)) return false;
         if (trueHealth > 0f) {
             // 狂暴: 4 倍速 + 持续 10 秒 (PU32 aggression=4, aggressionTime=10*60)
             aggression = 4f;
@@ -256,7 +258,7 @@ public class EndGroundUnit extends LegsUnit {
 
     @Override
     public void remove() {
-        if (trueHealth > 0f && health > 0f) return;
+        if (!zzw.util.ReviveSeal.isSealed(this) && trueHealth > 0f && health > 0f) return;
         // 真实死亡: 从全局防作弊登记表注销 (PU132 EndComp.remove)
         zzw.util.AntiCheat.removeUnit(this);
         super.remove();

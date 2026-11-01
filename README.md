@@ -314,6 +314,12 @@
 - 合并时有烟雾效果和延迟检查
 
 ## 更新日志
+- **终局炮台（`end-game`）湮灭强化：防复活 + 逆天攻击 + 性能优化**
+  - **新增防复活封印 `ReviveSeal`**：被湮灭的单位会被打上 600 tick 的封印，本项目 `EndInvisibleUnit` / `EndGroundUnit` / `EndLegsUnit` / `ThalassophobiaUnit` / `SegmentWormEntity` 在 `denyDeath` / `kill` / `destroy` / `remove` / `dead` 回填时先查询封印，命中即跳过所有复活逻辑 —— 修复「秒杀后原地满血复活」
+  - **嵌套血量台账清理**：这些 End 单位的防作弊台账藏在 `antiCheat.lastHealth` / `ac + trueHealth` 等嵌套对象里，旧实现只清单位自身字段，台账仍有余额导致 `denyDeath` 把血回满。新增 `clearLedgerObjects` 递归清理嵌套对象
+  - **彻底杀死 FlameOut 共鸣（Empathy）**：除原有的复活注册表摘除（`units` / `excludeSeq` / `empathyMap` …）外，新增关闭 `FlameSettings.empathyRespawn` 全局开关、并把 `EmpathyDamage.spawner` 的 `active / shouldSpawn / spawned / disabled` 全部压成「不再生成」，避免 5 分钟后被刷回来
+  - **移植 FlameOut 两种逆天攻击作为额外秒杀层**：`applyDespondencySpear`（消沉式长矛贯穿，直接写入 `maxHealth + 1000` 伤害）、`applyEmpathyCollapse`（共鸣式黑洞坍缩，5 段 `maxHealth/5` 连续写入），绕开一切防作弊上限
+  - **性能优化**：跨模组反射查找（`Class.forName` / `getDeclaredField`）按单位类缓存；反子弹扫描由两次空间查询合并为一次（顺带避免破片伤害重复计算）；`hardRemove` 仅在单位仍挂在世界里时才扣队伍人数
 - **散热器尺寸修正**：`small-radiator` 由 1x1 改为 **2x2**（贴图本就是 64×64，对齐 PU160 原版 `size = 2`）
 - **banshee 终末弹强化**：`create-terminum` 的射程加成 `+96f → +224f`（+12 格 → **+28 格**，总射程 370 → 594）；弹药装填倍率 `ammoMultiplier 4 → 8`（每份终末可装填的弹药量翻倍）
 - **End 单位攻击视觉升级（6 套互不重复的符文/魔法阵主题）**：

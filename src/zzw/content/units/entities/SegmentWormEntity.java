@@ -415,7 +415,7 @@ public class SegmentWormEntity extends UnitEntity {
             health = lastHealth;
         }
         // 只有在非主动死亡状态下才设dead=false (防止被外部代码误标dead)
-        if (lastHealth > 0f && health > 0f && lastHealth > 100f) dead = false;
+        if (lastHealth > 0f && health > 0f && lastHealth > 100f && !zzw.util.ReviveSeal.isSealed(this)) dead = false;
         lastHealth = health;
 
         super.update();
@@ -683,7 +683,7 @@ public class SegmentWormEntity extends UnitEntity {
      */
     @Override
     public void kill() {
-        if (endCheat && lastHealth > 100f) {
+        if (endCheat && lastHealth > 100f && !zzw.util.ReviveSeal.isSealed(this)) {
             // 还有血量时拒绝死亡，但不再增加大量抗性
             immunity += 100f;
             // ★ 复活表现 (PU132 EndComp): 血量回充 + 红色粒子蓄力特效
@@ -705,7 +705,7 @@ public class SegmentWormEntity extends UnitEntity {
      */
     @Override
     public void destroy() {
-        if (endCheat && lastHealth > 100f) {
+        if (endCheat && lastHealth > 100f && !zzw.util.ReviveSeal.isSealed(this)) {
             // ★ 复活表现 (PU132 EndComp): 血量回充 + 红色粒子蓄力特效
             immunity += 3500f;
             health = Math.max(health, lastHealth);
@@ -984,7 +984,7 @@ public class SegmentWormEntity extends UnitEntity {
      *  ★ 防秒杀: lastHealth > 0 时拒绝移除 (PU132 EndWormUnit.remove L72-85) */
     @Override
     public void remove() {
-        if (lastHealth > 100f) {
+        if (!zzw.util.ReviveSeal.isSealed(this) && lastHealth > 100f) {
             immunity += 3500f;
             return;
         }

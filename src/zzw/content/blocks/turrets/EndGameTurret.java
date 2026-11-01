@@ -27,6 +27,11 @@ import mindustry.graphics.Drawf;
 import mindustry.world.blocks.defense.turrets.PowerTurret;
 import mindustry.world.meta.Stat;
 import zzw.content.Z_Sounds;
+
+import java.lang.reflect.Field;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import zzw.content.units.effects.ScarFx;
 import zzw.content.units.effects.SlowLightning;
 import zzw.content.units.effects.SpecialFx;
@@ -89,6 +94,13 @@ public class EndGameTurret extends PowerTurret {
 
     /** 眼睛数量: 内环 8 只 + 外环 8 只。 */
     public static final int eyeCount = 16;
+
+    // ===== 反射缓存 (性能优化) =====
+    // 湮灭流程原本每次击杀都会 Class.forName + 逐层 getDeclaredField, 终局齐射范围内
+    // 可能有上百个单位, 反射开销会直接拖慢帧率。这里把 "单位类 → 字段" 与
+    // "单位类 → 外部模组类" 的查找结果缓存起来, 后续击杀只做一次 Map 查询。
+    private static final Map<Class<?>, Map<String, Field>> fieldCache = new ConcurrentHashMap<>();
+    private static final Map<Class<?>, Map<String, Class<?>>> modClassCache = new ConcurrentHashMap<>();
 
     /** 眼睛目标刷新计时器索引 (PU132 eyeTime)。 */
     protected int eyeTime = timers++;
@@ -218,6 +230,8 @@ public class EndGameTurret extends PowerTurret {
         protected int shouldLaser = 0;
         /** 复用的实体收集缓存 (PU132 entitySeq)。 */
         protected final Seq<Entityc> entitySeq = new Seq<>(512);
+        /** 与 {@link #entitySeq} 平行的每发子弹威力缓存 (避免在反子弹扫描中重复计算破片伤害)。 */
+        protected final arc.struct.FloatSeq bulletDamages = new arc.struct.FloatSeq();
         /** 本炮台当前存活的所有慢速闪电。 */
         protected final Seq<SlowLightning> lightnings = new Seq<>();
         /** 同时存在的慢速闪电数量上限 (需求: 比原版少一些)。 */
@@ -654,30 +668,40 @@ public class EndGameTurret extends PowerTurret {
             if(trueEff > 0.0001f && timer.get(bulletTime, 4f / Math.max(trueEff, 0.001f))){
                 damageFull = 0f;
 
+                // ★ 性能优化: 原版做了两次空间查询 (第一次求和, 第二次判定并移除)。
+                //   这里合并为一次查询: 收集子弹的同时记录每发威力, 第二轮只遍历已收集的列表,
+                //   既省掉一次 Groups.bullet.intersect, 也避免对同一发子弹重复计算破片伤害。
+                entitySeq.clear();
+                bulletDamages.clear();
                 Groups.bullet.intersect(x - range, y - range, range * 2f, range * 2f, b -> {
                     if(Mathf.within(x, y, b.x, b.y, range) && b.team != team){
-                        damageFull += bulletDamage(b.type);
+                        float d = bulletDamage(b.type);
+                        damageFull += d;
+                        entitySeq.add(b);
+                        bulletDamages.add(d);
                     }
                 });
 
-                Groups.bullet.intersect(x - range, y - range, range * 2f, range * 2f, b -> {
-                    if(Mathf.within(x, y, b.x, b.y, range) && b.team != team){
-                        damageB = bulletDamage(b.type);
-                        boolean ownerOut = b.owner != null && !ownerWithin(b.owner);
+                boolean killed = false;
+                for(int i = 0; i < entitySeq.size; i++){
+                    Bullet b = (Bullet)entitySeq.get(i);
+                    damageB = bulletDamages.get(i);
+                    boolean ownerOut = b.owner != null && !ownerWithin(b.owner);
 
-                        if(damageB > 1600f || b.type.splashDamageRadius > 120f || damageFull + damageB > 13000f || ownerOut){
-                            entitySeq.add(b);
-                            Object[] data = {new Vec2(x + (eyeOffset.x * 2f), y + (eyeOffset.y * 2f)), new Vec2(b.x, b.y), 0.625f};
-                            ScarFx.endgameLaser.at(x, y, 0f, data);
+                    if(damageB > 1600f || b.type.splashDamageRadius > 120f || damageFull + damageB > 13000f || ownerOut){
+                        killed = true;
+                        Object[] data = {new Vec2(x + (eyeOffset.x * 2f), y + (eyeOffset.y * 2f)), new Vec2(b.x, b.y), 0.625f};
+                        ScarFx.endgameLaser.at(x, y, 0f, data);
+                        try{
+                            b.remove();
+                        }catch(Throwable ignored){
                         }
                     }
-                });
-
-                if(!entitySeq.isEmpty()) Z_Sounds.endgameSmallShoot.at(x, y);
-                for(int i = 0; i < entitySeq.size; i++){
-                    entitySeq.get(i).remove();
                 }
+
+                if(killed) Z_Sounds.endgameSmallShoot.at(x, y);
                 entitySeq.clear();
+                bulletDamages.clear();
             }
         }
 
@@ -815,20 +839,38 @@ public class EndGameTurret extends PowerTurret {
         void annihilateUnit(Unit u){
             if(u == null) return;
 
+            // ★ 第 0 层: 复活封印 —— 本项目 End 单位与 FlameOut 共鸣都会在 kill/remove
+            //   里检查自己的血量台账并复活; 打上封印后这些实体直接跳过复活逻辑。
+            zzw.util.ReviveSeal.seal(u);
+
             // 外部 "复活注册表" (FlameOut EmpathyDamage) 的启用开关,
             // 必须在整段击杀流程里保持关闭, 否则 remove() 时会 duplicate() 重生。
-            Class<?> reviveRegistry = findModClass(u, "flame.unit.empathy.EmpathyDamage");
+            Class<?> reviveRegistry = findModClassCached(u, "flame.unit.empathy.EmpathyDamage");
             Boolean reviveWasOn = disableExternalRevive(reviveRegistry);
+            // ★ FlameOut 共鸣的 5 分钟后自动重生总开关 (FlameSettings.empathyRespawn)
+            Boolean respawnWasOn = disableFlameRespawn(u);
 
             try{
+                // ★ 第 1 层: 清除各类 "防秒杀/死亡拒绝" 字段 (含 antiCheat/ac 嵌套台账)
                 clearProtectionFields(u);
 
+                // ★ 第 2 层: 摘除外部复活注册表并关闭共鸣的复活生成器
                 if(reviveRegistry != null){
                     purgeReviveRegistry(reviveRegistry, u);
+                    neutralizeReviveSpawner(reviveRegistry);
                 }
 
+                // ★ 第 3 层: 打穿模组的 "独立血量池"
                 breakExternalTrueHealth(u);
 
+                // ★ 第 4 层: 移植 FlameOut 的两种 "逆天攻击" 作为额外秒杀手段
+                //   消沉 (Despondency) 的长矛贯穿: 直接注入 maxHealth + 1000 的伤害,
+                //   绕开一切防作弊上限 —— 原版武器就是这么强杀的。
+                applyDespondencySpear(u);
+                //   共鸣 (Empathy) 的黑洞坍缩: 5 段 maxHealth/5 连续写入。
+                applyEmpathyCollapse(u);
+
+                // ★ 第 5 层: 血量归零 → 正常击杀链 (kill/destroy/remove 都已被封印放行)
                 try{
                     if(u.health > 0f) u.health = 0f;
                 }catch(Throwable ignored){
@@ -853,13 +895,36 @@ public class EndGameTurret extends PowerTurret {
                     }
                 }
 
-                // 最终兜底: 只有重写了 remove()/destroy() 并拒绝死亡的单位才会走到这里
-                if(u.isAdded()){
-                    hardRemove(u);
+                // ★ 第 6 层: 兜底 —— 标记 dead 并直接从实体组摘除。
+                //   即使单位重写了 remove()/destroy() 并拒绝死亡, 这里也能保证它消失。
+                try{
+                    u.dead = true;
+                }catch(Throwable ignored){
                 }
+                hardRemove(u);
             }catch(Throwable ignored){
             }finally{
                 restoreExternalRevive(reviveRegistry, reviveWasOn);
+                restoreFlameRespawn(u, respawnWasOn);
+            }
+        }
+
+        /** ★ 消沉式长矛贯穿: 直接写入 {@code maxHealth + 1000} 的伤害 (移植 EndDespondencyWeapon)。 */
+        protected void applyDespondencySpear(Unit u){
+            try{
+                u.health -= u.maxHealth() + 1000f;
+            }catch(Throwable ignored){
+            }
+        }
+
+        /** ★ 共鸣式黑洞坍缩: 分 5 段写入 {@code maxHealth/5} 的伤害 (移植 BlackHoleAttack)。 */
+        protected void applyEmpathyCollapse(Unit u){
+            float chunk = u.maxHealth() / 5f;
+            for(int i = 0; i < 5; i++){
+                try{
+                    u.health -= chunk;
+                }catch(Throwable ignored){
+                }
             }
         }
 
@@ -887,6 +952,60 @@ public class EndGameTurret extends PowerTurret {
             }
         }
 
+        /**
+         * ★ 关闭 FlameOut 共鸣的 "5 分钟后自动重生" 总开关 (FlameSettings.empathyRespawn)。
+         *
+         * <p>共鸣即使被彻底移除, EmpathyDamage.update() 里仍会在
+         * {@code spawner.shouldSpawn && FlameSettings.empathyRespawn} 时把 Boss 重新刷回来。
+         * 只关 activeAdd 不够, 必须同时关这个全局开关。</p>
+         */
+        protected Boolean disableFlameRespawn(Unit u){
+            Class<?> settings = findModClassCached(u, "flame.FlameSettings");
+            if(settings == null) return null;
+            try{
+                java.lang.reflect.Field f = findField(settings, "empathyRespawn");
+                if(f == null || f.getType() != boolean.class) return null;
+                boolean old = f.getBoolean(null);
+                f.setBoolean(null, false);
+                return old;
+            }catch(Throwable ignored){
+                return null;
+            }
+        }
+
+        /** 还原 {@link #disableFlameRespawn} 关掉的开关。 */
+        protected void restoreFlameRespawn(Unit u, Boolean old){
+            if(old == null) return;
+            Class<?> settings = findModClassCached(u, "flame.FlameSettings");
+            if(settings == null) return;
+            try{
+                java.lang.reflect.Field f = findField(settings, "empathyRespawn");
+                if(f != null) f.setBoolean(null, old);
+            }catch(Throwable ignored){
+            }
+        }
+
+        /**
+         * ★ 清空共鸣的复活生成器 (EmpathyDamage.spawner)。
+         *
+         * <p>把 spawner 的 active/shouldSpawn/spawned/disabled 全部压成 "不再生成",
+         * 即使全局开关被其它代码重新打开也不会把 Boss 刷回来。</p>
+         */
+        protected void neutralizeReviveSpawner(Class<?> registry){
+            try{
+                java.lang.reflect.Field f = findField(registry, "spawner");
+                if(f == null) return;
+                Object sp = f.get(null);
+                if(sp == null) return;
+                setObjField(sp, "active", 0f);
+                setObjField(sp, "shouldSpawn", 0f);
+                setObjField(sp, "disabled", 1f);
+                setObjField(sp, "spawned", 1f);
+                setObjField(sp, "health", -1f);
+            }catch(Throwable ignored){
+            }
+        }
+
         /** 反射清除各类单位用来 "防秒杀" 的私有字段。 */
         protected void clearProtectionFields(Unit u){
             Class<?> clazz = u.getClass();
@@ -899,6 +1018,45 @@ public class EndGameTurret extends PowerTurret {
             setUnitField(u, clazz, "invFrames", 0f);
             // trueMaxHealth 压到 1 而不是 0: 保持 health/maxHealth 比例可计算, 避免除零 NaN
             setUnitField(u, clazz, "trueMaxHealth", 1f);
+            // ★ 本项目 End 单位的血量台账在嵌套对象里 (antiCheat / ac), 不在单位本身
+            clearLedgerObjects(u);
+        }
+
+        /**
+         * ★ 清除嵌套血量台账 (antiCheat / ac)。
+         *
+         * <p>EndInvisibleUnit 的血量台账是 {@code antiCheat.lastHealth} (AntiCheatBase),
+         * ThalassophobiaUnit 是 {@code ac + trueHealth}; 原来只清单位自身字段时,
+         * 这些台账仍有余额 → kill() 里的 denyDeath() 直接把血量回满 → "秒杀后复活"。</p>
+         */
+        protected void clearLedgerObjects(Unit u){
+            Class<?> clazz = u.getClass();
+            for(String name : new String[]{"antiCheat", "ac"}){
+                try{
+                    java.lang.reflect.Field f = findField(clazz, name);
+                    if(f == null || f.getType().isPrimitive()) continue;
+                    Object o = f.get(u);
+                    if(o == null) continue;
+                    setObjField(o, "lastHealth", 0f);
+                    setObjField(o, "trueHealth", 0f);
+                    setObjField(o, "immunity", 1f);
+                    // invTime 拉高 → 跳过 AntiCheatBase 的 30 tick 无敌帧门
+                    setObjField(o, "invTime", 9999f);
+                    setObjField(o, "resist", 0f);
+                }catch(Throwable ignored){
+                }
+            }
+        }
+
+        /** 把对象上指定名字的 float/boolean 字段设为给定值 (找不到时静默跳过)。 */
+        protected void setObjField(Object o, String name, float value){
+            try{
+                java.lang.reflect.Field f = findField(o.getClass(), name);
+                if(f == null) return;
+                if(f.getType() == float.class) f.setFloat(o, value);
+                else if(f.getType() == boolean.class) f.setBoolean(o, value != 0f);
+            }catch(Throwable ignored){
+            }
         }
 
         /** 把单位身上指定名字的 float 字段设为给定值 (找不到/不可写时静默跳过)。 */
@@ -1026,16 +1184,26 @@ public class EndGameTurret extends PowerTurret {
 
         /** 最终兜底: 直接从实体组里摘除单位。 */
         protected void hardRemove(Unit u){
+            boolean wasAdded = false;
+            try{
+                wasAdded = u.isAdded();
+            }catch(Throwable ignored){
+            }
+
             try{
                 setUnitBoolField(u, u.getClass(), "added", false);
-                try{
-                    u.team.data().updateCount(u.type, -1);
-                }catch(Throwable ignored){
-                }
-                try{
-                    UnitController c = u.controller();
-                    if(c != null) c.removed(u);
-                }catch(Throwable ignored){
+                // 只有单位仍挂在世界里才需要扣队伍计数/通知控制器,
+                // 已正常移除的单位再扣一次会让队伍人数变成负数。
+                if(wasAdded){
+                    try{
+                        u.team.data().updateCount(u.type, -1);
+                    }catch(Throwable ignored){
+                    }
+                    try{
+                        UnitController c = u.controller();
+                        if(c != null) c.removed(u);
+                    }catch(Throwable ignored){
+                    }
                 }
             }catch(Throwable ignored){
             }
@@ -1054,18 +1222,37 @@ public class EndGameTurret extends PowerTurret {
             }
         }
 
-        /** 递归查找字段 (包括父类)。 */
+        /** 递归查找字段 (包括父类)。★ 结果按类缓存, 避免每次湮灭都做一遍类层级扫描。 */
         java.lang.reflect.Field findField(Class<?> clazz, String name){
-            while(clazz != null){
+            Map<String, Field> cache = fieldCache.computeIfAbsent(clazz, c -> new HashMap<>());
+            if(cache.containsKey(name)) return cache.get(name);
+
+            Field found = null;
+            Class<?> cur = clazz;
+            while(cur != null){
                 try{
-                    java.lang.reflect.Field f = clazz.getDeclaredField(name);
+                    Field f = cur.getDeclaredField(name);
                     f.setAccessible(true);
-                    return f;
+                    found = f;
+                    break;
                 }catch(NoSuchFieldException e){
-                    clazz = clazz.getSuperclass();
+                    cur = cur.getSuperclass();
+                }catch(Throwable ignored){
+                    break;
                 }
             }
-            return null;
+            cache.put(name, found);
+            return found;
+        }
+
+        /** ★ 按单位类缓存的跨模组类查找 (Class.forName 开销大, 每个单位类只查一次)。 */
+        Class<?> findModClassCached(Unit u, String name){
+            Class<?> clazz = u.getClass();
+            Map<String, Class<?>> cache = modClassCache.computeIfAbsent(clazz, c -> new HashMap<>());
+            if(cache.containsKey(name)) return cache.get(name);
+            Class<?> found = findModClass(u, name);
+            cache.put(name, found);
+            return found;
         }
 
         // ================= 渲染 =================

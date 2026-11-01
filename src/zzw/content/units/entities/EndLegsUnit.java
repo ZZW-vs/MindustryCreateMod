@@ -96,7 +96,7 @@ public class EndLegsUnit extends UnitEntity {
         // ★ 血量双轨 (修正): 台账独立扣减, 不回充 health (同 EndGroundUnit)
         if (maxHealth < trueMaxHealth || Float.isNaN(maxHealth)) maxHealth = trueMaxHealth;
         trueMaxHealth = maxHealth;
-        if (trueHealth > 0f) dead = false;
+        if (trueHealth > 0f && !zzw.util.ReviveSeal.isSealed(this)) dead = false;
 
         // 抗性衰减 (按单位配置参数 resistDuration, 无配置回退 6*60)
         float resistDuration = ac != null ? ac.resistDuration : 6f * 60f;
@@ -251,6 +251,8 @@ public class EndLegsUnit extends UnitEntity {
      * 台账 (trueHealth) 未耗尽时, 播放红色蓄力特效并复活。
      */
     private boolean denyDeath() {
+        // ★ 终局炮台封印: 被湮灭时不走任何复活逻辑
+        if (zzw.util.ReviveSeal.isSealed(this)) return false;
         if (trueHealth > 0f) {
             aggression = 4f;
             aggressionTime = 10f * 60f;
@@ -276,7 +278,7 @@ public class EndLegsUnit extends UnitEntity {
 
     @Override
     public void remove() {
-        if (trueHealth > 0f && health > 0f) return;
+        if (!zzw.util.ReviveSeal.isSealed(this) && trueHealth > 0f && health > 0f) return;
         // 真实死亡: 从全局防作弊登记表注销 (PU132 EndComp.remove)
         zzw.util.AntiCheat.removeUnit(this);
         super.remove();

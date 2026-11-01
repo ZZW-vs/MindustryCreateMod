@@ -130,6 +130,8 @@ public class EndInvisibleUnit extends UnitEntity {
      * 台账 (antiCheat.lastHealth) 未耗尽时, 播放红色蓄力特效并复活。
      */
     private boolean denyDeath() {
+        // ★ 终局炮台封印: 被湮灭时不走任何复活逻辑
+        if (zzw.util.ReviveSeal.isSealed(this)) return false;
         if (antiCheat.lastHealth > 0f) {
             // 狂暴: 4 倍速 + 持续 10 秒 (PU132 aggression=4, aggressionTime=10*60)
             aggression = 4f;
@@ -165,7 +167,7 @@ public class EndInvisibleUnit extends UnitEntity {
 
     @Override
     public void remove() {
-        if (antiCheat.lastHealth > 0f && health > 0f) return;
+        if (!zzw.util.ReviveSeal.isSealed(this) && antiCheat.lastHealth > 0f && health > 0f) return;
         // 真实死亡: 从全局防作弊登记表注销 (PU132 EndComp.remove)
         zzw.util.AntiCheat.removeUnit(this);
         super.remove();
