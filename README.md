@@ -316,6 +316,12 @@
 - 合并时有烟雾效果和延迟检查
 
 ## 更新日志
+- **移植 PU132「派系」系统**：一套内容分类元数据（不是玩法系统），全套照抄 PU 原版
+  - **`Faction` 枚举**：10 个派系（Scar / Dark / Advance / Imber / Plague / Koruh / Light / Monolith / Youngcha / End），各自带主题色与本地化名（bundle 新增 11 个 `faction.*` 键）
+  - **`FactionMeta` 归属表**：本项目内容名与 PU 一一对应，故直接照抄 PU 生成的内容名单，运行时按内容名匹配；改名的内容（`endgame` / `the-cube` / `arc-caster` / `arc-storm` / `blue-eclipse` / `archaic-*` / `devourer-of-eldrich-gods` / 去掉 `ore-` 前缀的矿石）走别名表补登
+  - **说明末尾自动标注**：命中的方块/单位说明末尾追加「派系: ◆Colored」，颜色取派系主题色；本模组自创内容（板材/南瓜/展示等）不标记
+  - **实体接口 `Factionc`**：`EndInvisibleUnit` / `EndGroundUnit` / `EndLegsUnit` / `ThalassophobiaUnit` / `SegmentWormEntity` / `MonolithSoulUnit` 实现 `faction()` 与 `isSameFaction()`（可对建筑/单位互判）
+  - **查询 API**：`FactionMeta.map(content)` / `getByFaction(faction, type)` / `getByCtype(ctype)`，供后续派系 UI、按派系过滤世界生成等使用
 - **终局炮台（`end-game`）湮灭强化：防复活 + 逆天攻击 + 性能优化**
   - **新增防复活封印 `ReviveSeal`**：被湮灭的单位会被打上 600 tick 的封印，本项目 `EndInvisibleUnit` / `EndGroundUnit` / `EndLegsUnit` / `ThalassophobiaUnit` / `SegmentWormEntity` 在 `denyDeath` / `kill` / `destroy` / `remove` / `dead` 回填时先查询封印，命中即跳过所有复活逻辑 —— 修复「秒杀后原地满血复活」
   - **嵌套血量台账清理**：这些 End 单位的防作弊台账藏在 `antiCheat.lastHealth` / `ac + trueHealth` 等嵌套对象里，旧实现只清单位自身字段，台账仍有余额导致 `denyDeath` 把血回满。新增 `clearLedgerObjects` 递归清理嵌套对象

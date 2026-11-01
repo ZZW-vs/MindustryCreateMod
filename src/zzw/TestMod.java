@@ -122,6 +122,10 @@ public class TestMod extends Mod{
 
     @Override
     public void loadContent(){
+        // ★ 初始化派系系统 (PU132 Faction 移植): 先读本地化名 (依赖 bundle),
+        //   内容全部加载完后再由 FactionMeta.init(this) 登记归属
+        Faction.init();
+
         // ★ 加载顺序 = 物品栏/数据库显示顺序 (block id 递增)
         //   排列原则: 自创内容(板材/南瓜/展示)在前 → PU 移植内容按类别集中在各类别末尾,
         //   同类别内 PU 移植方块自成一个组, 与 PU 原版物品栏的分组观感一致
@@ -268,6 +272,10 @@ public class TestMod extends Mod{
         // ★ 科技树 (必须最后: 把全部 PU 内容挂到原版科技树, 引用所有内容类)
         // 研究制 (2026-10): 挂树内容需研究解锁; 扭矩/坩埚/经验系等未挂树内容兜底直接解锁
         Z_TechTree.load();
+
+        // ★ 派系登记 (PU132 FactionMeta 移植): 必须最后 —— 遍历已注册的方块/单位,
+        //   按内容名匹配派系, 并把 "派系: ◆xxx" 追加到内容说明末尾 (未匹配的自创内容不标记)
+        FactionMeta.init(this);
 
         // ★ 剧情系统已停用 (2026-10): 框架代码保留在 zzw/map 与 Z_Story, 未删除;
         //   当前没有任何地图带 create-nodes 声明、JSON 目标也无演出执行器, 暂不加载。

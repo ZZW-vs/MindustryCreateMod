@@ -13,7 +13,9 @@ import mindustry.gen.UnitEntity;
  * - 受到攻击时短暂现身
  * - 简化: 隐身仅做 alpha 渐变, 不移除 Groups.unit (v158 物理引擎会出问题)
  */
-public class EndInvisibleUnit extends UnitEntity {
+public class EndInvisibleUnit extends UnitEntity implements zzw.content.Factionc {
+
+
     private final AntiCheatBase antiCheat = new AntiCheatBase();
     private float disabledTime = 0f;
     private float invFrame = 0f;
@@ -33,6 +35,12 @@ public class EndInvisibleUnit extends UnitEntity {
 
     /** 所属阵营 (PU132 trueTeam): 被作弊改队后, 台账充足时强制恢复原阵营 */
     private mindustry.game.Team trueTeam = null;
+
+    /** 派系 (FactionMeta 按单位类型登记, End 单位统一为 end 派系)。 */
+    @Override
+    public zzw.content.Faction faction(){
+        return zzw.content.FactionMeta.map(type);
+    }
 
     @Override
     public void setType(mindustry.type.UnitType type) {

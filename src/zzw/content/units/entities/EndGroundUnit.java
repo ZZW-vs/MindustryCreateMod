@@ -37,7 +37,14 @@ import mindustry.gen.LegsUnit;
  *
  * ★ 无 antiCheatType 配置时回退到 PU132 voidVessel/chronos 默认参数。
  */
-public class EndGroundUnit extends LegsUnit {
+public class EndGroundUnit extends LegsUnit implements zzw.content.Factionc {
+
+    /** 派系 (FactionMeta 按单位类型登记, End 单位统一为 end 派系)。 */
+    @Override
+    public zzw.content.Faction faction(){
+        return zzw.content.FactionMeta.map(type);
+    }
+
     private static final Interp curveType = new Interp.Pow(2);
 
     // 防作弊运行时数据

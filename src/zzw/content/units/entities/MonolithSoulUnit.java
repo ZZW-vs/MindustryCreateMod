@@ -48,7 +48,13 @@ import static mindustry.Vars.world;
  *
  * @author GlennFolker (原作), 移植: zzw
  */
-public class MonolithSoulUnit extends UnitEntity {
+public class MonolithSoulUnit extends UnitEntity implements zzw.content.Factionc {
+    /** 派系 (FactionMeta 按单位类型登记, Monolith 单位统一为 monolith 派系)。 */
+    @Override
+    public zzw.content.Faction faction(){
+        return zzw.content.FactionMeta.map(type);
+    }
+
     // ===== 灵魂状态机 (PU132 MonolithSoulComp @ReadOnly transient 字段) =====
     private boolean corporeal;
     private float joinTime;

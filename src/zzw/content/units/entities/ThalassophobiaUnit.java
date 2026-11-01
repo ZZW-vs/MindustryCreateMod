@@ -29,7 +29,14 @@ import zzw.content.units.ZEntityRegister;
  * <br>- solidity()/onSolid(): 碰撞改用水体判定 (waterSolid), 单位无法离开液面;
  * <br>- floorSpeedMultiplier(): 深水 1.3 倍加速 (PU132 原版数值)。</p>
  */
-public class ThalassophobiaUnit extends DecorationUnitEntity implements WaterMovec{
+public class ThalassophobiaUnit extends DecorationUnitEntity implements WaterMovec, zzw.content.Factionc{
+
+    /** 派系 (FactionMeta 按单位类型登记, End 单位统一为 end 派系)。 */
+    @Override
+    public zzw.content.Faction faction(){
+        return zzw.content.FactionMeta.map(type);
+    }
+
     /** 左右两条水波拖尾 (WaterMoveComp.tleft/tright) */
     private final transient Trail tleft = new Trail(1), tright = new Trail(1);
     /** 水波颜色 (跟随脚下液体的地图色渐变) */

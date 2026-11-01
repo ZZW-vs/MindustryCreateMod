@@ -32,7 +32,14 @@ import mindustry.content.Fx;
  * ★ 重要: 重写 classId() 返回 UnitEntity 的 classId, 避开 v154.3 的 checkEntityMapping 检查 ★
  * 这让我们不需要 @EntityDef 注解处理器
  */
-public class SegmentWormEntity extends UnitEntity {
+public class SegmentWormEntity extends UnitEntity implements zzw.content.Factionc {
+
+    /** 派系 (FactionMeta 按单位类型登记: arcnelidia→imber / catenapede→plague / devourer→end)。 */
+    @Override
+    public zzw.content.Faction faction(){
+        return zzw.content.FactionMeta.map(type);
+    }
+
 
     /** 工厂方法 (UnitType.constructor 用) */
     public static SegmentWormEntity create() {
