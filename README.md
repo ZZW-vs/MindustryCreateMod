@@ -317,7 +317,7 @@
 
 ## 更新日志
 - **移植 PU132「派系」系统**：一套内容分类元数据（不是玩法系统），全套照抄 PU 原版
-  - **`Faction` 枚举**：10 个派系（Scar / Dark / Advance / Imber / Plague / Koruh / Light / Monolith / Youngcha / End），各自带主题色与本地化名（bundle 新增 11 个 `faction.*` 键）
+  - **`Faction` 枚举**：10 个派系（伤痕 / 深暗 / 演进 / 雷域 / 疫病 / 工业 / 光辉 / 巨构 / 工匠 / 终末），各自带主题色与本地化名（bundle 新增 11 个 `faction.*` 键）
   - **`FactionMeta` 归属表**：本项目内容名与 PU 一一对应，故直接照抄 PU 生成的内容名单，运行时按内容名匹配；改名的内容（`endgame` / `the-cube` / `arc-caster` / `arc-storm` / `blue-eclipse` / `archaic-*` / `devourer-of-eldrich-gods` / 去掉 `ore-` 前缀的矿石）走别名表补登
   - **说明末尾自动标注**：命中的方块/单位说明末尾追加「派系: ◆Colored」，颜色取派系主题色；本模组自创内容（板材/南瓜/展示等）不标记
   - **实体接口 `Factionc`**：`EndInvisibleUnit` / `EndGroundUnit` / `EndLegsUnit` / `ThalassophobiaUnit` / `SegmentWormEntity` / `MonolithSoulUnit` 实现 `faction()` 与 `isSameFaction()`（可对建筑/单位互判）
