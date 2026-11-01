@@ -24,6 +24,8 @@ import arc.util.io.Writes;
 import arc.util.io.Reads;
 import arc.math.Mathf;
 import mindustry.Vars;
+import mindustry.ai.UnitStance;
+import mindustry.ai.types.CommandAI;
 import mindustry.content.Blocks;
 import mindustry.content.Fx;
 import mindustry.core.World;
@@ -36,6 +38,7 @@ import mindustry.game.Team;
 import mindustry.game.Teams.TeamData;
 import mindustry.gen.Building;
 import mindustry.gen.Groups;
+import mindustry.gen.Player;
 import mindustry.gen.Unit;
 import mindustry.gen.UnitEntity;
 import mindustry.io.SaveVersion;
@@ -464,11 +467,12 @@ public class WorldUnitEntity extends UnitEntity {
      *       空中平台上一样整体搬运; 单位朝向同步加 drot。</li>
      *   <li><b>出界掉落</b>: 单位中心走出平台矩形 → 从携带列表移除 + 加入禁登名单
      *       (禁止重新登上任何子世界平台), 单位掉回主地图照常行动。</li>
-     *   <li><b>起飞放行</b>: 单位起飞 (boost/天然飞行) → 移出携带列表自由飞,
-     *       不算掉落不进禁登名单 (飞回来落在甲板上仍可再次被携带)。</li>
-     *   <li><b>注册登船</b>: 扫描主地图单位, 位于平台矩形内的地面非海军单位
+     *   <li><b>起飞放行</b>: 有明确起飞意图 ({@link #deckBoostIntent}: 玩家按住 boost /
+     *       AI 开启 boost 姿态) 的期间不做刚体跟随, 单位在甲板上方自由飞;
+     *       飞出平台矩形直接解除携带 (不算掉落、不进禁登名单), 取消飞行后落回甲板仍可再次被携带。</li>
+     *   <li><b>注册登船</b>: 扫描主地图单位, 位于平台矩形内、已落地的地面非海军单位
      *       自动登船 (覆盖工厂出厂/沙盒生成/读档恢复等所有来源);
-     *       禁登名单中的单位不接纳。</li>
+     *       仍在空中的单位不接纳 (避免飞越甲板时被拖住), 禁登名单中的单位不接纳。</li>
      * </ol>
      */
     protected void updateSubUnits() {
@@ -479,6 +483,15 @@ public class WorldUnitEntity extends UnitEntity {
             Unit u = subUnits.get(i);
             if (!u.isAdded() || u.dead) {
                 subUnits.remove(i);
+                continue;
+            }
+
+            // ★ 起飞放行: 真实低空飞行期间单位在空中, 既不做刚体跟随 (否则会被平台拖着走),
+            //   也不按矩形判掉落; 飞出平台范围只解除携带, 不进禁登名单 (取消飞行后可再飞回来登船)
+            if (deckBoostIntent(u)) {
+                if (!containsWorldPoint(u.x, u.y)) {
+                    subUnits.remove(i);
+                }
                 continue;
             }
 
@@ -517,10 +530,12 @@ public class WorldUnitEntity extends UnitEntity {
             // ★ 其他大地单位不收编: 平台携带平台会把对方位置/朝向每帧强制覆盖,
             //   被携带者一旦被玩家附身就完全无法操控
             if (u instanceof WorldUnitEntity) continue;
-            // ★ 跳过纯空中单位与海军; 陆地单位即使当前处于低空飞行/被运输投放的空中状态,
-            //   只要中心落在甲板范围也收编 —— 支持低空飞行落回、单位运输投放进甲板
+            // ★ 跳过纯空中单位与海军
             if (u.type.flying || u.type.naval) continue;
             if (subUnits.contains(u)) continue;
+            // ★ 仍在空中的单位不登船: 低空飞行掠过甲板上方时保持自由 (不被平台拖拽),
+            //   只有取消飞行、高度落回地面后才会被收编 —— 即"飞回来落下就回到子世界"
+            if (u.isFlying()) continue;
             if (fallOffBanned.contains(u.id)) continue;
             if (!containsWorldPoint(u.x, u.y)) continue;
             subUnits.add(u);
@@ -605,9 +620,11 @@ public class WorldUnitEntity extends UnitEntity {
      *
      * <p><b>为什么阈值取 0.09</b>: 它是引擎判定的"飞行下限", 既能让 solidity() 返回 null、
      * 让全部地面判定跳过, 又几乎不影响任何按 elevation 缩放的视觉 (阴影偏移仅 0.09 × 12px ≈ 1px);
-     * 加上帧末会落回 0, 渲染上完全看不出。真正靠自身动力起飞的单位 (canBoost 且本帧
-     * elevation 上升) 帧末不会被落回 0, 下帧起也因 elevation >= 0.09 不再被抬升,
-     * 起飞 / 降落流程与原版一致。</p>
+     * 加上帧末会落回 0, 渲染上完全看不出。</p>
+     *
+     * <p><b>与真实起飞的区分</b>: 仅有明确起飞意图 ({@link #deckBoostIntent}) 的甲板单位
+     * 允许在帧末保留高度, 其余一律强制归零 —— 这样"低空飞行"只可能由玩家/指令主动触发,
+     * 不会再被甲板环境 (下方实心块、单位重叠导致的 {@code canLand()==false}) 自动触发。</p>
      */
     public static void setupDeckIsolation() {
         if (deckIsolationHooked) return;
@@ -633,8 +650,40 @@ public class WorldUnitEntity extends UnitEntity {
     }
 
     /**
+     * 甲板单位"真实起飞"意图判定 —— 甲板上唯一允许离地的两种情况:
+     * <ol>
+     *   <li>玩家附身该单位并按住 boost 键 ({@code Binding.boost})；</li>
+     *   <li>AI 开启了 boost 姿态且尚未接近攻击目标 (与 {@code CommandAI} 的自动降落条件一致)。</li>
+     * </ol>
+     *
+     * <p>甲板环境本身 (悬停在实心块上 / 单位重叠使 canLand() 为 false) 不再被当作起飞理由,
+     * 否则引擎的 {@code updateBoosting} 会让单位永远自动升空。</p>
+     */
+    protected static boolean deckBoostIntent(Unit s) {
+        if (s == null || s.type == null || !s.type.canBoost) return false;
+
+        Player p = Vars.player;
+        if (p != null && p.unit() == s && p.boosting) return true;
+
+        if (s.controller() instanceof CommandAI ai && ai.hasStance(UnitStance.boost)) {
+            return !(ai.attackTarget != null && s.within(ai.attackTarget, s.range()));
+        }
+        return false;
+    }
+
+    /**
      * 帧末钩子 (Trigger.afterGameUpdate, 全部实体 update 之后 / 渲染之前):
-     * 把本帧没有真正飞起来的甲板单位落回地面 (elevation = 0), 保证渲染外观与普通地面单位一致。
+     * 只保留"有明确起飞意图"的甲板单位的离地高度, 其余一律强制落回地面 (elevation = 0)。
+     *
+     * <p><b>为什么必须强制落地</b>: 帧首隔离伪装把 elevation 抬到 0.09 后, 引擎
+     * {@code UnitComp.updateBoosting} 里的 {@code shouldBoost = boost || onSolid() ||
+     * (isFlying() && !canLand())} 的后两项对甲板单位恒定成立 (平台悬停在实心块上, 甲板单位
+     * 相互重叠 / 大地本体在下方使 canLand() 永远为 false), 于是单位会自己升到 elevation = 1
+     * 且永远落不下来 —— 这正是"甲板单位自动变成低空飞行模式"的根因。这里在渲染前归零,
+     * 外观上保持陆地单位, 且下一帧从地面开始。</p>
+     *
+     * <p>反过来, 取消低空飞行 (松开 boost / 关掉 boost 姿态) 时也是在这里立即落地,
+     * 单位随后按位置重新被 {@link #updateSubUnits()} 收编 —— 即"取消飞行就回到子世界"。</p>
      */
     protected static void deckLogicEnd() {
         for (Unit u : Groups.unit) {
@@ -643,7 +692,30 @@ public class WorldUnitEntity extends UnitEntity {
             for (int i = 0; i < subs.size; i++) {
                 Unit s = subs.get(i);
                 if (s == null || !s.isAdded() || s.dead || s.type == null) continue;
-                if (s.elevation <= DECK_FLY_EPS) s.elevation = 0f;
+
+                if (deckBoostIntent(s)) {
+                    // 真实低空飞行: 保留引擎给出的高度, 至少保证处于飞行态
+                    if (s.elevation < DECK_FLY_EPS) s.elevation = DECK_FLY_EPS;
+                } else {
+                    // ★ 取消 boost / 从未起飞: 强制落回地面, 甲板单位保持陆地模式
+                    s.elevation = 0f;
+                }
+            }
+        }
+
+        // ★ 玩家操控的低空单位悬停在甲板正上方并取消 boost 时, 引擎的 canLand() 恒为 false
+        //   (甲板单位相互重叠 / 大地本体在下方), 它永远无法自行落地; 这里直接把它放到地面,
+        //   下一帧 {@link #updateSubUnits()} 按位置重新登船 (从外部飞来的单位也能落进子世界)
+        Player p = Vars.player;
+        if (p == null) return;
+        Unit pu = p.unit();
+        if (pu == null || pu.type == null || pu.dead || !pu.isAdded()) return;
+        if (!pu.type.canBoost || p.boosting || pu.elevation <= 0f) return;
+
+        for (Unit u : Groups.unit) {
+            if (u instanceof WorldUnitEntity w && w.containsWorldPoint(pu.x, pu.y)) {
+                pu.elevation = 0f;
+                break;
             }
         }
     }
