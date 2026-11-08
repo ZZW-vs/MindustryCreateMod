@@ -36,6 +36,8 @@ public class ExpUnloader extends ExpTank {
     public float reloadTime = 30f;
     public Effect transferEffect = UnityFx.expLaser;
     public TextureRegion laser, laserEnd;
+    /** 输出方向指示帧: exp-unloader-0..3 分别对应右/上/左/下四个输出方向 */
+    public final TextureRegion[] frames = new TextureRegion[4];
     private final Seq<Building> tmp = new Seq<>();
 
     public ExpUnloader(String name){
@@ -56,6 +58,10 @@ public class ExpUnloader extends ExpTank {
         super.load();
         laser = atlas.find("create-exp-laser");
         laserEnd = atlas.find("create-exp-laser-end");
+        // PU 原版 exp-unloader-0..3: 四个朝向的输出方向指示贴图
+        for(int i = 0; i < frames.length; i++){
+            frames[i] = atlas.find(name + "-" + i);
+        }
     }
 
     @Override
@@ -123,11 +129,28 @@ public class ExpUnloader extends ExpTank {
         @Override
         public void draw(){
             Draw.rect(region, x, y);
+
+            // 经验存量填充层 (exp-unloader-exp)
             Draw.color(UnityPal.exp, Color.white, Mathf.absin(20, 0.6f));
             Draw.alpha(expf() * 0.6f);
-            Draw.rect(expRegion, x, y);
+            if(expRegion.found()){
+                Draw.rect(expRegion, x, y);
+            }
             Draw.color();
-            Draw.rect(topRegion, x, y, rotdeg());
+
+            // 输出方向指示: PU 原版 exp-unloader-0..3 对应右/上/左/下四个朝向,
+            // 朝哪边输出就显示哪一侧的箭头, 有经验时脉动闪烁
+            int dirFrame = (4 - rotation) % 4;
+            TextureRegion dir = frames[dirFrame];
+            if(exp > 0 && dir.found()){
+                Draw.alpha(0.35f + Mathf.absin(10f, 0.25f));
+                Draw.rect(dir, x, y);
+                Draw.alpha(1f);
+            }
+
+            if(topRegion.found()){
+                Draw.rect(topRegion, x, y, rotdeg());
+            }
 
             // 绘制抽取激光 (到正在被抽取的相邻方块)
             drawExtractLasers();
