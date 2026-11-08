@@ -902,6 +902,14 @@ public class WorldUnitType extends UnityUnitType {
             ty = clampSubY(hit, World.toTile(tmpVec.y), in.block);
         }
 
+        // ★ 移动端没有右键: 触屏的"左键"(select) 点击/按住是唯一建造手势, 拆除与否由
+        //   input.isBreaking() 决定 (移动端 breakmode 按钮只把 mode 切到 breaking,
+        //   已选方块仍留在 block 里; 且触屏永远产生不了 mouseRight → 桌面端的
+        //   !isPlacing() + breakBlock 判定在移动端恒不成立, 表现为"只能放置、不能拆除")
+        boolean mobile = Vars.mobile;
+        boolean breakGesture = mobile ? in.isBreaking() : !in.isPlacing();
+        arc.input.KeyBind breakKey = mobile ? Binding.select : Binding.breakBlock;
+
         // ===== 拖拽开始 =====
         if (subDragMode == dragNone) {
             if (buildActive && in.isPlacing() && in.block != null && Core.input.keyTap(Binding.select)) {
@@ -910,10 +918,10 @@ public class WorldUnitType extends UnityUnitType {
                 dragStartX = tx;
                 dragStartY = ty;
                 subOverrideLineRotation = false;
-            } else if (buildActive && !in.isPlacing() && Core.input.keyTap(Binding.breakBlock)) {
+            } else if (buildActive && breakGesture && Core.input.keyTap(breakKey)) {
                 // ★ 原版右键语义 (DesktopInput 分支顺序): deselect 与 breakBlock 同绑右键,
                 //   放置模式下右键先命中 deselect 分支 = 取消选中方块 (不开始拆除);
-                //   未选中放置方块时右键才是框选拆除 —— 这里同步该顺序
+                //   未选中放置方块时右键才是框选拆除 —— 这里同步该顺序 (桌面端)
                 subDragMode = dragBreak;
                 subDragUnit = hit;
                 dragStartX = tx;
@@ -950,7 +958,9 @@ public class WorldUnitType extends UnityUnitType {
             }
         } else if (subDragMode == dragBreak) {
             buildPreviewUnit = subDragUnit;
-            if (Core.input.keyDown(Binding.breakBlock)) {
+            // 移动端同时接受任意触点按住 (触屏按住期间 keyDown(select) 未必逐帧稳定)
+            boolean holding = Core.input.keyDown(breakKey) || (mobile && Core.input.isTouched());
+            if (holding) {
                 subDragUnit.worldToSubPixel(mx, my, tmpVec);
                 // 拆除框选端点同样钳制, 框不出网格 (避免外侧越界格被反复判无效)
                 subDragCursorX = clampSubX(subDragUnit, World.toTile(tmpVec.x), null);
