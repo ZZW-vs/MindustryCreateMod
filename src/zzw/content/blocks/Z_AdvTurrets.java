@@ -696,7 +696,7 @@ public class Z_AdvTurrets {
 
         // ===== longinus (朗基努斯: 整杆枪飞出, 装填时飞回底座) =====
         // 视觉方案:
-        //   - 炮塔贴图 = 那杆长枪本身 (despondency-spear.png, 9.5 格长)
+        //   - 炮塔贴图 = 那杆长枪本身 (despondency-spear.png, 20 格长), 底座与原来同款、按 15x15 铺满
         //   - 开火瞬间枪从底座消失, 子弹绘制成同一杆枪飞出去
         //   - 装填到 58% 后枪从前方飞回并淡入, 装填完成刚好插回底座
         //   - 枪不在时底座中心播放空枪座能量环
@@ -705,8 +705,8 @@ public class Z_AdvTurrets {
                 Items.phaseFabric, 1200, Items.surgeAlloy, 1600,
                 Z_Items.darkAlloy, 900, Z_Items.terminum, 400, Z_Items.terminaAlloy, 120));
             health = 14500;
-            size = 6;
-            range = 480f;             // 15 格
+            size = 15;
+            range = 520f * 8f;        // 520 格 (1 格 = 8 世界单位)
             reload = 5f * 60f;        // 5 秒一发
             rotateSpeed = 2.2f;
             shootCone = 5f;
@@ -718,8 +718,10 @@ public class Z_AdvTurrets {
             shootSound = Z_Sounds.tenmeikiriShoot;
 
             // 弹药: 终末 (一发一杆枪)
+            // ★ 子弹中途不碰撞, 只追打发射瞬间锁定的那个单位, 所以寿命要够飞到 520 格外:
+            //   12 单位/帧 × 420 帧 = 5040 单位, 覆盖 520 格的射程
             ammo(Z_Items.terminum, new LonginusSpearBulletType(12f, 1000000f) {{
-                lifetime = 48f;       // 12 * 48 = 576 单位, 略高于射程
+                lifetime = 420f;
                 drag = 0f;
             }});
 

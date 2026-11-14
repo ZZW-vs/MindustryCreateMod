@@ -36,17 +36,19 @@ import zzw.content.units.bullets.LonginusSpearBulletType;
  */
 public class LonginusTurret extends ItemTurret {
 
-    /** 底座贴图: assets/sprites/blocks/fend/turrets/longinus-base.png (192x192, 6x6)。 */
+    /** 底座贴图: assets/sprites/blocks/fend/turrets/longinus-base.png (192x192, 原图按 6x6 绘制)。 */
     public TextureRegion baseRegion;
 
     /**
-     * 枪在世界里的实际长度 (世界单位, 1 格 = 8 单位)。120 ≈ 15 格, 炮台本体 6 格。
+     * 枪在世界里的实际长度 (世界单位, 1 格 = 8 单位)。160 ≈ 20 格。
      *
-     * <p>★ 不要改成"像素 × 固定系数": 贴图宽度可能是图集的缩水值, 也可能是原始 896,
+     * <p>★ 必须与弹体的 {@code drawLength} 保持一致 (子弹尺寸 = 炮台上的朗枪尺寸)。</p>
+     *
+     * <p>不要改成"像素 × 固定系数": 贴图宽度可能是图集的缩水值, 也可能是原始 896,
      * 固定系数会让同一张图在不同加载路径下相差数倍。这里按世界长度反算缩放,
      * 见 {@link LonginusSpearBulletType#scaleFor}。</p>
      */
-    public float spearLength = 120f;
+    public float spearLength = 160f;
     /**
      * 握持点距枪尾的比例 (0 = 枪尾, 1 = 枪尖), 该点对准炮台中心。
      *
@@ -130,8 +132,9 @@ public class LonginusTurret extends ItemTurret {
         @Override
         public void draw() {
             // ---------- 底座 ----------
+            // 底座贴图是按 6x6 画的, 这里按当前方块尺寸拉伸铺满, 与 create-longinus 同款
             Draw.z(Layer.block);
-            Draw.rect(baseRegion, x, y);
+            Draw.rect(baseRegion, x, y, size * 8f, size * 8f);
 
             // ---------- 炮塔层 ----------
             Draw.z(Layer.turret);
@@ -179,18 +182,20 @@ public class LonginusTurret extends ItemTurret {
         protected void drawEmptyMount() {
             float glow = 1f - spearPresence;
             float pulse = Mathf.absin(Time.time, 6f, 0.35f) + 0.65f;
+            // 按方块尺寸等比放大 (原始数值是给 6x6 用的)
+            float scl = size / 6f;
 
             Draw.z(Layer.turret - 1f);
             Draw.blend(Blending.additive);
 
             Draw.color(scarColor, 0.45f * glow);
-            Fill.circle(x, y, (10f + 4f * pulse) * glow);
+            Fill.circle(x, y, (10f + 4f * pulse) * scl * glow);
 
             Draw.color(scarColor, 0.75f * glow);
-            Lines.stroke(2f);
+            Lines.stroke(2f * scl);
             for (int i = 0; i < 4; i++) {
                 float a = Time.time * 8f + i * 90f;
-                Lines.lineAngle(x, y, a, 24f);
+                Lines.lineAngle(x, y, a, 24f * scl);
             }
 
             Draw.blend();

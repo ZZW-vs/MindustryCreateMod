@@ -13,29 +13,35 @@ import arc.graphics.g2d.TextureRegion;
 import arc.math.Angles;
 import arc.math.Interp;
 import arc.math.Mathf;
+import arc.math.Rand;
 import arc.util.Log;
+import arc.util.Time;
 import mindustry.Vars;
 import mindustry.content.Fx;
 import mindustry.entities.Effect;
+import mindustry.entities.Mover;
 import mindustry.entities.bullet.BulletType;
 import mindustry.entities.units.UnitController;
+import mindustry.game.Team;
 import mindustry.gen.Bullet;
-import mindustry.gen.Hitboxc;
+import mindustry.gen.Entityc;
+import mindustry.gen.Teamc;
 import mindustry.gen.Unit;
 import mindustry.graphics.Drawf;
 import mindustry.graphics.Layer;
 import mindustry.mod.Mods;
+import mindustry.world.blocks.defense.turrets.Turret;
 
 /**
  * 朗基努斯之枪弹体 (Longinus Spear BulletType)。
  *
- * <p>整张 {@code longinus-spear.png} 就是飞行中的子弹: 枪尖朝速度方向,
- * 身后拖红色光带。命中单位时:</p>
+ * <p>整张 {@code longinus-spear.png} 就是飞行中的子弹, 除此之外不额外画任何光效。
+ * 关键行为:</p>
  * <ol>
- *   <li>把该单位的 AI 替换成空控制器 (永久不再移动 / 开火 / 逃跑);</li>
- *   <li>在命中点留下一杆"插在目标上"的枪影, 15 秒后淡出;</li>
- *   <li>播放血色冲击环 + 放射电弧 + 屏幕震动 (参考 FlameOut 消沉的大招);</li>
- *   <li>造成 100 万伤害 (外部配置), 不穿透, 不碰建筑。</li>
+ *   <li><b>中途不碰撞</b>: {@code collides = false}, 飞行途中穿过单位、建筑、地形;</li>
+ *   <li><b>只打击锁定目标</b>: 开火瞬间把炮台的 {@code target} 记到 {@code b.data},
+ *       每帧朝该单位转向, 只有真正碰到它才结算;</li>
+ *   <li>命中后把枪钉在目标身上, 并播放参考 FlameOut 消沉大招的猩红碎片粒子。</li>
  * </ol>
  *
  * <p>★ 贴图来源: 枪图是 {@code assets/sprites/blocks/fend/turrets/longinus-spear.png}
@@ -135,44 +141,46 @@ public class LonginusSpearBulletType extends BulletType {
     /** 光效主色。 */
     public Color glowColor = Color.valueOf("f53036");
     /**
-     * 枪在世界里的实际长度 (世界单位, 1 格 = 8 单位)。128 ≈ 16 格。
+     * 枪在世界里的实际长度 (世界单位, 1 格 = 8 单位)。160 ≈ 20 格。
      *
-     * <p>★ 这里不要用"像素 × 固定系数": 贴图宽度可能来自图集缩水值, 也可能来自原始 896,
-     * 固定系数会让同一张图在不同来源下相差数倍。改成按世界长度反算缩放比例
-     * {@link #scaleFor}, 屏幕上的枪就始终是这个长度。</p>
+     * <p>★ 必须与炮台的 {@code spearLength} 保持一致: 用户要求"子弹尺寸和炮台上的朗枪一样大"。</p>
      */
-    public float drawLength = 128f;
-    /** 身后光带长度 (世界单位)。 */
-    public float trailLength = 110f;
-    /** 动态光源半径。 */
-    public float lightRadius = 90f;
-    /** 枪插在目标上的残留时长 (tick)。 */
+    public float drawLength = 160f;
+    /**
+     * 追踪锁定目标的转向速度 (度/帧)。
+     *
+     * <p>枪是从炮口直线飞出去的, 这里只做小幅修正, 让目标移动后仍然会被枪尖咬住;
+     * 数值太大会让长枪在空中画出明显的弧线。</p>
+     */
+    public float homingTurnRate = 3f;
+    /** 枪尖判定余量 (世界单位), 与目标自身半径相加后作为命中距离。 */
+    public float hitRadius = 14f;
+    /** 枪插在目标身上的残留时长 (tick)。 */
     public float stickTime = 15f * 60f;
 
-    /** 命中冲击特效 (在 load() 中创建)。 */
-    public Effect hitSpark;
-    /** 插枪残留特效 (在 load() 中创建)。 */
+    /** 命中爆发粒子 (参考 FlameOut 消沉的 desRailHit)。 */
+    public Effect hitBurst;
+    /** 插枪残留特效。 */
     public Effect stickEffect;
 
     public LonginusSpearBulletType(float speed, float damage) {
         super(speed, damage);
 
-        // 不穿透: 命中第一个单位就停下
-        pierce = false;
-        pierceBuilding = false;
-
-        // 只和单位碰撞, 直接穿过建筑
-        // 注意: BulletType.targetBlocks 只用于面板统计, 真正决定"是否撞建筑"的是 collidesTiles
-        targetBlocks = false;
+        // ★ 中途不碰撞: 穿过途中所有单位/建筑/地形, 只由 update() 手动结算锁定目标
+        collides = false;
         collidesTiles = false;
-        collidesGround = true;
-        collidesAir = true;
+        collidesGround = false;
+        collidesAir = false;
         collidesTeam = false;
+        pierce = true;
+        pierceBuilding = true;
 
-        // 命中判定半径 (世界单位, 1 格 = 32)
-        hitSize = 24f;
+        targetBlocks = false;
 
-        // 命中的表现全部由 hitEntity 自定义, 关掉默认的
+        // 只在手动命中时才用得上, 不代表枪身粗细
+        hitSize = 32f;
+
+        // 命中表现全部自定义
         hitEffect = Fx.none;
         despawnEffect = Fx.none;
         shootEffect = Fx.shootBig;
@@ -186,50 +194,81 @@ public class LonginusSpearBulletType extends BulletType {
         // ★ 这里不要调 spear(): 模组内容第一次 load() 发生在非绘制线程的临时图集阶段,
         //   建纹理可能拿不到 GL 上下文。贴图在第一帧 draw 时再延迟解析。
 
-        // ---------- 命中冲击: 白闪 + 双环 + 放射电弧 + 顺向撕裂痕 ----------
-        // 参考 FlameOut 消沉大招的 rail-hit 表现: 起手一帧白闪, 然后是扩散的双环,
-        // 再加沿命中方向拉长的撕裂痕, 让"枪钉进单位"的冲击感更强。
-        hitSpark = new Effect(38f, 260f, e -> {
+        // ---------- 命中爆发: 猩红碎片 + 白色射线 + 冲击环 ----------
+        // 参考 FlameOut 的 FlameFX.desRailHit (消沉大招命中时的粒子):
+        // 每轮以命中方向为中心, 在 180° 扇形内喷出三角碎片, 扇角逐轮收窄、
+        // 尺寸逐轮放大; 再叠一层白色细射线和一圈扩散冲击环。
+        hitBurst = new Effect(80f, 1000f, e -> {
+            Rand r = new Rand(e.id);
+            float scl = e.data instanceof Float f ? f : 1f;
+
             Draw.blend(Blending.additive);
 
-            // 起手白闪 (只存在前 20% 时间)
-            if (e.fin() < 0.2f) {
-                Draw.color(Color.white, 0.9f * (1f - e.fin() / 0.2f));
-                Fill.circle(e.x, e.y, 26f * (1f - e.fin() / 0.2f) + 8f);
+            // 第一层: 猩红三角碎片
+            float ang = 180f, rscl = 0.7f * scl;
+            Draw.color(glowColor);
+            for (int i = 0; i < 5; i++) {
+                int count = (int) (10 * rscl);
+                for (int j = 0; j < count; j++) {
+                    float fin = Mathf.curve(e.fin(), 0f, 1f - r.random(0.2f));
+                    float rot = r.range(ang) + e.rotation;
+                    float off = r.random(22f * rscl) + r.random(50f * Mathf.pow(rscl, 1.5f)) * Interp.pow4Out.apply(fin);
+                    float sscl = r.random(0.7f, 1.2f);
+
+                    float wid = 12f * sscl * rscl * (1f - Interp.pow4In.apply(fin));
+                    float hei = 52f * sscl * Mathf.pow(rscl, 1.5f) * Interp.pow5Out.apply(fin);
+
+                    float vx = Angles.trnsx(rot, off) + e.x;
+                    float vy = Angles.trnsy(rot, off) + e.y;
+                    Drawf.tri(vx, vy, wid, hei, rot);
+                    Drawf.tri(vx, vy, wid, wid * 2.2f, rot + 180f);
+                }
+
+                ang *= 0.6f;
+                rscl *= 1.5f;
             }
 
-            // 外层白环
-            Draw.color(Color.white, e.color, e.fin());
+            // 第二层: 白色细射线
+            ang = 180f;
+            rscl = 0.5f * scl;
+            Draw.color(glowColor, Color.white, e.fin());
+            Lines.stroke(3f);
+            for (int i = 0; i < 7; i++) {
+                for (int j = 0; j < 12; j++) {
+                    float fin = Mathf.curve(e.fin(), 0f, 1f - r.random(0.2f));
+                    float rot = r.range(ang) + e.rotation;
+                    float off = r.random(30f * rscl) + r.random(40f * Mathf.pow(rscl, 1.6f)) * Interp.pow5Out.apply(fin);
+                    float len = r.random(20f, 40f) * Mathf.pow(rscl, 1.6f)
+                        * Interp.sineOut.apply(Mathf.slope(Interp.pow5Out.apply(fin)));
+
+                    float vx = Angles.trnsx(rot, off) + e.x;
+                    float vy = Angles.trnsy(rot, off) + e.y;
+                    Lines.lineAngle(vx, vy, rot, len, false);
+                }
+
+                ang *= 0.5f;
+                rscl *= 1.5f;
+            }
+
+            // 第三层: 白环冲击波
+            Draw.color(Color.white, 0.6f * e.fout());
             Lines.stroke(4f * e.fout());
-            Lines.circle(e.x, e.y, 6f + e.fin(Interp.pow2Out) * 90f);
-
-            // 内层红环
-            Draw.color(e.color, 0.85f * e.fout());
-            Lines.stroke(2f * e.fout());
-            Lines.circle(e.x, e.y, 4f + e.fin(Interp.pow2Out) * 130f);
-
-            // 10 条放射电弧, 跟随命中方向旋转
-            for (int i = 0; i < 10; i++) {
-                float a = i * 36f + e.rotation;
-                Lines.stroke(1.5f * e.fout());
-                Lines.lineAngle(e.x, e.y, a, e.fin(Interp.pow2Out) * 70f);
-            }
-
-            // 顺向撕裂痕: 沿飞行方向拉长, 侧向随机扰动
-            Lines.stroke(3f * e.fout());
-            Draw.color(Color.white, 0.9f * e.fout());
-            Lines.lineAngle(e.x, e.y, e.rotation, e.fin(Interp.pow3Out) * 150f);
-            Draw.color(e.color, 0.7f * e.fout());
-            Lines.lineAngle(e.x, e.y, e.rotation + 180f, e.fin(Interp.pow3Out) * 70f);
+            Lines.circle(e.x, e.y, 18f + Interp.pow2Out.apply(e.fin()) * (120f * scl + 30f));
 
             Draw.blend();
             Draw.reset();
         });
 
-        // ---------- 插在目标上的枪 ----------
-        stickEffect = new Effect(stickTime, 420f, e -> {
+        // ---------- 钉在目标身上的枪 ----------
+        // data 传入被命中的单位: 单位还活着就每帧跟着它画 (枪真的"插在身上"),
+        // 单位已经消失则停在命中点, 作为插在残骸上的枪。
+        stickEffect = new Effect(stickTime, 600f, e -> {
             TextureRegion region = spear();
             if (region == null || !region.found()) return;
+
+            Unit unit = e.data instanceof Unit u && u.isAdded() && !u.dead() ? u : null;
+            float px = unit != null ? unit.x : e.x;
+            float py = unit != null ? unit.y : e.y;
 
             float out = e.fin();
             // 最后 15% 时间淡出
@@ -240,60 +279,100 @@ public class LonginusSpearBulletType extends BulletType {
             float h = region.height * scale;
             float ang = e.rotation;
 
-            // 插入瞬间的"钉入"回弹: 前 10 帧枪身往前多扎一点, 之后回位
-            float punch = out < 0.02f ? (1f - out / 0.02f) * 14f : 0f;
+            // 插入瞬间的"钉入"回弹: 极短时间往前多扎一点, 之后回位
+            float punch = out < 0.02f ? (1f - out / 0.02f) * 16f : 0f;
 
-            // 枪尖正好落在命中点: 图片中心沿枪身方向后退半个枪长
-            float cx = e.x - Angles.trnsx(ang, 0.5f * w - punch);
-            float cy = e.y - Angles.trnsy(ang, 0.5f * w - punch);
+            // 枪尖落在目标身上, 枪身向后方延伸
+            float cx = px - Angles.trnsx(ang, 0.5f * w - punch);
+            float cy = py - Angles.trnsy(ang, 0.5f * w - punch);
 
             Draw.z(Layer.effect);
             Draw.color(Color.white);
             Draw.alpha(alpha);
             Draw.rect(region, cx, cy, w, h, ang);
-            Draw.reset();
 
-            // 枪插在单位身上: 插入点一小团红色余烬, 随时间缓慢熄灭
+            // 插入点的猩红余烬, 随时间熄灭
             Draw.blend(Blending.additive);
             Draw.color(glowColor, 0.55f * alpha * Mathf.clamp(1f - out * 1.2f));
-            Fill.circle(e.x, e.y, 9f);
+            Fill.circle(px, py, 10f + 5f * Mathf.absin(Time.time, 5f, 1f));
             Draw.blend();
             Draw.reset();
         });
     }
 
     /**
-     * 命中单位: 先冻结 AI 并插枪, 再交给基类结算伤害。
+     * 创建子弹时把炮台当前锁定的目标记到 {@code b.data}。
      *
-     * <p>注意顺序: 如果先结算 100 万伤害, 单位会立刻死亡,
-     * 之后就没办法再读取它来替换控制器了。</p>
+     * <p>原版 {@code TurretBuild.shoot()} 只把目标<b>坐标</b>传给子弹, 不会传目标实体,
+     * 所以这里从 owner (炮台建筑) 上把 {@code target} 取出来, 之后 {@link #update} 用它追踪。</p>
      */
     @Override
-    public void hitEntity(Bullet b, Hitboxc entity, float health) {
-        float hx = b.x, hy = b.y, rot = b.rotation();
+    public Bullet create(Entityc owner, Entityc shooter, Team team, float x, float y, float angle, float damage,
+                         float velocityScl, float lifetimeScl, Object data, Mover mover, float aimX, float aimY,
+                         Teamc target) {
+        Bullet b = super.create(owner, shooter, team, x, y, angle, damage, velocityScl, lifetimeScl, data, mover, aimX, aimY, target);
 
-        if (entity instanceof Unit unit && unit.isAdded()) {
-            // 1. 删除 AI (玩家单位除外, 否则会剥夺玩家控制)
-            if (!unit.isPlayer()) {
-                FrozenController controller = new FrozenController();
-                controller.unit(unit);
-                unit.controller(controller);
-            }
-
-            // 2. 枪插在目标上
-            if (stickEffect != null) stickEffect.at(hx, hy, rot, glowColor);
-
-            // 3. 冲击特效 + 震屏
-            if (hitSpark != null) hitSpark.at(hx, hy, rot, glowColor);
-            Effect.shake(7f, 8f, hx, hy);
+        if (b != null && owner instanceof Turret.TurretBuild build && build.target instanceof Unit unit) {
+            b.data = unit;
         }
 
-        super.hitEntity(b, entity, health);
+        return b;
     }
 
+    /**
+     * 追踪 + 命中结算。
+     *
+     * <p>因为 {@code collides = false}, 原版不会替我们做任何碰撞; 这里每帧:</p>
+     * <ol>
+     *   <li>目标还活着 → 小幅修正速度方向;</li>
+     *   <li>枪尖进入目标判定范围 → 结算命中并移除子弹。</li>
+     * </ol>
+     */
+    @Override
+    public void update(Bullet b) {
+        super.update(b);
+
+        Unit target = b.data instanceof Unit u && u.isAdded() && !u.dead() ? u : null;
+        if (target == null) return;
+
+        float speed = b.vel.len();
+        b.vel.setAngle(Angles.moveToward(b.rotation(), b.angleTo(target), homingTurnRate * Time.delta));
+        b.vel.setLength(speed);
+
+        if (b.dst(target) <= hitRadius + target.hitSize / 2f) {
+            hitTarget(b, target);
+            b.remove();
+        }
+    }
+
+    /** 命中结算: 冻结目标 → 插枪 → 粒子 → 伤害。 */
+    protected void hitTarget(Bullet b, Unit unit) {
+        float hx = b.x, hy = b.y, rot = b.rotation();
+
+        // 1. 抹除行动能力 (玩家单位不剥夺控制权)
+        if (!unit.isPlayer()) {
+            FrozenController controller = new FrozenController();
+            controller.unit(unit);
+            unit.controller(controller);
+            unit.vel.setZero();
+        }
+
+        // 2. 枪钉在目标身上 (data 传单位, 之后每帧跟着它画)
+        if (stickEffect != null) stickEffect.at(hx, hy, rot, unit);
+
+        // 3. 命中粒子 + 震屏 (粒子尺寸随目标体积小幅放大)
+        if (hitBurst != null) {
+            hitBurst.at(hx, hy, rot, Mathf.clamp(unit.hitSize / 40f, 1f, 2f));
+        }
+        Effect.shake(9f, 8f, hx, hy);
+
+        // 4. 伤害: 走原版 hitEntity, 结算护盾/护甲/状态与事件
+        hitEntity(b, unit, unit.health);
+    }
+
+    /** 只画朗枪贴图本身: 没有拖尾、没有枪尖高光、没有动态光源。 */
     @Override
     public void draw(Bullet b) {
-        // 贴图缺失时退化成一根光矛 (不是圆点), 保证缺图也能看出是"枪"
         TextureRegion region = spear();
         if (region == null || !region.found()) {
             drawFallbackSpear(b);
@@ -305,48 +384,16 @@ public class LonginusSpearBulletType extends BulletType {
         float h = region.height * scale;
 
         Draw.z(Layer.bullet);
-
-        // ===== 1. 拖尾: 沿轴向收束的两层光带 =====
-        // 之前这里是一团 Fill.circle, 半径比枪身还粗, 视觉上会盖住细长的枪,
-        // 看起来就成了"圆子弹"。改成纯粹的轴向光带, 枪的形状才透得出来。
-        Draw.blend(Blending.additive);
-        float tx = b.x - Angles.trnsx(b.rotation(), trailLength);
-        float ty = b.y - Angles.trnsy(b.rotation(), trailLength);
-        Draw.color(glowColor, 0.28f);
-        Lines.stroke(h * 0.85f);
-        Lines.line(tx, ty, b.x, b.y);
-        Draw.color(glowColor, 0.6f);
-        Lines.stroke(h * 0.3f);
-        Lines.line(tx, ty, b.x, b.y);
-        Draw.blend();
-        Draw.reset();
-
-        // ===== 2. 枪体本体 =====
-        // ★ 贴图本身枪尖朝右 (+x), 所以直接用 b.rotation() 就能让枪尖指向飞行方向;
-        //   不能再加 180°, 否则整杆枪是倒着飞的。
-        // 图片中心整体后退 0.35 个枪长, 让枪尖略微领先碰撞点 (看起来是枪尖扎中目标)。
-        float cx = b.x - Angles.trnsx(b.rotation(), w * 0.35f);
-        float cy = b.y - Angles.trnsy(b.rotation(), w * 0.35f);
         Draw.color(Color.white);
-        Draw.rect(region, cx, cy, w, h, b.rotation());
+        // 贴图枪尖朝右 (+x): 图片中心后退半个枪长, 枪尖正好落在子弹位置上
+        Draw.rect(region,
+            b.x - Angles.trnsx(b.rotation(), w * 0.5f),
+            b.y - Angles.trnsy(b.rotation(), w * 0.5f),
+            w, h, b.rotation());
         Draw.reset();
-
-        // ===== 3. 枪尖高光: 一小点, 不再是一大团 =====
-        float tipX = b.x + Angles.trnsx(b.rotation(), w * 0.15f);
-        float tipY = b.y + Angles.trnsy(b.rotation(), w * 0.15f);
-        Draw.blend(Blending.additive);
-        Draw.color(Color.white, 0.9f);
-        Fill.circle(tipX, tipY, h * 0.14f);
-        Draw.color(glowColor, 0.55f);
-        Fill.circle(tipX, tipY, h * 0.32f);
-        Draw.blend();
-        Draw.reset();
-
-        // ===== 4. 动态光源 =====
-        Drawf.light(b.x, b.y, lightRadius, glowColor, 0.75f);
     }
 
-    /** 缺图兜底: 一根细长光矛 + 白色内芯, 形状明确不是圆。 */
+    /** 缺图兜底: 一根细长光矛, 保证缺图也能看出是"枪"而不是圆点。 */
     protected void drawFallbackSpear(Bullet b) {
         float len = 64f;
         Draw.z(Layer.bullet);
