@@ -90,8 +90,7 @@ public class ModularTurret extends Turret implements GraphBlockBase{
         config(IntSeq.class, (ModularTurretBuild build, IntSeq value) -> build.changed = build.setBluePrint(UnityUtils.unpackInts(value)));
         configClear((ModularTurretBuild build) -> build.setBluePrint(null));
 
-        // 接入扭矩网络: 与剁刀共用同一套传动系统
-        addGraph(new GraphTorque());
+        // 扭矩网络在 init() 里注册: 端口数量依赖 size, 而 size 由子类构造块设置
     }
 
     @Override
@@ -217,6 +216,13 @@ public class ModularTurret extends Turret implements GraphBlockBase{
         PartInfo[] config = getPartsConfig();
         for(int i = 0; i < config.length; i++) config[i].id = i;
         PartInfo.preCalcConnection(config);
+
+        // 接入扭矩网络: 每边 size 个端口, 四边全开。
+        // ★ accept 必须在注册时就填好 —— GraphModule.onCreate() 会直接读 graph.accept.length,
+        //   留空会让炮塔在建造完成/读档/复制时抛 NPE。
+        int[] ports = new int[size * 4];
+        for(int i = 0; i < ports.length; i++) ports[i] = 1;
+        addGraph(new GraphTorque(0.1f, 10f).setAccept(ports));
     }
 
     @Override
