@@ -317,6 +317,15 @@
 - 合并时有烟雾效果和延迟检查
 
 ## 更新日志
+- **低阶单位（T1~T5）数值曲线补齐 + 粗糙攻击表现优化**
+  - **直升机线**：schistocerca 150→220、anthophila 450→650、vespula 4000/9→6000/10、lepidoptera 9500/14→15000/16，与已重平衡的 T6 mantodea（62k/26）形成连续曲线
+  - **EMP 飞行线**：pulse 340→380、emission 680→800、waveform 4500/10→6500/11、ultraviolet 12000/14→16000/16
+  - **治疗机线**：cherub 70→90、malakhim 220→320、seraphim 670/16→1000/18
+  - **Scar 地面线**：ryzer 640→720、zena 1220/4→1450/5、sundown 9400/8→11000/10、rex 23000/16→28000/20
+  - **Scar 飞行线**：whirlwind 280→320、jetstream 570→700、vortex 1050→1400
+  - **Monolith 能量环**：stray 300→350、tendence 600/4→750/5、liminality 700/6→1100/8；monument 32000/40→36000/42
+  - **Koruh**：buffer 150→180、omega 350→450、cache 560→700（保留高速冲刺的轻甲定位）
+  - **攻击表现**：caelifera 机枪补枪口焰/命中特效、小导弹补爆炸反馈；anthophila 电弧长度随机化并补命中特效，让低阶单位开火不再"打空气"
 - **T6/T7 单位数值重平衡（基准：饱和火力模组 T6）**
   - **T6（略低于饱和火力 T6 的 73k~84k 血量 / 25~45 护甲）**：citadel 60k/32→72k/36、cygnus 45k/24→68k/28、araneidae 52k/20→69k/26、mantle 54k/20→69k/26、sedec 45k/30→64k/32、deviation 18.5k/20→64k/26、mantodea 25.5k/20→62k/26、excelsus 46k/32→68k/36、colossus 60k/60→72k/60、fin 36.25k/18→70k/30
   - **T7（明显高于饱和火力 T6）**：empire 140k/36→180k/50、sagittarius 102.5k/26→165k/46、theraphosidae 125k/28→180k/48、aphelion 130k/28→190k/48、trigintaduo 52.5k/34→155k/50、anomaly 35k/26→165k/46、bastion 120k/104→200k/104、blue 42.5k/20→175k/48；colossus/bastion 保留 Monolith 高护甲特色

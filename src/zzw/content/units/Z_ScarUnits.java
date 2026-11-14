@@ -125,7 +125,7 @@ public class Z_ScarUnits {
         ryzer = new UnityUnitType("ryzer"){{
             aiController = DistanceGroundAI::new;
             speed = 0.7f;
-            health = 640;
+            health = 720;  // ★ 低阶曲线: 640 → 720
             armor = 2f;  // ★ 加强 (原缺失)
             hitSize = 9.5f * 1.7f;
             range = 350f;
@@ -182,8 +182,8 @@ public class Z_ScarUnits {
         zena = new UnityUnitType("zena"){{
             aiController = DistanceGroundAI::new;
             speed = 0.7f;
-            health = 1220;
-            armor = 4f;  // ★ 加强 (原缺失)
+            health = 1450;  // ★ 低阶曲线: 1220 → 1450
+            armor = 5f;  // ★ 低阶曲线: 4f → 5f
             hitSize = 17.85f;
             range = 350f;
             allowLegStep = true;
@@ -257,13 +257,13 @@ public class Z_ScarUnits {
         sundown = new UnityUnitType("sundown"){{
             aiController = DistanceGroundAI::new;
             speed = 0.6f;
-            health = 9400;
+            health = 11000;  // ★ 低阶曲线: 9400 → 11000
             hitSize = 36f;
             range = 360f;
             allowLegStep = true;
             legMoveSpace = 0.53f;
             rotateSpeed = 2.5f;
-            armor = 8f;  // ★ 加强 (原 4f)
+            armor = 10f;  // ★ 低阶曲线: 8f → 10f
             legCount = 4;
             // legTrns = 0.4f; // v158.1 已移除该字段
             legLength = 44f;
@@ -323,12 +323,12 @@ public class Z_ScarUnits {
         rex = new UnityUnitType("rex"){{
             aiController = DistanceGroundAI::new;
             speed = 0.55f;
-            health = 23000;
+            health = 28000;  // ★ 低阶曲线: 23000 → 28000
             hitSize = 47.5f;
             range = 390f;
             allowLegStep = true;
             rotateSpeed = 2f;
-            armor = 16f;  // ★ 加强 (原 12f)
+            armor = 20f;  // ★ 低阶曲线: 16f → 20f, 缩小与 T6 的护甲断层
 
             hovering = true;
             groundLayer = Layer.legUnit + 0.01f;
@@ -556,7 +556,7 @@ public class Z_ScarUnits {
 
         // Whirlwind (T1) - 基础飞行单位, saber 持续激光 + 导弹
         whirlwind = new UnityUnitType("whirlwind"){{
-            health = 280;
+            health = 320;  // ★ 低阶曲线: 280 → 320
             rotateSpeed = 4.5f;
             faceTarget = false;
             flying = true;
@@ -616,7 +616,7 @@ public class Z_ScarUnits {
 
         // Jetstream (T2) - 进阶飞行单位, swipe saber 激光 + 导弹
         jetstream = new UnityUnitType("jetstream"){{
-            health = 570;
+            health = 700;  // ★ 低阶曲线: 570 → 700
             rotateSpeed = 12.5f;
             flying = true;
             speed = 9.2f;
@@ -677,7 +677,7 @@ public class Z_ScarUnits {
 
         // Vortex (T3) - 高级飞行单位, swipe saber 激光
         vortex = new UnityUnitType("vortex"){{
-            health = 1050;
+            health = 1400;  // ★ 低阶曲线: 1050 → 1400
             rotateSpeed = 12.5f;
             flying = true;
             speed = 9.1f;

@@ -38,7 +38,7 @@ public class Z_KoruhUnits{
             speed = 0.75f;
             boostMultiplier = 1.5f;
             itemCapacity = 15;
-            health = 150;
+            health = 180;  // ★ 低阶曲线: 150 → 180
             armor = 4f;  // ★ 加强 (原缺失)
             buildSpeed = 0.9f;
             engineColor = Color.valueOf("d3ddff");
@@ -81,7 +81,7 @@ public class Z_KoruhUnits{
             canBoost = true;
             boostMultiplier = 0.6f;
             engineColor = Color.valueOf("feb380");
-            health = 350f;
+            health = 450f;  // ★ 低阶曲线: 350f → 450f
             armor = 6f;  // ★ 加强 (原缺失)
             buildSpeed = 1.5f;
             rotateSpeed = 3f;
@@ -135,7 +135,7 @@ public class Z_KoruhUnits{
             //   之前误改为0.05f导致: drag>accel时终端速度只有目标的28%,
             //   vel永远达不到MoveLightningAbility的minSpeed(3.6f), 冲刺闪电永不触发
             //   (且移动速度明显变慢)。滑行惯性是PU132原版特性, 予以保留。
-            health = 560;  // 定位: 高速冲刺型, 血量薄 (不改)
+            health = 700;  // ★ 低阶曲线: 560 → 700 (冲刺型, 仍属轻甲)
             engineColor = Color.valueOf("d3ddff");
             flying = true;
             armor = 8f;  // ★ 加强 (原 6f)

@@ -3927,7 +3927,7 @@ public class Z_Units {
         // ===== cherub (天使级治疗机, T1) =====
         cherub = new UnitType("cherub") {{
             flying = true;
-            health = 70f;
+            health = 90f;   // ★ 低阶曲线: 70f → 90f, 与高阶治疗机衔接更平滑
             speed = 3.5f;
             accel = 0.1f;           // PU_V8: 0.1 (原版默认 0.5, 必须显式覆盖)
             drag = 0.07f;
@@ -3958,7 +3958,7 @@ public class Z_Units {
         malakhim = new UnitType("malakhim") {{
             flying = true;
             lowAltitude = true;
-            health = 220f;
+            health = 320f;  // ★ 低阶曲线: 220f → 320f
             speed = 2.5f;
             accel = 0.09f;          // PU_V8: 0.09
             drag = 0.08f;           // PU_V8: 0.08
@@ -3992,12 +3992,12 @@ public class Z_Units {
         seraphim = new UnitType("seraphim") {{
             flying = true;
             lowAltitude = true;
-            health = 670f;
+            health = 1000f;  // ★ 低阶曲线: 670f → 1000f, 补齐与 T4 的跨度
             speed = 2f;
             accel = 0.095f;         // PU_V8: 0.095
             drag = 0.09f;           // PU_V8: 0.09
             hitSize = 34f;
-            armor = 16f;  // ★ 按用户设定 (原缺失)
+            armor = 18f;  // ★ 低阶曲线: 16f → 18f, 顶级治疗机防护略高于 T2
             engineOffset = 15.75f;
             engineSize = 3.5f;
             // PU_V8 未设 isCounted=false → seraphim 计入单位上限 (与 cherub/malakhim 不同)
@@ -4076,6 +4076,10 @@ public class Z_Units {
                 bullet = new mindustry.entities.bullet.BasicBulletType(5f, 10f) {{
                     lifetime = 30f;
                     shrinkY = 0.2f;
+                    // ★ 攻击表现: 补齐枪口焰与命中反馈, 避免 T1 机枪打上去"没反应"
+                    shootEffect = mindustry.content.Fx.shootSmall;
+                    smokeEffect = mindustry.content.Fx.shootSmallSmoke;
+                    hitEffect = mindustry.content.Fx.hitBulletSmall;
                 }};
             }});
 
@@ -4092,6 +4096,9 @@ public class Z_Units {
                     splashDamage = 55f;
                     splashDamageRadius = 8f;
                     drag = -0.01f;
+                    // ★ 攻击表现: 小型溅射也给出爆炸反馈
+                    hitEffect = mindustry.content.Fx.blastExplosion;
+                    despawnEffect = mindustry.content.Fx.blastExplosion;
                 }};
             }});
 
@@ -4106,7 +4113,7 @@ public class Z_Units {
             speed = 4.5f;
             drag = 0.07f;
             accel = 0.03f;
-            health = 150f;  // 定位: 直升机冲刺型, 血量薄
+            health = 220f;  // ★ 低阶曲线: 150f → 220f, 冲刺型也要扛得住一轮点防
             engineSize = 0f;
             flying = true;
             hitSize = 13f;
@@ -4184,7 +4191,7 @@ public class Z_Units {
             speed = 4f;
             drag = 0.07f;
             accel = 0.03f;
-            health = 450f;  // 定位: 直升机冲刺型, 血量薄
+            health = 650f;  // ★ 低阶曲线: 450f → 650f
             engineSize = 0f;
             flying = true;
             hitSize = 15f;
@@ -4221,7 +4228,9 @@ public class Z_Units {
                 bullet = new mindustry.entities.bullet.LightningBulletType() {{
                     damage = 22f;
                     lightningLength = 12;
+                    lightningLengthRand = 5;  // ★ 攻击表现: 电弧长度随机, 避免三发一模一样
                     lightningColor = mindustry.graphics.Pal.surge;
+                    hitEffect = mindustry.content.Fx.hitLancer;
                 }};
             }});
 
@@ -4251,11 +4260,11 @@ public class Z_Units {
             drag = 0.1f;
             accel = 0.03f;
             fallSpeed = 0.003f;
-            health = 4000f;
+            health = 6000f;  // ★ 低阶曲线: 4000f → 6000f, 与 T5 保持约 2.5 倍跨度
             engineSize = 0f;
             flying = true;
             hitSize = 30f;
-            armor = 9f;  // ★ 加强: 4f → 9f
+            armor = 10f;  // ★ 低阶曲线: 9f → 10f
             range = 165f;
             lowAltitude = true;
             rotateSpeed = 3.5f;
@@ -4331,11 +4340,11 @@ public class Z_Units {
             speed = 3f;
             drag = 0.1f;
             accel = 0.03f;
-            health = 9500f;
+            health = 15000f;  // ★ 低阶曲线: 9500f → 15000f, 贴近 T6 的下沿
             engineSize = 0f;
             flying = true;
             hitSize = 45f;
-            armor = 14f;  // ★ 加强: 5f → 14f
+            armor = 16f;  // ★ 低阶曲线: 14f → 16f
             range = 300f;
             rotateSpeed = 2.7f;
             lowAltitude = true;
@@ -4960,7 +4969,7 @@ public class Z_Units {
         pulse = new UnitType("pulse") {{
             flying = true;
             lowAltitude = true;
-            health = 340f;  // ★ 加强 (原 210): 对齐原版飞行 T2 血量曲线 (340)
+            health = 380f;  // ★ 低阶曲线: 340f → 380f
             speed = 1.8f;
             accel = 0.1f;
             drag = 0.06f;
@@ -5006,7 +5015,7 @@ public class Z_Units {
         emission = new UnitType("emission") {{
             flying = true;
             lowAltitude = true;
-            health = 680f;  // ★ 加强 (原 550): 对齐原版飞行 T3 血量曲线
+            health = 800f;  // ★ 低阶曲线: 680f → 800f
             speed = 1.2f;
             accel = 0.1f;
             drag = 0.07f;
@@ -5085,12 +5094,12 @@ public class Z_Units {
         waveform = new UnitType("waveform") {{
             flying = true;
             lowAltitude = true;
-            health = 4500f;
+            health = 6500f;  // ★ 低阶曲线: 4500f → 6500f
             speed = 0.9f;
             accel = 0.09f;
             drag = 0.07f;
             hitSize = 41.5f;
-            armor = 10f;  // ★ 加强: 8f → 10f
+            armor = 11f;  // ★ 低阶曲线: 10f → 11f
             engineOffset = 24.25f;
             outlineColor = Color.valueOf("2e3142");
             constructor = mindustry.gen.UnitEntity::create;
@@ -5197,12 +5206,12 @@ public class Z_Units {
         ultraviolet = new UnitType("ultraviolet") {{
             flying = true;
             lowAltitude = true;
-            health = 12000f;
+            health = 16000f;  // ★ 低阶曲线: 12000f → 16000f, 作为 EMP 线顶点
             speed = 0.53f;
             accel = 0.06f;
             drag = 0.07f;
             hitSize = 57.5f;
-            armor = 14f;  // ★ 加强: 10f → 14f
+            armor = 16f;  // ★ 低阶曲线: 14f → 16f
             engineOffset = 33.75f;
             engineSize = 3.5f;
             outlineColor = Color.valueOf("2e3142");

@@ -752,11 +752,11 @@ public class Z_MonolithUnits{
             // PU132: Legsc 实体 (多足, 携带灵魂 -> SoulLegsUnit)
             constructor = SoulLegsUnit::create;
 
-            health = 32000f;
+            health = 36000f;  // ★ 低阶曲线微调: 32000f → 36000f
             speed = 0.42f;
             rotateSpeed = 1.4f;
             hitSize = 48f;
-            armor = 40f;  // ★ 加强 (原 32f → 34f → 40f)
+            armor = 42f;  // ★ 低阶曲线微调: 40f → 42f
             // TODO: PU132 commandLimit = 8 — v155.4 无该字段
             maxSouls = 9;
 
@@ -1057,7 +1057,7 @@ public class Z_MonolithUnits{
         stray = new UnityUnitType("stray"){{
             constructor = DecorationUnitEntity::create;
 
-            health = 300f;
+            health = 350f;  // ★ 低阶曲线: 300f → 350f
             armor = 2f;  // ★ 加强 (原缺失)
             speed = 5f;
             accel = 0.08f;
@@ -1172,8 +1172,8 @@ public class Z_MonolithUnits{
             // 携带灵魂 + 保留装饰 -> SoulDecorationUnit
             constructor = SoulDecorationUnit::create;
 
-            health = 600f;
-            armor = 4f;  // ★ 加强 (原缺失)
+            health = 750f;  // ★ 低阶曲线: 600f → 750f
+            armor = 5f;  // ★ 低阶曲线: 4f → 5f
             // rotateShooting = false; // v158 无该字段
             lowAltitude = true;
             flying = true;
@@ -1336,8 +1336,8 @@ public class Z_MonolithUnits{
             // 携带灵魂 + 保留装饰 -> SoulDecorationUnit
             constructor = SoulDecorationUnit::create;
 
-            health = 700f;
-            armor = 6f;  // ★ 加强 (原缺失)
+            health = 1100f;  // ★ 低阶曲线: 700f → 1100f
+            armor = 8f;  // ★ 低阶曲线: 6f → 8f
             // rotateShooting = false; // v158 无该字段
             lowAltitude = true;
             flying = true;
