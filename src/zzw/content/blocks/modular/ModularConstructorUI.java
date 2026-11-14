@@ -280,8 +280,14 @@ public class ModularConstructorUI extends Element{
         return !(x < 0 || x + w > gridW || y < 0 || y + h > gridH);
     }
 
+    /**
+     * 是否可以在指定格放置零件。
+     *
+     * <p>只校验边界与占用, 不强制要求与已有零件连通 —— 否则网格边角格 (与中心根零件
+     * 斜对角、无法正交连通) 将永远放不下零件。连接端口仍会绘制出来作为拼装提示。</p>
+     */
     boolean canPlace(PartInfo partType, int x, int y){
-        return canPlaceConn(partType, x, y, true);
+        return canPlaceConn(partType, x, y, false);
     }
 
     boolean canPlaceConn(PartInfo partType, int x, int y, boolean chkConnection){
@@ -308,34 +314,9 @@ public class ModularConstructorUI extends Element{
         return true;
     }
 
-    OrderedSet<PartPlaceObj> floodFrom(PartPlaceObj part){
-        OrderedSet<PartPlaceObj> visited = new OrderedSet<>(12);
-        visited.add(part);
-        Seq<PartPlaceObj> toVisit = new Seq<>();
-        for(var i : part.parents) toVisit.add(i);
-        for(var i : part.children) toVisit.add(i);
-        int index = 0;
-        while(index < toVisit.size){
-            PartPlaceObj cPart = toVisit.get(index);
-            visited.add(cPart);
-            for(var i : cPart.parents){
-                if(!visited.contains(i)) toVisit.add(i);
-            }
-            for(var i : cPart.children){
-                if(!visited.contains(i)) toVisit.add(i);
-            }
-            index++;
-        }
-        return visited;
-    }
-
     void rebuildFromRoots(){
-        for(int i = 0, len = partList.size; i < len; i++) partList.get(i).valid = false;
-        for(int i = 0, len = rootList.size; i < len; i++){
-            //从每个根件泛滥填充, 标记其连通零件有效
-            OrderedSet<PartPlaceObj> k = floodFrom(rootList.get(i));
-            for(var part : k) part.valid = true;
-        }
+        // 允许自由摆放: 所有已放置零件都视为有效并保存
+        for(int i = 0, len = partList.size; i < len; i++) partList.get(i).valid = true;
     }
 
     boolean removeTile(PartPlaceObj part){

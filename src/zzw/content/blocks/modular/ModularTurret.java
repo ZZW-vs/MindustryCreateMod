@@ -113,8 +113,10 @@ public class ModularTurret extends Turret{
         byte[] none = {0, 0, 0, 0};
 
         // ── 底座 ──
+        // 根零件预置在蓝图网格正中心 (6x6 → (3,3), 8x8 → (4,4))
+        Point2 center = new Point2(gridW / 2, gridH / 2);
         addPart("gbase", Core.bundle.get("part.unity.gbase.name"), Core.bundle.get("part.unity.gbase.info"), PartType.base,
-            1, 1, true, true, new Point2(1, 1), ItemStack.with(Z_Items.nickel, 10, Items.titanium, 5), all1x1, none,
+            1, 1, true, true, center, ItemStack.with(Z_Items.nickel, 10, Items.titanium, 5), all1x1, none,
             new PartStat(PartStatType.hp, 40), new PartStat(PartStatType.support, "1x"), new PartStat(PartStatType.reload, 1f),
             new PartStat(PartStatType.mass, 3));
         addPart("rgbase", Core.bundle.get("part.unity.rgbase.name"), Core.bundle.get("part.unity.rgbase.info"), PartType.base,
@@ -648,17 +650,25 @@ public class ModularTurret extends Turret{
 
         @Override
         public void draw(){
-            int dir = Mathf.clamp((int)(buildRotation() / 90f) & 3, 0, 3);
-            TextureRegion base = regions[dir];
-            if(base != null && base.found()) Draw.rect(base, x, y);
-            else Draw.rect(region, x, y);
+            // 底座固定不动: 只受放置朝向影响, 绝不跟随瞄准角旋转
+            int placeDir = ((Building)this).rotation & 3;
+            TextureRegion base = regions[placeDir];
+            Draw.rect(base != null && base.found() ? base : region, x, y);
             drawTeamTop();
 
+            Draw.z(Layer.turret);
+            // 顶部组装体 (转轴 + 蓝图零件) 绕方块中心按瞄准角旋转, 并带一点后坐力位移
+            float rot = rotation - 90f;
+            float recoil = -curRecoil * 2f;
+            float ox = Mathf.cosDeg(rotation) * recoil;
+            float oy = Mathf.sinDeg(rotation) * recoil;
+            float alpha = getPaidRatio() < 1f ? 0.45f + 0.55f * aniProg : 1f;
+            Draw.alpha(alpha);
+
             if(bluePrint.size > 0){
-                Draw.z(Layer.turret);
-                float rot = rotation - 90f;
-                // 蓝图网格远大于方块本体 (6x6/8x8 格), 必须整体缩放到方块尺寸后再绘制
-                float gridScale = size / (float)Math.max(gridW, gridH);
+                // 蓝图网格 (6x6/8x8) 按方块实际尺寸换算每格像素, 保证整体落在底座范围内
+                float cellX = size * tilesize / gridW;
+                float cellY = size * tilesize / gridH;
                 for(int index = 0; index < bluePrint.size; index++){
                     int value = bluePrint.get(index);
                     if(value == 0 || value > parts.size) continue;
@@ -667,20 +677,18 @@ public class ModularTurret extends Turret{
                     if(tex == null || !tex.found()) continue;
                     int gx = index / gridH, gy = index % gridH;
                     // 网格坐标 → 方块本地像素坐标 (网格中心对齐方块中心)
-                    float lx = (gx + part.tw * 0.5f - gridW * 0.5f) * 32f * gridScale;
-                    float ly = (gy + part.th * 0.5f - gridH * 0.5f) * 32f * gridScale;
-                    Tmp.v1.set(lx, ly).rotate(rot).add(x, y);
-                    float alpha = getPaidRatio() < 1f ? 0.45f + 0.55f * aniProg : 1f;
-                    // 零件图标按 26px/格 制作, 映射到地图上的 32px/格
-                    float scale = 32f / 26f * gridScale;
-                    Draw.alpha(alpha);
-                    Draw.rect(tex, Tmp.v1.x, Tmp.v1.y, tex.width * scale, tex.height * scale, rot);
-                    Draw.alpha(1f);
+                    float lx = (gx + part.tw * 0.5f - gridW * 0.5f) * cellX;
+                    float ly = (gy + part.th * 0.5f - gridH * 0.5f) * cellY;
+                    Tmp.v1.set(lx, ly).rotate(rot).add(x + ox, y + oy);
+                    Draw.rect(tex, Tmp.v1.x, Tmp.v1.y, part.tw * cellX, part.th * cellY, rot);
                 }
-            }else if(rootRegion.found()){
-                Draw.z(Layer.turret);
-                Draw.rect(rootRegion, x, y, rotation - 90f);
             }
+
+            // 转轴 (根零件) 始终叠在最上层
+            if(rootRegion.found()){
+                Draw.rect(rootRegion, x + ox, y + oy, rot);
+            }
+            Draw.alpha(1f);
         }
     }
 }
