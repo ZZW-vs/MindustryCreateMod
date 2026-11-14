@@ -23,6 +23,8 @@ public class PartInfo{
     public final byte[] connectOut, connectIn;
     public final OrderedMap<PartStatType, PartStat> stats = new OrderedMap<>(12);
     public TextureRegion sprite, sprite2, texRegion;
+    /** 零件图标文件名 (不含 part- 前缀), 由方块 load() 映射成图集贴图 */
+    public String icon;
     final Seq<ConnectData> connInList = new Seq<>(), connOutList = new Seq<>();
     int id;
 
@@ -69,7 +71,10 @@ public class PartInfo{
         for(int i = 0, len = partsConfig.length; i < len; i++){
             PartInfo pinfo = partsConfig[i];
             pinfo.id = i;
-            pinfo.texRegion = GraphicUtils.getRegionRect(partsSprite, pinfo.tx, pinfo.ty, pinfo.tw, pinfo.th, spriteW, spriteH);
+            // 已经由方块自身指定贴图 (如模块化炮台直接使用 part-*.png) 时不再从图集切片
+            if(pinfo.texRegion == null){
+                pinfo.texRegion = GraphicUtils.getRegionRect(partsSprite, pinfo.tx, pinfo.ty, pinfo.tw, pinfo.th, spriteW, spriteH);
+            }
         }
     }
 }

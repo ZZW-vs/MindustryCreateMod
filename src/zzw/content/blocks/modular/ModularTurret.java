@@ -1,0 +1,675 @@
+package zzw.content.blocks.modular;
+
+import arc.Core;
+import arc.graphics.Color;
+import arc.graphics.g2d.Draw;
+import arc.graphics.g2d.TextureRegion;
+import arc.math.Mathf;
+import arc.math.geom.Point2;
+import arc.scene.ui.layout.Table;
+import arc.struct.IntSeq;
+import arc.struct.OrderedMap;
+import arc.struct.Seq;
+import arc.util.Time;
+import arc.util.Tmp;
+import arc.util.io.Reads;
+import arc.util.io.Writes;
+import mindustry.content.Fx;
+import mindustry.content.Items;
+import mindustry.content.StatusEffects;
+import mindustry.entities.bullet.ArtilleryBulletType;
+import mindustry.entities.bullet.BasicBulletType;
+import mindustry.entities.bullet.BulletType;
+import mindustry.gen.Building;
+import mindustry.gen.Icon;
+import mindustry.gen.Sounds;
+import mindustry.gen.Tex;
+import mindustry.graphics.Layer;
+import mindustry.graphics.Pal;
+import mindustry.type.Item;
+import mindustry.type.ItemStack;
+import mindustry.ui.Styles;
+import mindustry.ui.dialogs.BaseDialog;
+import mindustry.world.blocks.defense.turrets.Turret;
+import mindustry.world.blocks.storage.CoreBlock.CoreBuild;
+import mindustry.world.meta.Stat;
+import mindustry.world.meta.StatUnit;
+import mindustry.world.meta.Stats;
+import mindustry.world.modules.ItemModule;
+import zzw.content.Z_Items;
+import zzw.util.UnityUtils;
+
+import static mindustry.Vars.*;
+
+/**
+ * 模块化炮台 (PU132 younggamExperimental.blocks.ModularTurret 移植)。
+ *
+ * <p>玩家在蓝图编辑器里用零件拼出一门炮, 方块按蓝图自动从核心取料建造;
+ * 建造完成后按零件组合决定口径、弹匣、射速与射程, 并从货物中接收弹药开火。</p>
+ *
+ * <p>本类只负责方块本体与运行时行为, 零件表由 {@link #addDefaultParts()} 统一注册,
+ * 贴图直接使用 {@code part-*.png} 图标, 分类图标使用 {@code partscategory1..5}。</p>
+ */
+public class ModularTurret extends Turret{
+    /** 造价配比编码: 高 16 位为已付数量, 低 16 位为需求数量 */
+    static final int mask = 65535;
+    /** 当前方块的全部零件 (顺序即蓝图配置中的 id - 1) */
+    public final Seq<PartInfo> parts = new Seq<>();
+    /** 零件分类, 顺序对应 partscategory1..5 */
+    final PartType[] categories = new PartType[]{PartType.base, PartType.breach, PartType.ammo, PartType.payload, PartType.misc};
+    final TextureRegion[] regions = new TextureRegion[4];
+    TextureRegion partsRegion, rootRegion, rootOutlineRegion;
+    float partCostAccum = 0.2f, autoBuildDelay = 10f;
+    int gridW = 1, gridH = 1;
+
+    public ModularTurret(String name){
+        super(name);
+        rotate = solid = configurable = acceptsItems = hasItems = true;
+        targetAir = targetGround = true;
+        inaccuracy = 4f;
+        shootCone = 35f;
+        rotateSpeed = 5f;
+        heatColor = Pal.turretHeat;
+        shootSound = Sounds.shootDuo;
+        buildType = ModularTurretBuild::new;
+
+        config(String.class, (ModularTurretBuild build, String value) -> build.changed = build.setBluePrintFromString(value));
+        config(IntSeq.class, (ModularTurretBuild build, IntSeq value) -> build.changed = build.setBluePrint(UnityUtils.unpackInts(value)));
+        configClear((ModularTurretBuild build) -> build.setBluePrint(null));
+    }
+
+    protected void setGridW(int s){
+        gridW = Mathf.clamp(s, 1, 16);
+    }
+
+    protected void setGridH(int s){
+        gridH = Mathf.clamp(s, 1, 16);
+    }
+
+    public PartType[] getPartsCategories(){
+        return categories;
+    }
+
+    public PartInfo[] getPartsConfig(){
+        return parts.toArray(PartInfo.class);
+    }
+
+    protected void addPart(String icon, String name, String desc, PartType category, int tw, int th, boolean cannotPlace, boolean isRoot, Point2 prePlace, ItemStack[] cost, byte[] connectOut, byte[] connectIn, PartStat... stats){
+        PartInfo info = new PartInfo(name, desc, category, 0, 0, tw, th, cannotPlace, isRoot, prePlace, cost, connectOut, connectIn, stats);
+        info.icon = icon;
+        parts.add(info);
+    }
+
+    /**
+     * 注册默认零件表 (13 个零件, 覆盖 part-*.png 全部图标)。
+     *
+     * <p>除底座外全部零件四向互通 (端口 id 都为 1), 玩家可以自由拼接;
+     * 根零件为火炮底座, 打开蓝图面板时会预置在网格 (1,1)。</p>
+     */
+    protected void addDefaultParts(){
+        byte[] all1x1 = {1, 1, 1, 1};
+        byte[] all3x1 = {1, 1, 1, 1, 1, 1, 1, 1};
+        byte[] all2x1 = {1, 1, 1, 1, 1, 1};
+        byte[] none = {0, 0, 0, 0};
+
+        // ── 底座 ──
+        addPart("gbase", Core.bundle.get("part.unity.gbase.name"), Core.bundle.get("part.unity.gbase.info"), PartType.base,
+            1, 1, true, true, new Point2(1, 1), ItemStack.with(Z_Items.nickel, 10, Items.titanium, 5), all1x1, none,
+            new PartStat(PartStatType.hp, 40), new PartStat(PartStatType.support, "1x"), new PartStat(PartStatType.reload, 1f),
+            new PartStat(PartStatType.mass, 3));
+        addPart("rgbase", Core.bundle.get("part.unity.rgbase.name"), Core.bundle.get("part.unity.rgbase.info"), PartType.base,
+            3, 1, false, false, null, ItemStack.with(Z_Items.nickel, 15, Items.titanium, 20, Items.graphite, 10), all3x1, all3x1,
+            new PartStat(PartStatType.hp, 80), new PartStat(PartStatType.support, "3x"), new PartStat(PartStatType.reload, 1.6f),
+            new PartStat(PartStatType.mass, 15), new PartStat(PartStatType.shaftSpd, 25));
+        addPart("small-adapter", Core.bundle.get("part.unity.small-adapter.name"), Core.bundle.get("part.unity.small-adapter.info"), PartType.base,
+            2, 1, false, false, null, ItemStack.with(Z_Items.nickel, 6, Items.titanium, 4), all2x1, all2x1,
+            new PartStat(PartStatType.hp, 25), new PartStat(PartStatType.support, "2x"));
+
+        // ── 炮闩 ──
+        addPart("gbreach", Core.bundle.get("part.unity.gbreach.name"), Core.bundle.get("part.unity.gbreach.info"), PartType.breach,
+            1, 1, false, false, null, ItemStack.with(Z_Items.nickel, 4), all1x1, all1x1,
+            new PartStat(PartStatType.hp, 25), new PartStat(PartStatType.bulletType, "normal"), new PartStat(PartStatType.baseDmg, 14f),
+            new PartStat(PartStatType.baseSpeed, 5f), new PartStat(PartStatType.ammoType, "normal"), new PartStat(PartStatType.payload, 1),
+            new PartStat(PartStatType.magazine, 3), new PartStat(PartStatType.shots, 1), new PartStat(PartStatType.reloadMultiplier, 1f),
+            new PartStat(PartStatType.spread, 8f), new PartStat(PartStatType.lifetime, 30f), new PartStat(PartStatType.heat, 120f));
+        addPart("grbreach", Core.bundle.get("part.unity.grbreach.name"), Core.bundle.get("part.unity.grbreach.info"), PartType.breach,
+            1, 1, false, false, null, ItemStack.with(Z_Items.nickel, 3, Items.graphite, 5), all1x1, all1x1,
+            new PartStat(PartStatType.hp, 25), new PartStat(PartStatType.bulletType, "grenade"), new PartStat(PartStatType.baseDmg, 8f),
+            new PartStat(PartStatType.baseSpeed, 4f), new PartStat(PartStatType.ammoType, "explosive"), new PartStat(PartStatType.payload, 1),
+            new PartStat(PartStatType.magazine, 2), new PartStat(PartStatType.shots, 1), new PartStat(PartStatType.reloadMultiplier, 3.2f),
+            new PartStat(PartStatType.spread, 14f), new PartStat(PartStatType.lifetime, 120f), new PartStat(PartStatType.mod, "Explosive"));
+        addPart("cbreach", Core.bundle.get("part.unity.cbreach.name"), Core.bundle.get("part.unity.cbreach.info"), PartType.breach,
+            1, 1, false, false, null, ItemStack.with(Items.silicon, 6, Items.titanium, 5), all1x1, all1x1,
+            new PartStat(PartStatType.hp, 30), new PartStat(PartStatType.bulletType, "normal"), new PartStat(PartStatType.baseDmg, 20f),
+            new PartStat(PartStatType.baseSpeed, 6f), new PartStat(PartStatType.ammoType, "normal"), new PartStat(PartStatType.payload, 1),
+            new PartStat(PartStatType.magazine, 4), new PartStat(PartStatType.shots, 1), new PartStat(PartStatType.reloadMultiplier, 1.2f),
+            new PartStat(PartStatType.spread, 5f), new PartStat(PartStatType.lifetime, 40f), new PartStat(PartStatType.heat, 180f));
+        addPart("clbreach", Core.bundle.get("part.unity.clbreach.name"), Core.bundle.get("part.unity.clbreach.info"), PartType.breach,
+            1, 2, false, false, null, ItemStack.with(Items.silicon, 8, Items.titanium, 8), all2x1, all2x1,
+            new PartStat(PartStatType.hp, 35), new PartStat(PartStatType.bulletType, "normal"), new PartStat(PartStatType.baseDmg, 9f),
+            new PartStat(PartStatType.baseSpeed, 5.5f), new PartStat(PartStatType.ammoType, "normal"), new PartStat(PartStatType.payload, 1),
+            new PartStat(PartStatType.magazine, 6), new PartStat(PartStatType.shots, 2), new PartStat(PartStatType.reloadMultiplier, 0.8f),
+            new PartStat(PartStatType.spread, 12f), new PartStat(PartStatType.lifetime, 32f), new PartStat(PartStatType.heat, 90f));
+
+        // ── 弹药 / 载荷 / 辅助 ──
+        addPart("apacker", Core.bundle.get("part.unity.apacker.name"), Core.bundle.get("part.unity.apacker.info"), PartType.ammo,
+            1, 1, false, false, null, ItemStack.with(Z_Items.nickel, 5, Items.silicon, 4), all1x1, all1x1,
+            new PartStat(PartStatType.hp, 20), new PartStat(PartStatType.magazine, 8));
+        addPart("firemod", Core.bundle.get("part.unity.firemod.name"), Core.bundle.get("part.unity.firemod.info"), PartType.payload,
+            1, 1, false, false, null, ItemStack.with(Items.silicon, 8, Items.graphite, 4), all1x1, all1x1,
+            new PartStat(PartStatType.hp, 15), new PartStat(PartStatType.mod, "incendiary"));
+        addPart("homingmod", Core.bundle.get("part.unity.homingmod.name"), Core.bundle.get("part.unity.homingmod.info"), PartType.payload,
+            1, 1, false, false, null, ItemStack.with(Items.silicon, 10, Items.titanium, 5), all1x1, all1x1,
+            new PartStat(PartStatType.hp, 15), new PartStat(PartStatType.mod, "homing"));
+        addPart("aplate", Core.bundle.get("part.unity.aplate.name"), Core.bundle.get("part.unity.aplate.info"), PartType.misc,
+            1, 1, false, false, null, ItemStack.with(Items.titanium, 8), all1x1, all1x1,
+            new PartStat(PartStatType.hp, 60));
+        addPart("rad", Core.bundle.get("part.unity.rad.name"), Core.bundle.get("part.unity.rad.info"), PartType.misc,
+            1, 1, false, false, null, ItemStack.with(Items.copper, 10, Items.silicon, 6), all1x1, all1x1,
+            new PartStat(PartStatType.hp, 20), new PartStat(PartStatType.radiate, 5f));
+        addPart("rfinder", Core.bundle.get("part.unity.rfinder.name"), Core.bundle.get("part.unity.rfinder.info"), PartType.misc,
+            1, 1, false, false, null, ItemStack.with(Items.silicon, 8), all1x1, all1x1,
+            new PartStat(PartStatType.hp, 20), new PartStat(PartStatType.rangeinc, 12));
+    }
+
+    @Override
+    public void load(){
+        super.load();
+        for(int i = 0; i < regions.length; i++) regions[i] = Core.atlas.find(name + (i + 1));
+        partsRegion = Core.atlas.find("create-partsicons");
+        rootRegion = Core.atlas.find(name + "-root");
+        rootOutlineRegion = Core.atlas.find(name + "-root-outline");
+        for(PartInfo part : parts){
+            TextureRegion region = Core.atlas.find("create-part-" + part.icon);
+            part.sprite = region;
+            part.texRegion = region;
+        }
+        for(int i = 0; i < categories.length; i++) categories[i].region = Core.atlas.find("create-partscategory" + (i + 1));
+    }
+
+    @Override
+    public void init(){
+        super.init();
+        PartInfo[] config = getPartsConfig();
+        for(int i = 0; i < config.length; i++) config[i].id = i;
+        PartInfo.preCalcConnection(config);
+    }
+
+    @Override
+    public void setStats(){
+        super.setStats();
+        setStatsExt(stats);
+    }
+
+    /** 属性面板: 按分类列出全部零件的实际数值 (数据直接来自零件表, 不使用空表)。 */
+    public void setStatsExt(Stats stats){
+        stats.add(Stat.ammo, table -> table.table(t -> {
+            t.left().defaults().left();
+            for(PartType cat : getPartsCategories()){
+                boolean has = false;
+                for(PartInfo p : parts) if(p.category == cat) has = true;
+                if(!has) continue;
+                t.row();
+                t.table(head -> {
+                    if(cat.region != null && cat.region.found()) head.image(cat.region).size(28f).padRight(6f);
+                    head.add("[accent]" + Core.bundle.get("part.category." + cat.name())).left();
+                }).left().row();
+                for(PartInfo p : parts){
+                    if(p.category != cat) continue;
+                    t.table(row -> {
+                        if(p.texRegion != null && p.texRegion.found()) row.image(p.texRegion).size(26f).padRight(4f);
+                        row.add(p.name).width(140f).left();
+                        StringBuilder sb = new StringBuilder();
+                        for(var stat : p.stats){
+                            if(sb.length() > 0) sb.append("  ");
+                            sb.append("[lightgray]").append(Core.bundle.get(stat.key.name)).append(": [white]").append(stat.value.value);
+                        }
+                        row.add(sb.toString()).left();
+                    }).left().row();
+                }
+            }
+        }).left());
+    }
+
+    public class ModularTurretBuild extends TurretBuild{
+        final OrderedMap<Item, Integer> blueprintRemainingCost = new OrderedMap<>(12);
+        final IntSeq bluePrint = new IntSeq();
+        final StatContainer currentStats = new StatContainer();
+        final Seq<Item> ammoItems = new Seq<>();
+        float turretRange, baseMaxHp,
+            aniProg, aniTime,
+            reloadBonus, bulletDamage, bulletSpeed,
+            spreadSum, spreadStat;
+        int totalItemCountCost, totalItemCountPaid,
+            ammoCapacity, barrels, magazine, shotsTotal, spreadCount;
+        boolean changed, validTurret,
+            hasBasePart, hasBreachPart,
+            grenadeBreach, normalBreach,
+            normalAmmo, explosiveAmmo,
+            incendiary, homing;
+        BulletType turretBullet;
+
+        float getPaidRatio(){
+            if(totalItemCountCost == 0) return 0f;
+            return ((float)totalItemCountPaid) / totalItemCountCost;
+        }
+
+        boolean setBluePrintFromString(String s){
+            return setBluePrint(UnityUtils.unpackIntsFromString(s));
+        }
+
+        boolean setBluePrint(IntSeq s){
+            if(!bluePrint.equals(s)){
+                bluePrint.clear();
+                if(s != null) bluePrint.addAll(s);
+                return true;
+            }
+            return false;
+        }
+
+        @Override
+        public void display(Table table){
+            super.display(table);
+            table.row();
+            table.table().left().update(sub -> {
+                sub.clearChildren();
+                if(totalItemCountPaid >= totalItemCountCost) return;
+                sub.left();
+                if(blueprintRemainingCost.isEmpty()) sub.labelWrap(Core.bundle.get("bar.blueprint", "No blueprint")).color(Color.lightGray);
+                else{
+                    for(var i : blueprintRemainingCost){
+                        sub.image(i.key.uiIcon).size(iconMed);
+                        sub.add((i.value >>> 16) + "/" + (i.value & mask));
+                        sub.row();
+                    }
+                }
+            });
+        }
+
+        void updateAutoBuild(){
+            if(totalItemCountPaid >= totalItemCountCost) return;
+            if(state.rules.infiniteResources || team.rules().infiniteResources || team.rules().cheat){
+                for(var i : blueprintRemainingCost){
+                    int temp = i.value & mask;
+                    i.value <<= 16;
+                    i.value += temp;
+                }
+                totalItemCountPaid = totalItemCountCost;
+                applyStats();
+                return;
+            }
+            if(timer(timerDump, autoBuildDelay)){
+                CoreBuild core = team.core();
+                if(core == null) return;
+                ItemModule cItems = core.items;
+                for(var i : blueprintRemainingCost){
+                    if((i.value >>> 16) < (i.value & mask) && cItems.get(i.key) > 0){
+                        cItems.remove(i.key, 1);
+                        totalItemCountPaid++;
+                        blueprintRemainingCost.put(i.key, i.value + (1 << 16));
+                        if(totalItemCountPaid == totalItemCountCost) applyStats();
+                        return;
+                    }
+                }
+            }
+        }
+
+        @Override
+        public boolean acceptItem(Building source, Item item){
+            if(totalItemCountPaid < totalItemCountCost){
+                int value = blueprintRemainingCost.get(item, 0);
+                return (value >>> 16) < (value & mask);
+            }
+            return ammoItems.contains(item) && items.get(item) < ammoCapacity;
+        }
+
+        @Override
+        public void handleItem(Building source, Item item){
+            if(totalItemCountPaid < totalItemCountCost){
+                totalItemCountPaid++;
+                int value = blueprintRemainingCost.get(item, 0);
+                blueprintRemainingCost.put(item, value + (1 << 16));
+                if(totalItemCountPaid == totalItemCountCost) applyStats();
+                return;
+            }
+            if(ammoItems.contains(item)) items.add(item, 1);
+        }
+
+        void resetStats(){
+            if(baseMaxHp > 0f) maxHealth = baseMaxHp;
+            validTurret = false;
+            turretRange = range;
+            ammoCapacity = 0;
+            barrels = 1;
+            reloadBonus = 0f;
+            bulletDamage = 15f;
+            bulletSpeed = 5f;
+            spreadSum = 0f;
+            spreadStat = 6f;
+            spreadCount = 0;
+            magazine = 0;
+            shotsTotal = 0;
+            hasBasePart = hasBreachPart = false;
+            grenadeBreach = normalBreach = false;
+            normalAmmo = explosiveAmmo = false;
+            incendiary = homing = false;
+            ammoItems.clear();
+            turretBullet = null;
+            currentStats.clear();
+        }
+
+        /** 把一块零件的属性累加进当前蓝图统计。 */
+        void accumStats(PartInfo part, int x, int y){
+            for(var stat : part.stats){
+                PartStatType type = stat.key;
+                PartStat value = stat.value;
+                switch(type){
+                    case hp -> currentStats.hpinc += value.asInt();
+                    case rangeinc -> currentStats.rangeInc += value.asInt();
+                    case magazine -> magazine += value.asInt();
+                    case shots -> shotsTotal += value.asInt();
+                    case baseDmg -> bulletDamage = Math.max(bulletDamage, value.asFloat());
+                    case baseSpeed -> bulletSpeed = Math.max(bulletSpeed, value.asFloat());
+                    case reloadMultiplier -> {
+                        float v = value.asFloat();
+                        if(v > 0f) reloadBonus = Math.min(reloadBonus == 0f ? Float.MAX_VALUE : reloadBonus, v);
+                    }
+                    case spread -> {
+                        spreadSum += value.asFloat();
+                        spreadCount++;
+                    }
+                    case bulletType -> {
+                        if("grenade".equalsIgnoreCase(value.asString())) grenadeBreach = true;
+                        else normalBreach = true;
+                    }
+                    case ammoType -> {
+                        if("explosive".equalsIgnoreCase(value.asString())) explosiveAmmo = true;
+                        else normalAmmo = true;
+                    }
+                    case mod -> {
+                        String mod = value.asString();
+                        if("incendiary".equalsIgnoreCase(mod)) incendiary = true;
+                        else if("homing".equalsIgnoreCase(mod)) homing = true;
+                    }
+                    default -> {}
+                }
+            }
+            if(part.category == PartType.base) hasBasePart = true;
+            if(part.category == PartType.breach) hasBreachPart = true;
+        }
+
+        /** 蓝图变化后重算全部运行时数值。 */
+        void applyStats(){
+            if(baseMaxHp <= 0f) baseMaxHp = block.health;
+            float newMax = baseMaxHp + currentStats.hpinc;
+            float diff = newMax - maxHealth;
+            maxHealth = newMax;
+            if(diff > 0f) health = Math.min(maxHealth, health + diff);
+
+            turretRange = range + currentStats.rangeInc;
+            barrels = Math.max(1, shotsTotal);
+            ammoCapacity = 15 + magazine * 4;
+            spreadStat = spreadCount > 0 ? spreadSum / spreadCount : 6f;
+            reloadBonus = reloadBonus == 0f ? 0f : Mathf.clamp(1f / reloadBonus - 1f, -0.5f, 3f);
+
+            ammoItems.clear();
+            if(normalAmmo || !explosiveAmmo && hasBreachPart){
+                ammoItems.add(Items.copper, Items.lead, Items.silicon, Items.metaglass);
+            }
+            if(explosiveAmmo){
+                ammoItems.add(Items.graphite, Items.titanium, Items.thorium);
+            }
+            if(ammoItems.isEmpty() && hasBreachPart) ammoItems.add(Items.copper);
+
+            turretBullet = buildBullet();
+            validTurret = hasBasePart && hasBreachPart && totalItemCountCost > 0 && totalItemCountPaid >= totalItemCountCost;
+        }
+
+        BulletType buildBullet(){
+            float speed = Math.max(2f, bulletSpeed);
+            float damage = Math.max(1f, bulletDamage);
+            float life = (turretRange / 8f + 2f) * 60f / speed;
+            BulletType type;
+            if(grenadeBreach && !normalBreach){
+                ArtilleryBulletType art = new ArtilleryBulletType(speed, damage);
+                art.width = 8f;
+                art.height = 10f;
+                art.hitSize = 6f;
+                art.hitEffect = Fx.blastExplosion;
+                art.splashDamage = damage * 0.6f;
+                art.splashDamageRadius = 20f;
+                art.collidesTiles = true;
+                art.collidesAir = true;
+                type = art;
+            }else{
+                BasicBulletType basic = new BasicBulletType(speed, damage);
+                basic.width = 4f;
+                basic.height = 8f;
+                basic.hitSize = 4f;
+                basic.shootEffect = Fx.shootSmall;
+                basic.smokeEffect = Fx.shootSmallSmoke;
+                basic.hitEffect = Fx.hitBulletSmall;
+                basic.despawnEffect = Fx.none;
+                type = basic;
+            }
+            type.lifetime = life;
+            type.collidesTiles = true;
+            type.collidesAir = true;
+            if(incendiary) type.status = StatusEffects.burning;
+            if(homing){
+                type.homingPower = 0.05f;
+                type.homingRange = turretRange * 0.75f;
+            }
+            return type;
+        }
+
+        @Override
+        public void buildConfiguration(Table table){
+            table.button(Tex.whiteui, Styles.clearNonei, 50f, () -> {
+                BaseDialog dialog = new BaseDialog(Core.bundle.get("bar.blueprint", "Edit Blueprint"));
+                dialog.setFillParent(false);
+                ModularConstructorUI mtd = ModularConstructorUI.applyModularConstructorUI(dialog.cont, partsRegion, 8, 6,
+                    getPartsConfig(), gridW, gridH, bluePrint, getPartsCategories(), partCostAccum
+                );
+                dialog.buttons.button("@ok", () -> {
+                    configure(mtd.getPackedSave());
+                    dialog.hide();
+                }).size(130f, 60f);
+                dialog.update(() -> {
+                    if(!(tile.build instanceof ModularTurretBuild)) dialog.hide();
+                });
+                dialog.show();
+            }).size(50f).get().getStyle().imageUp = Icon.pencil;
+        }
+
+        @Override
+        public void configured(mindustry.gen.Unit builder, Object value){
+            changed = false;
+            super.configured(builder, value);
+            if(!changed) return;
+            resetStats();
+            PartInfo[] config = getPartsConfig();
+            float cstMult = 1f;
+            int len = bluePrint.size;
+            for(int p = 0; p < len; p++){
+                int temp = bluePrint.get(p);
+                if(temp != 0 && temp <= config.length){
+                    PartInfo part = config[temp - 1];
+                    cstMult += partCostAccum * part.tw * part.th;
+                }
+            }
+            cstMult -= partCostAccum;
+            totalItemCountCost = totalItemCountPaid = 0;
+            blueprintRemainingCost.clear();
+            for(int p = 0; p < len; p++){
+                int temp = bluePrint.get(p);
+                if(temp != 0 && temp <= config.length){
+                    PartInfo part = config[temp - 1];
+                    for(ItemStack cost : part.cost){
+                        int cur = blueprintRemainingCost.get(cost.item, 0);
+                        int increment = Mathf.floor(cost.amount * cstMult);
+                        blueprintRemainingCost.put(cost.item, cur + increment);
+                        totalItemCountCost += increment;
+                    }
+                    accumStats(part, p / gridH, p % gridH);
+                }
+            }
+            applyStats();
+        }
+
+        @Override
+        public String config(){
+            if(bluePrint.isEmpty()) return "";
+            return IntPacker.packArray(bluePrint).toStringPack();
+        }
+
+        @Override
+        public void write(Writes write){
+            super.write(write);
+            if(bluePrint.isEmpty()){
+                write.i(0);
+                return;
+            }
+            IntSeq packed = IntPacker.packArray(bluePrint).packed;
+            write.s(packed.size);
+            for(int i = 0; i < packed.size; i++) write.i(packed.get(i));
+            if(blueprintRemainingCost.isEmpty()) write.s(0);
+            else{
+                write.s(blueprintRemainingCost.size);
+                for(var i : blueprintRemainingCost){
+                    write.s(i.key.id);
+                    write.s(i.value >>> 16);
+                }
+            }
+        }
+
+        @Override
+        public void read(Reads read, byte revision){
+            super.read(read, revision);
+            short packedSize = read.s();
+            IntSeq pack = new IntSeq();
+            for(int i = 0; i < packedSize; i++) pack.add(read.i());
+            configureAny(pack);
+            short costSize = read.s();
+            if(costSize > 0){
+                for(int i = 0; i < costSize; i++){
+                    Item item = content.item(read.s());
+                    short paid = read.s();
+                    int cur = blueprintRemainingCost.get(item, -1);
+                    if(cur != -1){
+                        blueprintRemainingCost.put(item, (paid << 16) + cur);
+                        totalItemCountPaid += paid;
+                    }
+                }
+            }
+            if(totalItemCountPaid == totalItemCountCost) applyStats();
+        }
+
+        @Override
+        public boolean hasAmmo(){
+            if(!validTurret) return false;
+            for(Item item : ammoItems){
+                if(items.get(item) > 0) return true;
+            }
+            return false;
+        }
+
+        @Override
+        public BulletType useAmmo(){
+            if(turretBullet == null) return null;
+            for(Item item : ammoItems){
+                if(items.get(item) > 0){
+                    items.remove(item, 1);
+                    return turretBullet;
+                }
+            }
+            return turretBullet;
+        }
+
+        @Override
+        public BulletType peekAmmo(){
+            return turretBullet;
+        }
+
+        @Override
+        public float getAmmoFraction(){
+            if(!validTurret || ammoCapacity <= 0) return 0f;
+            int total = 0;
+            for(Item item : ammoItems) total += items.get(item);
+            return Mathf.clamp(total / (float)ammoCapacity);
+        }
+
+        @Override
+        protected void updateShooting(){
+            if(!validTurret || !hasAmmo()) return;
+            super.updateShooting();
+        }
+
+        @Override
+        protected void shoot(BulletType ammo){
+            if(ammo == null) return;
+            int count = Math.max(1, barrels);
+            for(int i = 0; i < count; i++){
+                float angleOffset = (i - (count - 1) * 0.5f) * spreadStat + Mathf.range(inaccuracy);
+                bullet(ammo, 0f, 0f, angleOffset, null);
+            }
+        }
+
+        @Override
+        protected float baseReloadSpeed(){
+            return validTurret ? super.baseReloadSpeed() * (1f + reloadBonus) : 0f;
+        }
+
+        @Override
+        public float range(){
+            return turretRange > 0f ? turretRange : super.range();
+        }
+
+        @Override
+        public float trackingRange(){
+            return range() + 20f;
+        }
+
+        @Override
+        public void updateTile(){
+            updateAutoBuild();
+            float prog = getPaidRatio();
+            aniProg = Mathf.lerpDelta(aniProg, prog, 0.02f);
+            aniTime += Time.delta;
+            super.updateTile();
+        }
+
+        @Override
+        public void draw(){
+            int dir = Mathf.clamp((int)(buildRotation() / 90f) & 3, 0, 3);
+            TextureRegion base = regions[dir];
+            if(base != null && base.found()) Draw.rect(base, x, y);
+            else Draw.rect(region, x, y);
+            drawTeamTop();
+
+            if(bluePrint.size > 0){
+                Draw.z(Layer.turret);
+                float rot = rotation - 90f;
+                for(int index = 0; index < bluePrint.size; index++){
+                    int value = bluePrint.get(index);
+                    if(value == 0 || value > parts.size) continue;
+                    PartInfo part = parts.get(value - 1);
+                    TextureRegion tex = part.texRegion;
+                    if(tex == null || !tex.found()) continue;
+                    int gx = index / gridH, gy = index % gridH;
+                    // 网格坐标 → 方块本地像素坐标 (网格中心对齐方块中心)
+                    float lx = (gx + part.tw * 0.5f - gridW * 0.5f) * 32f;
+                    float ly = (gy + part.th * 0.5f - gridH * 0.5f) * 32f;
+                    Tmp.v1.set(lx, ly).rotate(rot).add(x, y);
+                    float alpha = getPaidRatio() < 1f ? 0.45f + 0.55f * aniProg : 1f;
+                    Draw.alpha(alpha);
+                    Draw.rect(tex, Tmp.v1.x, Tmp.v1.y, part.tw * 32f, part.th * 32f, rot);
+                    Draw.alpha(1f);
+                }
+            }else if(rootRegion.found()){
+                Draw.z(Layer.turret);
+                Draw.rect(rootRegion, x, y, rotation - 90f);
+            }
+        }
+    }
+}

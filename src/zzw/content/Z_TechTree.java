@@ -214,6 +214,13 @@ public class Z_TechTree{
             node(Z_Torque.chopper);
         });
 
+        // ★ 模块化炮台: duo 下的独立分支 (小型 → 中型)
+        attach(Blocks.duo, () -> {
+            node(Z_Turrets.smallTurretBase, () -> {
+                node(Z_Turrets.medTurretBase);
+            });
+        });
+
         // ★ 经验电力炮台链挂原版 lancer 之后 (用户指定 2026-10-18):
         //   laserTurret → chargeLaserTurret → fractalLaserTurret → [btLaserTurret ∥ swarmLaserTurret]
         attach(Blocks.lancer, () -> {

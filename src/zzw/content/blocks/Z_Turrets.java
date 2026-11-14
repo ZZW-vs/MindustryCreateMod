@@ -25,6 +25,7 @@ import zzw.content.Z_Items;
 import zzw.content.Z_Sounds;
 import zzw.content.Z_StatusEffects;
 import zzw.content.Z_VanillaAmmo;
+import zzw.content.blocks.modular.ModularTurret;
 import zzw.content.blocks.turrets.*;
 import zzw.content.units.bullets.ChangeTeamLaserBulletType;
 import zzw.content.units.effects.ChargeFx;
@@ -101,6 +102,9 @@ public class Z_Turrets {
     // 西诺腐蚀者 (LaserTurret + ChangeTeamLaserBulletType)
     public static LaserTurret xenoCorruptor;
 
+    // ===== 模块化炮台 (PU132 younggamExperimental ModularTurret) =====
+    public static ModularTurret smallTurretBase, medTurretBase;
+
 
     /**
      * 全量加载 (兼容入口): 按 PU132 原版 UnityBlocks 的派系顺序注册全部炮台。
@@ -115,6 +119,38 @@ public class Z_Turrets {
         loadImber();
         loadAdvance();
         loadPower();
+        loadModular();
+    }
+
+    /**
+     * 模块化炮台注册 (PU132 younggamExperimental ModularTurret)。
+     *
+     * <p>蓝图 6x6 / 8x8, 零件表见 {@link ModularTurret#addDefaultParts()}。</p>
+     */
+    public static void loadModular() {
+        smallTurretBase = new ModularTurret("small-turret-base") {{
+            requirements(Category.turret, ItemStack.with(Items.copper, 180, Items.lead, 120, Z_Items.nickel, 80, Items.silicon, 60));
+            size = 2;
+            health = 900;
+            range = 130f;
+            reload = 35f;
+            rotateSpeed = 5.5f;
+            setGridW(6);
+            setGridH(6);
+            addDefaultParts();
+        }};
+        medTurretBase = new ModularTurret("med-turret-base") {{
+            requirements(Category.turret, ItemStack.with(Items.copper, 400, Items.lead, 260, Z_Items.nickel, 180, Items.silicon, 140, Items.titanium, 120));
+            size = 3;
+            health = 2200;
+            range = 210f;
+            reload = 35f;
+            rotateSpeed = 4.5f;
+            shootSound = Sounds.shootArtillerySmall;
+            setGridW(8);
+            setGridH(8);
+            addDefaultParts();
+        }};
     }
 
     /** dark 派系 7 个炮台 (PU132 UnityBlocks 顺序: apparition, ghost, banshee, fallout, catastrophe, calamity, extinction) */

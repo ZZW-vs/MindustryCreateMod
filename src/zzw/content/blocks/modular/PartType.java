@@ -14,6 +14,7 @@ public enum PartType{
     base,
     breach,
     ammo,
+    payload,
     misc;
 
     /** 分类图标贴图 (load 时由方块写入) */

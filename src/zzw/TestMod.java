@@ -227,6 +227,9 @@ public class TestMod extends Mod{
         // ★ imber 吸收器 (power 类别; 之前 loadPower 未被调用导致 absorber 未注册, 已修复)
         Z_Turrets.loadPower();
 
+        // 模块化炮台 (turret 类别; 蓝图拼装, 分类/属性面板接线)
+        Z_Turrets.loadModular();
+
         // 经验系统 (effect 类别末尾)
         Z_Exp.load();
 
