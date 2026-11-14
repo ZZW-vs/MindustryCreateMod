@@ -230,12 +230,12 @@ public class LonginusSpearBulletType extends BulletType {
     /** 光效主色。 */
     public Color glowColor = Color.valueOf("f53036");
     /**
-     * 飞行中枪的<b>可见枪身</b>长度 (世界单位, 1 格 = 8 单位)。160 ≈ 20 格。
+     * 飞行中枪的<b>可见枪身</b>长度 (世界单位, 1 格 = 8 单位)。192 ≈ 24 格。
      *
      * <p>★ 必须与炮台的 {@code spearLength} 保持一致: 用户要求"子弹尺寸和炮台上的朗枪一样大"。
      * 绘制时按贴图里不透明区域的实测宽度换算缩放, 宽高比跟随图片本身。</p>
      */
-    public float drawLength = 160f;
+    public float drawLength = 192f;
     /**
      * 追踪锁定目标的转向速度 (度/帧)。
      *
@@ -284,68 +284,52 @@ public class LonginusSpearBulletType extends BulletType {
         // ★ 这里不要调 spear(): 模组内容第一次 load() 发生在非绘制线程的临时图集阶段,
         //   建纹理可能拿不到 GL 上下文。贴图在第一帧 draw 时再延迟解析。
 
-        // ---------- 命中爆发: 猩红碎片 + 白色射线 + 冲击环 ----------
-        // 参考 FlameOut 的 FlameFX.desRailHit (消沉大招命中时的粒子):
-        // 每轮以命中方向为中心, 在 180° 扇形内喷出三角碎片, 扇角逐轮收窄、
-        // 尺寸逐轮放大; 再叠一层白色细射线和一圈扩散冲击环。
-        hitBurst = new Effect(80f, 1000f, e -> {
+        // ---------- 命中碎片: 从目标身上崩出来的小碎块 ----------
+        // 要的是"单位被打穿、碎片飞出来"的手感, 不是一圈巨大的爆裂光环:
+        // 从命中点向四周抛出十几块小块 (带自转 / 减速 / 轻微下坠),
+        // 再补几根很短的白色火花和一圈很小的冲击环。
+        hitBurst = new Effect(75f, 320f, e -> {
             Rand r = new Rand(e.id);
             float scl = e.data instanceof Float f ? f : 1f;
 
-            Draw.blend(Blending.additive);
+            // 单位碎片
+            for (int i = 0; i < 16; i++) {
+                float life = r.random(0.45f, 1f);
+                float fin = Mathf.clamp(e.fin() / life);
+                if (fin >= 1f) continue;
 
-            // 第一层: 猩红三角碎片
-            float ang = 180f, rscl = 0.7f * scl;
-            Draw.color(glowColor);
-            for (int i = 0; i < 5; i++) {
-                int count = (int) (10 * rscl);
-                for (int j = 0; j < count; j++) {
-                    float fin = Mathf.curve(e.fin(), 0f, 1f - r.random(0.2f));
-                    float rot = r.range(ang) + e.rotation;
-                    float off = r.random(22f * rscl) + r.random(50f * Mathf.pow(rscl, 1.5f)) * Interp.pow4Out.apply(fin);
-                    float sscl = r.random(0.7f, 1.2f);
+                float a = r.random(360f);
+                float speed = r.random(1.4f, 4.2f);
+                // 越飞越慢
+                float dist = speed * e.time * (1f - 0.35f * fin);
 
-                    float wid = 12f * sscl * rscl * (1f - Interp.pow4In.apply(fin));
-                    float hei = 52f * sscl * Mathf.pow(rscl, 1.5f) * Interp.pow5Out.apply(fin);
+                float px = e.x + Angles.trnsx(a, dist);
+                float py = e.y + Angles.trnsy(a, dist) - 0.01f * e.time * e.time;
 
-                    float vx = Angles.trnsx(rot, off) + e.x;
-                    float vy = Angles.trnsy(rot, off) + e.y;
-                    Drawf.tri(vx, vy, wid, hei, rot);
-                    Drawf.tri(vx, vy, wid, wid * 2.2f, rot + 180f);
-                }
+                float wid = r.random(3f, 6.5f) * scl;
+                float hei = r.random(6f, 14f) * scl;
+                float rot = a + e.time * r.random(-8f, 8f);
 
-                ang *= 0.6f;
-                rscl *= 1.5f;
+                Draw.color(i % 4 == 0 ? Color.white : glowColor, Mathf.clamp(1f - fin) * 0.95f);
+                Drawf.tri(px, py, wid, hei, rot);
             }
 
-            // 第二层: 白色细射线
-            ang = 180f;
-            rscl = 0.5f * scl;
-            Draw.color(glowColor, Color.white, e.fin());
-            Lines.stroke(3f);
-            for (int i = 0; i < 7; i++) {
-                for (int j = 0; j < 12; j++) {
-                    float fin = Mathf.curve(e.fin(), 0f, 1f - r.random(0.2f));
-                    float rot = r.range(ang) + e.rotation;
-                    float off = r.random(30f * rscl) + r.random(40f * Mathf.pow(rscl, 1.6f)) * Interp.pow5Out.apply(fin);
-                    float len = r.random(20f, 40f) * Mathf.pow(rscl, 1.6f)
-                        * Interp.sineOut.apply(Mathf.slope(Interp.pow5Out.apply(fin)));
-
-                    float vx = Angles.trnsx(rot, off) + e.x;
-                    float vy = Angles.trnsy(rot, off) + e.y;
-                    Lines.lineAngle(vx, vy, rot, len, false);
-                }
-
-                ang *= 0.5f;
-                rscl *= 1.5f;
+            // 白色火花
+            Draw.color(Color.white, 0.85f * e.fout());
+            Lines.stroke(1.5f);
+            for (int i = 0; i < 6; i++) {
+                float a = r.random(360f);
+                float dist = (8f + e.time * r.random(3.5f, 6.5f)) * scl;
+                float px = e.x + Angles.trnsx(a, dist);
+                float py = e.y + Angles.trnsy(a, dist);
+                Lines.lineAngle(px, py, a, (5f + r.random(6f)) * Mathf.clamp(1f - e.fin()));
             }
 
-            // 第三层: 白环冲击波
-            Draw.color(Color.white, 0.6f * e.fout());
-            Lines.stroke(4f * e.fout());
-            Lines.circle(e.x, e.y, 18f + Interp.pow2Out.apply(e.fin()) * (120f * scl + 30f));
+            // 小冲击环 (半径只有几十单位, 不再铺满半个屏幕)
+            Draw.color(glowColor, 0.45f * e.fout());
+            Lines.stroke(2f * e.fout());
+            Lines.circle(e.x, e.y, (8f + Interp.pow2Out.apply(e.fin()) * 26f) * scl);
 
-            Draw.blend();
             Draw.reset();
         });
 
@@ -356,9 +340,12 @@ public class LonginusSpearBulletType extends BulletType {
             TextureRegion region = spear();
             if (region == null || !region.found()) return;
 
-            Unit unit = e.data instanceof Unit u && u.isAdded() && !u.dead() ? u : null;
+            StickData data = e.data instanceof StickData d ? d : null;
+            Unit unit = data != null && data.unit.isAdded() && !data.unit.dead() ? data.unit : null;
             float px = unit != null ? unit.x : e.x;
             float py = unit != null ? unit.y : e.y;
+            // 插入深度在命中瞬间就算好, 单位消失后也不会跳变
+            float depth = data != null ? data.depth : 24f;
 
             float out = e.fin();
             // 最后 15% 时间淡出
@@ -367,8 +354,9 @@ public class LonginusSpearBulletType extends BulletType {
 
             // 插入瞬间的"钉入"回弹: 极短时间往前多扎一点, 之后回位
             float punch = out < 0.02f ? (1f - out / 0.02f) * 16f : 0f;
-            float tipX = px + Angles.trnsx(ang, punch);
-            float tipY = py + Angles.trnsy(ang, punch);
+            // ★ 枪尖越过单位中心 depth, 整杆枪看起来是扎穿目标, 而不是搭在身上
+            float tipX = px + Angles.trnsx(ang, depth + punch);
+            float tipY = py + Angles.trnsy(ang, depth + punch);
 
             Draw.z(Layer.effect);
             Draw.color(Color.white);
@@ -442,8 +430,14 @@ public class LonginusSpearBulletType extends BulletType {
             unit.vel.setZero();
         }
 
-        // 2. 枪钉在目标身上 (data 传单位, 之后每帧跟着它画)
-        if (stickEffect != null) stickEffect.at(hx, hy, rot, unit);
+        // 2. 枪钉在目标身上
+        //    锚点用单位中心 (而不是子弹碰撞点, 后者在单位边缘), 这样单位死亡后
+        //    特效停在 e.x/e.y 也不会突然往后跳半个身位
+        if (stickEffect != null) {
+            // 插入深度: 枪尖越过单位中心 60% 半径, 看起来是整杆枪扎穿目标
+            float depth = Mathf.clamp(unit.hitSize * 0.6f, 14f, 60f);
+            stickEffect.at(unit.x, unit.y, rot, new StickData(unit, depth));
+        }
 
         // 3. 命中粒子 + 震屏 (粒子尺寸随目标体积小幅放大)
         if (hitBurst != null) {
@@ -490,6 +484,22 @@ public class LonginusSpearBulletType extends BulletType {
 
         Draw.blend();
         Draw.reset();
+    }
+
+    /**
+     * 插枪特效的数据: 目标单位 + 命中瞬间算好的插入深度。
+     *
+     * <p>单位死亡/被移除后, 特效仍然知道该用多深, 不会突然回缩。</p>
+     */
+    public static class StickData {
+        public final Unit unit;
+        /** 枪尖越过单位中心的距离 (世界单位)。 */
+        public final float depth;
+
+        public StickData(Unit unit, float depth) {
+            this.unit = unit;
+            this.depth = depth;
+        }
     }
 
     /**

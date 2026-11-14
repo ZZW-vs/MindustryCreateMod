@@ -8,8 +8,10 @@ import arc.graphics.g2d.Fill;
 import arc.graphics.g2d.Lines;
 import arc.graphics.g2d.TextureRegion;
 import arc.math.Mathf;
+import arc.util.Eachable;
 import arc.util.Time;
 import mindustry.entities.bullet.BulletType;
+import mindustry.entities.units.BuildPlan;
 import mindustry.graphics.Layer;
 import mindustry.world.blocks.defense.turrets.ItemTurret;
 import zzw.content.units.bullets.LonginusSpearBulletType;
@@ -39,7 +41,7 @@ public class LonginusTurret extends ItemTurret {
     public TextureRegion baseRegion;
 
     /**
-     * 枪的<b>可见枪身</b>长度 (世界单位, 1 格 = 8 单位)。160 ≈ 20 格。
+     * 枪的<b>可见枪身</b>长度 (世界单位, 1 格 = 8 单位)。192 ≈ 24 格。
      *
      * <p>★ 必须与弹体的 {@code drawLength} 保持一致 (子弹尺寸 = 炮台上的朗枪尺寸)。</p>
      *
@@ -47,7 +49,7 @@ public class LonginusTurret extends ItemTurret {
      * {@link LonginusSpearBulletType#spearScale}), 宽高比由图片自身决定;
      * 换图后无论四周留白怎么变, 屏幕上枪身的长度都固定是这个值。</p>
      */
-    public float spearLength = 160f;
+    public float spearLength = 192f;
     /**
      * 握持点距枪尾的比例 (0 = 枪尾, 1 = 枪尖), 该点对准炮台中心。
      *
@@ -77,6 +79,30 @@ public class LonginusTurret extends ItemTurret {
         // ★ 不在这里解析枪贴图: 模组内容第一次 load() 还处在临时图集阶段,
         //   此时拿到的 region 是坏坐标, 而且建纹理也可能不在 GL 线程上。
         arc.util.Log.info("[Longinus] base found=@", baseRegion.found());
+    }
+
+    /**
+     * 放置预览。
+     *
+     * <p>默认实现 {@code drawDefaultPlanRegion} 是按贴图原始像素画的 (底座原图只有 6x6 的分辨率),
+     * 于是预览里永远是旧的 6x6 小底座, 放下之后才是 15x15 —— 这里改成和建成后完全相同的画法:
+     * 底座按方块 footprint 拉伸, 枪按握持点画在中心。</p>
+     *
+     * <p>颜色/透明度由外层 {@code drawPlan} 的 {@code Draw.mixcol/alpha} 决定, 这里不再改。</p>
+     */
+    @Override
+    public void drawPlanRegion(BuildPlan plan, Eachable<BuildPlan> list) {
+        TextureRegion base = baseRegion != null && baseRegion.found() ? baseRegion : region;
+        float scl = Mathf.clamp(plan.animScale, 0.01f, 1f);
+        float drawSize = size * 8f * scl;
+
+        Draw.rect(base, plan.drawx(), plan.drawy(), drawSize, drawSize);
+
+        TextureRegion spear = LonginusSpearBulletType.spear();
+        if (spear != null && spear.found()) {
+            LonginusSpearBulletType.drawSpear(spear, spearLength * scl, spearPivot,
+                plan.drawx(), plan.drawy(), plan.rotation * 90f);
+        }
     }
 
     public class LonginusBuild extends ItemTurretBuild {
