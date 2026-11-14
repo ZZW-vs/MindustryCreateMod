@@ -648,6 +648,10 @@
 - 新增螺旋石油钻井（oil-derrick）：扭矩驱动的石油抽取器（`SolidPump`，`result=Liquids.oil`、`attribute=Attribute.oil`，需建在油层上），绘制为螺旋钻杆样式（类 `zzw.content.mechanics.torque.blocks.production.OilDerrick`）
 
 ## 更新日志
+- **endgame 终局炮台三项调整**：
+  - **激光射程再 +150 格**：`range` 1640 → 1640 + 150×8 = 2840 世界单位（爆炸范围仍固定 `blastRadius = 820` 不变）
+  - **血量改为负数**：`health = -1`（`block.health` 仍为 68000，maxHealth / 面板 / 放置预览不受影响）。负血量会让引擎 `dead()` 判真而跳过更新甚至销毁，故覆写 `dead()` 恒为 false、`healthf()` 把负值钳制为 0（血条不出现负宽度/NaN），并在 `updateTile` 中把被读档/外部治疗改回非负的血量修正为负值
+  - **修复 FO 共鸣单位"假死"**：根因是我们用反射硬摘除（`Groups.unit/draw/all` 移除 + `added=false`），而 `EmpathyUnit` 拒绝死亡、FO 的 `EmpathyDamage` 仍持有引用——它每 15 帧把单位重新 `add()`/`duplicate()`，`removeCount ≥ 5` 后甚至每帧直接 `update()` 该实体：AI 继续攻击放技能、拖尾/技能特效照常，但引擎侧已 not added 导致本体不绘制。现改为优先走 FO 自己的移除协议：先从 `EmpathyDamage.units / empathyMap` 摘掉持有者（含原地 duplicate 出的新实例），再调用其公开的 `forceRemove()`（停 AI 音效 + 正规 `super.remove()`），全程不触发 duplicate 重生
 - **endgame 终局炮台记忆电力节点**：每帧同步当前 `power.links` 到记忆表；被抹掉/重建（防作弊写回）后第一帧逐个校验并重连 —— 目标必须仍然存在、仍是本队电力节点、已连接则跳过、通过原版 `PowerNode.linkValid`（同队/有电/双向 laserRange）与 `maxNodes` 连接数上限校验，最后按原版 `PowerNode.config(Integer)` 的方式双向写入 links 并合并电力图；校验失败直接跳过，不会连出本该断开的线。读档时原版 `PowerModule` 已自带 links 恢复，记忆表会同步为读档后的真实连接
 - **tenmeikiri 终结炮台小幅加强**（用户指定）：血量 43000 → 104000（先提到 52000，再按需求翻倍）；单次受到的伤害上限 500 → 2500（新增 `maxDamagePerHit` 字段，单帧异常掉血阈值复用同一字段，保证判罚逻辑与上限一致）；输出伤害 123456 → 12345678
 - **endgame 终局炮台重做（bug 修复 + 不可摧毁 + 全面强化）**：

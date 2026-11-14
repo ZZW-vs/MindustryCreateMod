@@ -14,6 +14,7 @@ import arc.util.Time;
 import arc.util.Tmp;
 import mindustry.Vars;
 import mindustry.content.Fx;
+import mindustry.game.Team;
 import mindustry.entities.Units;
 import mindustry.entities.bullet.BulletType;
 import mindustry.gen.Building;
@@ -28,6 +29,7 @@ import mindustry.entities.units.UnitController;
 import mindustry.graphics.Drawf;
 import mindustry.world.blocks.defense.turrets.PowerTurret;
 import mindustry.world.blocks.power.PowerNode;
+import mindustry.world.Block;
 import mindustry.world.meta.Stat;
 import zzw.content.Z_Sounds;
 
@@ -103,6 +105,9 @@ public class EndGameTurret extends PowerTurret {
     /** 每次齐射最多播放的汽化特效数量 (性能上限)。 */
     public static final int maxBurstVapourizes = 12;
 
+    /** 需求: 炮台血量为负数 (方块定义里的 health 仍为 68000, 供 maxHealth/面板使用)。 */
+    public static final float negativeHealth = -1f;
+
     /** 三层环的旋转速度系数 (原版 ringProgresses)。 */
     private static final float[] ringProgresses = {0.013f, 0.035f, 0.024f};
     /** 三层环的旋转方向 (原版 ringDirections)。 */
@@ -136,8 +141,9 @@ public class EndGameTurret extends PowerTurret {
         health = 68000;
         consumePower(320f);
         reload = 430f;
-        // ★ 需求: 激光攻击范围翻倍 (原 820 → 1640); 爆炸范围另见 blastRadius, 保持 820
-        range = 1640f;
+        // ★ 需求: 激光攻击范围 820 → 1640 (翻倍) → 再 +150 格 (= 1200 世界单位)
+        //   爆炸范围另见 blastRadius, 始终保持 820 不变
+        range = 1640f + 150f * 8f;
         size = 14;
         shootCone = 360f;
         rotate = false;
@@ -340,6 +346,50 @@ public class EndGameTurret extends PowerTurret {
             // 不可摧毁: 忽略引擎的销毁入口 (damage/kill 之外的最后一条路径)
         }
 
+        // ================= 负血量 =================
+
+        /**
+         * ★ 需求: 血量改为负数。
+         *
+         * <p>建筑血量在 {@code create()} 里由方块的 {@code health} 填入, 这里直接覆写成负值;
+         * 方块的 {@code block.health = 68000} 保持不变, 因此 {@code maxHealth()}、放置预览、
+         * 数值面板仍然正常。</p>
+         */
+        @Override
+        public Building create(Block block, Team team){
+            super.create(block, team);
+            health = negativeHealth;
+            return this;
+        }
+
+        /**
+         * ★ 保留负血量的同时不要让引擎认为它"已死"。
+         *
+         * <p>血量 <= 0 时 {@code dead()} 默认返回 true, 而引擎多处会据此跳过更新
+         * (炮台会停止工作)、隐藏交互, 甚至走销毁流程 —— 那正是"自己消失 / 状态错乱"的来源。
+         * 这里恒返回 false: 当前血量为负, 但状态上永远活着。</p>
+         */
+        @Override
+        public boolean dead(){
+            return false;
+        }
+
+        /**
+         * 血条比例: 负血量直接钳制到 [0, 1], 避免负宽度 / NaN 的异常血条。
+         *
+         * <p>血量为负 → 血条显示为空 (0%), 与负值语义一致, 且不会溢出绘制。</p>
+         */
+        @Override
+        public float healthf(){
+            float max = maxHealth();
+            return max <= 0f ? 0f : Mathf.clamp(health / max, 0f, 1f);
+        }
+
+        /** 把血量修正回负值 (防止读档恢复旧值 / 外部 heal 把血量加回正数)。 */
+        protected void enforceNegativeHealth(){
+            if(health >= 0f) health = negativeHealth;
+        }
+
         /**
          * 碰撞: 吞掉来袭子弹 (不做伤害结算), 并对射程外偷袭者施加一次反击。
          */
@@ -464,6 +514,9 @@ public class EndGameTurret extends PowerTurret {
                 pendingPowerRestore = false;
             }
             snapshotPowerLinks();
+
+            // ★ 负血量: 读档 / 外部 heal 都可能把血量改回非负, 这里修正
+            enforceNegativeHealth();
 
             updateEyes();
 
@@ -971,6 +1024,11 @@ public class EndGameTurret extends PowerTurret {
         void annihilateUnit(Unit u){
             if(u == null) return;
 
+            // ★ FlameOut 共鸣单位必须走它自己的移除协议 (见 purgeFlameEmpathy):
+            //   它重写了 remove()/destroy() 并拒绝死亡, 用普通击杀链只会被"假死"——
+            //   AI 仍被 FO 每帧直接 update()、拖尾/技能照常, 但本体已不在引擎组里而消失。
+            if(purgeFlameEmpathy(u)) return;
+
             // ★ 第一层: 廉价击杀
             if(killDirect(u)) return;
 
@@ -980,6 +1038,88 @@ public class EndGameTurret extends PowerTurret {
 
             // ★ 第三层: 反射拆解 (只有打不死的单位才会走到这里)
             annihilateStubbornUnit(u);
+        }
+
+        // ================= FlameOut 共鸣单位 (走它自己的移除协议) =================
+
+        /**
+         * ★ 修复 FO 共鸣单位"假死"。
+         *
+         * <p>成因: {@code EmpathyUnit} 重写了 {@code remove()}/{@code destroy()}, 只有它自己的
+         * {@code trueHealth} 归零才会真正移除; 若我们直接反射把它从 {@code Groups.unit/draw/all}
+         * 摘掉并把 {@code added} 置 false, FO 的 `EmpathyDamage` 仍持有它的引用:</p>
+         * <ul>
+         *   <li>{@code EmpathyDamage.update()} 每 15 帧发现它"不在 Groups.all", 会递增
+         *       {@code removeCount}, 并 {@code add()}/{@code duplicate()} 把它重新拉回来;</li>
+         *   <li>{@code removeCount >= 5} 后 FO 每帧直接调用它的 {@code update()} ——
+         *       AI 继续瞄准/攻击/放技能, 拖尾与技能特效照常绘制;</li>
+         *   <li>但引擎侧该实体已 not added, 本体贴图不再按正常单位绘制 —— 于是出现
+         *       "单位还活着、拖尾还在, 但本体和贴图消失"的半死状态。</li>
+         * </ul>
+         *
+         * <p>正确做法与 FO 自己的 {@code forceKillAllEmpathy()} 一致: 先从
+         * {@code EmpathyDamage.units / empathyMap} 摘掉持有者 (断掉 update/draw 与
+         * duplicate 重生), 再调用它公开的 {@code forceRemove()} (停 AI 音效 + 正规
+         * {@code super.remove()})。这样单位是"真正被移除", 不会残留半死状态。</p>
+         *
+         * @return true 表示已按 FO 协议处理完成 (调用方无需再做反射拆解)
+         */
+        protected boolean purgeFlameEmpathy(Unit u){
+            // 用单位自己的 ClassLoader 找 FO 的类 (跨模组 Class.forName 不可靠), 结果按类缓存
+            Class<?> empathyCls = findModClassCached(u, "flame.unit.empathy.EmpathyUnit");
+            if(empathyCls == null || !empathyCls.isInstance(u)) return false;
+
+            try{
+                Class<?> damageCls = findModClassCached(u, "flame.unit.empathy.EmpathyDamage");
+                if(damageCls == null) return false;
+
+                // 1) 摘掉 FO 的持有者引用 (units / empathyMap), 含被 duplicate 出来的新实例
+                Seq<Unit> duplicates = new Seq<>();
+                Object holderSeq = findField(damageCls, "units").get(null);
+                Object empathyMap = findField(damageCls, "empathyMap").get(null);
+
+                if(holderSeq instanceof Seq){
+                    Seq<?> seq = (Seq<?>)holderSeq;
+                    for(int i = seq.size - 1; i >= 0; i--){
+                        Object holder = seq.get(i);
+                        if(holder == null) continue;
+                        Unit hu = (Unit)findField(holder.getClass(), "unit").get(holder);
+                        if(hu == null) continue;
+
+                        // 同一对象 / 同 id / 同一位置上的 duplicate (FO 重生时会原地复制新实例)
+                        boolean same = hu == u || hu.id == u.id
+                            || (hu.type == u.type && Mathf.within(hu.x, hu.y, u.x, u.y, hu.hitSize + u.hitSize + 200f));
+                        if(!same) continue;
+
+                        if(hu != u && !duplicates.contains(hu)) duplicates.add(hu);
+                        ((Seq)seq).remove(i);
+                        if(empathyMap instanceof arc.struct.IntMap){
+                            ((arc.struct.IntMap)empathyMap).remove(hu.id);
+                        }
+                    }
+                }
+                if(empathyMap instanceof arc.struct.IntMap){
+                    ((arc.struct.IntMap)empathyMap).remove(u.id);
+                }
+
+                // 2) 走 FO 自己的 forceRemove() —— 正规移除, 不触发 duplicate 重生
+                java.lang.reflect.Method forceRemove = empathyCls.getMethod("forceRemove");
+                forceRemove.invoke(u);
+
+                // 3) duplicate 出来的实例 FO 已经不再管理, 也一并正规移除
+                for(Unit other : duplicates){
+                    if(other != null && other != u && other.isAdded()){
+                        try{
+                            forceRemove.invoke(other);
+                        }catch(Throwable ignored){
+                        }
+                    }
+                }
+
+                return !u.isAdded();
+            }catch(Throwable ignored){
+                return false;
+            }
         }
 
         /**
