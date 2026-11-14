@@ -245,8 +245,15 @@ public class LonginusSpearBulletType extends BulletType {
     public float homingTurnRate = 3f;
     /** 枪尖判定余量 (世界单位), 与目标自身半径相加后作为命中距离。 */
     public float hitRadius = 14f;
-    /** 枪插在目标身上的残留时长 (tick)。 */
-    public float stickTime = 15f * 60f;
+    /**
+     * 枪插在目标身上的总时长 (tick)。12 秒 = 前 10 秒保持不透明, 最后 2 秒淡出。
+     *
+     * <p>见 {@code stickEffect} 里的 alpha 计算: 600 tick 开始变透明, 720 tick 完全消失。</p>
+     */
+    public float stickTime = 12f * 60f;
+
+    /** 枪口焰 / 插枪余烬使用的深红色 (与朗枪枪身的暗红一致)。 */
+    public Color spearRed = Color.valueOf("8c1010");
 
     /** 命中爆发粒子 (参考 FlameOut 消沉的 desRailHit)。 */
     public Effect hitBurst;
@@ -273,8 +280,10 @@ public class LonginusSpearBulletType extends BulletType {
         // 命中表现全部自定义
         hitEffect = Fx.none;
         despawnEffect = Fx.none;
-        shootEffect = Fx.shootBig;
         smokeEffect = Fx.none;
+        // 枪口焰在 load() 里构建: 深红色, 不要原版 Fx.shootBig 的白色闪光
+        shootEffect = null;
+        hitColor = spearRed;
     }
 
     @Override
@@ -283,6 +292,27 @@ public class LonginusSpearBulletType extends BulletType {
 
         // ★ 这里不要调 spear(): 模组内容第一次 load() 发生在非绘制线程的临时图集阶段,
         //   建纹理可能拿不到 GL 上下文。贴图在第一帧 draw 时再延迟解析。
+
+        // ---------- 枪口焰: 深红色, 不使用原版的白色闪光 ----------
+        // 原版 Fx.shootBig 是一团白色爆闪, 出膛那一瞬会把枪身洗成半透明观感;
+        // 这里换成与朗枪枪身一致的深红: 三片顺着枪管喷出的暗红焰 + 一点红晕。
+        shootEffect = new Effect(13f, 120f, e -> {
+            float f = e.fout();
+
+            // 主焰: 顺着枪口方向的三角, 实心深红
+            Draw.color(spearRed, 0.95f * f);
+            for (int i = -1; i <= 1; i++) {
+                float a = e.rotation + i * 8f;
+                Drawf.tri(e.x, e.y, (8f + (i == 0 ? 3f : 0f)) * f, 28f * f, a);
+            }
+
+            // 枪口的暗红余晕
+            Draw.blend(Blending.additive);
+            Draw.color(spearRed, 0.45f * f);
+            Fill.circle(e.x, e.y, 9f * (1f - f * 0.35f));
+            Draw.blend();
+            Draw.reset();
+        });
 
         // ---------- 命中碎片: 从目标身上崩出来的小碎块 ----------
         // 要的是"单位被打穿、碎片飞出来"的手感, 不是一圈巨大的爆裂光环:
@@ -347,13 +377,13 @@ public class LonginusSpearBulletType extends BulletType {
             // 插入深度在命中瞬间就算好, 单位消失后也不会跳变
             float depth = data != null ? data.depth : 24f;
 
-            float out = e.fin();
-            // 最后 15% 时间淡出
-            float alpha = out > 0.85f ? (1f - out) / 0.15f : 1f;
+            // ★ 前 10 秒保持完全不透明, 之后 2 秒线性淡出, 到 stickTime (12 秒) 完全消失
+            float alpha = Mathf.clamp((stickTime - e.time) / 120f);
             float ang = e.rotation;
 
             // 插入瞬间的"钉入"回弹: 极短时间往前多扎一点, 之后回位
-            float punch = out < 0.02f ? (1f - out / 0.02f) * 16f : 0f;
+            float fin = e.fin();
+            float punch = fin < 0.02f ? (1f - fin / 0.02f) * 16f : 0f;
             // ★ 枪尖越过单位中心 depth, 整杆枪看起来是扎穿目标, 而不是搭在身上
             float tipX = px + Angles.trnsx(ang, depth + punch);
             float tipY = py + Angles.trnsy(ang, depth + punch);
@@ -364,9 +394,9 @@ public class LonginusSpearBulletType extends BulletType {
             // 以可见枪尖为锚 (1f), 枪尖扎在目标身上, 枪身向后方延伸
             drawSpear(region, drawLength, 1f, tipX, tipY, ang);
 
-            // 插入点的猩红余烬, 随时间熄灭
+            // 插入点的深红余烬, 与枪一起淡出
             Draw.blend(Blending.additive);
-            Draw.color(glowColor, 0.55f * alpha * Mathf.clamp(1f - out * 1.2f));
+            Draw.color(spearRed, 0.5f * alpha);
             Fill.circle(px, py, 10f + 5f * Mathf.absin(Time.time, 5f, 1f));
             Draw.blend();
             Draw.reset();
@@ -458,8 +488,13 @@ public class LonginusSpearBulletType extends BulletType {
             return;
         }
 
+        // ★ 先把绘制状态清干净: 炮台/空枪座会临时打开 additive、调 alpha 与 mixcol,
+        //   不清掉会让刚出膛的枪看起来半透明。这里显式恢复不透明普通混合。
+        Draw.reset();
+        Draw.blend(Blending.normal);
         Draw.z(Layer.bullet);
         Draw.color(Color.white);
+        Draw.alpha(1f);
         // 以可见枪尖为锚: 枪尖正好落在子弹位置上, 枪身随后方延伸
         drawSpear(region, drawLength, 1f, b.x, b.y, b.rotation());
         Draw.reset();
