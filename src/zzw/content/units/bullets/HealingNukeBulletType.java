@@ -1,32 +1,33 @@
 package zzw.content.units.bullets;
 
+import arc.graphics.Color;
 import arc.graphics.g2d.Draw;
 import arc.graphics.g2d.Fill;
 import arc.math.Mathf;
 import arc.math.geom.Vec2;
+import arc.util.Time;
 import arc.util.Tmp;
 import mindustry.content.Fx;
 import mindustry.content.StatusEffects;
-import mindustry.entities.bullet.BulletType;
 import mindustry.entities.Units;
+import mindustry.entities.bullet.BulletType;
 import mindustry.gen.Bullet;
+import mindustry.gen.Sounds;
 import mindustry.graphics.Pal;
 import mindustry.type.StatusEffect;
 import zzw.content.units.util.UnityUtils;
 
 /**
- * 治疗核弹 (PU_V8 HealingNukeBulletType 完整移植版)
- * 参考: PU_V8 main/src/unity/entities/bullet/energy/HealingNukeBulletType.java
+ * 治疗核弹 (PU_V8 HealingNukeBulletType 移植版, v160 修正为"发射型").
  *
- * 功能 (与 PU_V8 一致):
- * - 圆形范围: 友军治疗+allyStatus, 敌方伤害+status
- * - 多射线检测 absorbLasers 建筑 (遮挡)
- * - 自定义绘制: 多三角形组成圆形
- *
- * v158 适配:
- * - 用 zzw.content.units.util.UnityUtils.castCircle 替代 Utils.castCircle
- * - 用 Units.nearby(rect, cons) 替代 v158 中无对应方法的 Group 查询 (与 PU_V8 行为一致)
- * - ★ v158 BuildingComp.heal(amount) 不修改 health 字段, 直接修改 build.health + healthChanged()
+ * <p>★ 修复: 原实现 speed=0, 在炮口位置立即结算, 核弹永远在单位自己脚下炸开,
+ * 与"治疗核弹在关键位置炸开"的定位不符。现在核弹会以可见速度飞向 AI 锁定的
+ * 伤员位置, 到达目标点 (或飞行超时) 后再引爆:</p>
+ * <ul>
+ *   <li>引爆瞬间: 圆形范围友军治疗+allyStatus, 敌军伤害+status, absorbLasers 建筑遮挡;</li>
+ *   <li>引爆后弹体保留 24 帧用于绘制绿色治疗范围, 随后消失;</li>
+ *   <li>飞行途中绘制绿色光球, 让玩家能看清核弹的落点。</li>
+ * </ul>
  */
 public class HealingNukeBulletType extends BulletType {
     public float radius = 650f;
@@ -35,9 +36,9 @@ public class HealingNukeBulletType extends BulletType {
     public float allyStatusDuration = 2f * 60f;
 
     public HealingNukeBulletType() {
-        // ★ T7 攻击优化: 基础伤害 20 → 500, 对建筑再乘 10 倍 (5000),
-        //   原值对敌伤害过低, 与"天枢"的 T7 定位严重不符
-        super(0f, 500f);
+        // ★ 作为可见的发射型核弹: 飞行速度 7, 最长 140 帧 (覆盖 650 射程)
+        super(7f, 600f);
+        lifetime = 140f;
         hitEffect = Fx.none;
         despawnEffect = Fx.none;
         shootEffect = Fx.none;
@@ -61,6 +62,27 @@ public class HealingNukeBulletType extends BulletType {
 
     @Override
     public void init(Bullet b) {
+        b.data = null;   // null = 尚未引爆
+    }
+
+    @Override
+    public void update(Bullet b) {
+        if (b.data instanceof float[]) return;   // 已引爆, 保留绘制直至消失
+
+        // 抵达 AI 锁定的落点 (或飞行超时) 时引爆
+        boolean reached = Mathf.dst(b.x, b.y, b.aimX, b.aimY) <= Math.max(speed * 2f, 14f);
+        if (reached || b.time >= b.lifetime - 1f) {
+            b.data = detonate(b);
+            b.vel.setZero();
+            b.lifetime = b.time + 24f;   // 保留 24 帧绘制治疗范围
+        }
+    }
+
+    /** 在弹体当前位置结算一次圆形治疗/伤害, 返回各角度的可达距离用于绘制 */
+    float[] detonate(Bullet b) {
+        Fx.healWaveDynamic.at(b.x, b.y, radius);
+        Sounds.healWave.at(b.x, b.y);
+
         // ★ 与 PU_V8 一致: 用 castCircle 一次性扫描所有建筑 + 射线遮挡
         float[] data = UnityUtils.castCircle(b.x, b.y, radius, rays, bd -> true, building -> {
             if (building.team == b.team) {
@@ -93,12 +115,13 @@ public class HealingNukeBulletType extends BulletType {
             }
         });
 
-        b.data = data;
+        return data;
     }
 
     @Override
     public void draw(Bullet b) {
         if (b.data instanceof float[] data) {
+            // 引爆后: 绿色治疗范围
             Draw.color(Pal.heal);
             Draw.alpha(0.3f * b.fout());
             for (int i = 0; i < data.length; i++) {
@@ -110,6 +133,13 @@ public class HealingNukeBulletType extends BulletType {
 
                 Fill.tri(b.x, b.y, v1.x, v1.y, v2.x, v2.y);
             }
+            Draw.reset();
+        } else {
+            // 飞行途中: 绿色光球
+            Draw.color(Pal.heal);
+            Fill.circle(b.x, b.y, 6f + Mathf.absin(Time.time, 4f, 2f));
+            Draw.color(Color.white);
+            Fill.circle(b.x, b.y, 3f);
             Draw.reset();
         }
     }

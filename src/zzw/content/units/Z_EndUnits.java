@@ -568,8 +568,8 @@ public class Z_EndUnits {
                     drawRegion = false;
 
                     bullet = new ContinuousSingularityLaserBulletType(189000f){{
-                        // ★ 持续时间 +10s (5s → 15s, 与武器 reload 一致, 光束不再中途断档)
-                        lifetime = 15f * 60f;
+                        // ★ 持续时间 15s → 14s (用户要求大激光少持续 1 秒)
+                        lifetime = 14f * 60f;
                         width = 40f;
                         widthReduction = 6f;
                         collisionWidth = 17f;

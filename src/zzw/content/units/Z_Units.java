@@ -86,6 +86,7 @@ import zzw.content.units.weapons.EnergyChargeWeapon;
 import zzw.content.units.weapons.GuidedMissileWeapon;
 import zzw.content.units.weapons.LimitedAngleWeapon;
 import zzw.content.units.weapons.MultiBarrelWeapon;
+import zzw.content.units.weapons.MultiTargetRepairBeamWeapon;
 import zzw.content.units.weapons.PointDefenceMultiBarrelWeapon;
 import zzw.content.units.weapons.SweepWeapon;
 
@@ -3638,6 +3639,11 @@ public class Z_Units {
                     width = 27f;
                     collisionWidth = 10f;
                     pierceCap = 2;
+                    // ★ 手感调整: 放慢展开 (约 1.2s 伸展到 380) 并在结束前 80 帧收束回炮口
+                    accel = 90f;
+                    laserSpeed = 8f;
+                    fadeTime = 80f;
+                    retractFade = true;
                     hitEffect = zzw.content.units.effects.ScarFx.coloredHitLarge;   // PU_V8 HitFx.coloredHitLarge
                     hitColor = mindustry.graphics.Pal.meltdownHit;
                     shootEffect = CombatFx.laserShoot;   // ★ 特效美化: 熔毁橙炮口 (原版默认小闪光)
@@ -3756,8 +3762,11 @@ public class Z_Units {
                     incendAmount = 2;
                     width = 37f;
                     collisionWidth = 16f;
-                    accel = 60f;
-                    laserSpeed = 20f;
+                    accel = 200f;
+                    laserSpeed = 9f;
+                    // ★ 手感调整: 放慢展开 (约 1.5s 伸展到 430) 并在结束前 90 帧收束回炮口
+                    fadeTime = 90f;
+                    retractFade = true;
                     splashDamage = 40f;
                     splashDamageRadius = 50f;
                     pierceCap = 5;
@@ -3814,9 +3823,10 @@ public class Z_Units {
             outlines = false;
 
             // PU_V8: abilities.add(ForceFieldAbility, RepairFieldAbility)
+            // ★ 加强: 原版 8000 护盾/360 每秒与 180 平铺/2s 的修复场在 T6 血量下几乎不可见
             abilities.add(
-                new mindustry.entities.abilities.ForceFieldAbility(190f, 6f, 8000f, 60f * 12),
-                new mindustry.entities.abilities.RepairFieldAbility(180f, 60f * 2, 160f)
+                new mindustry.entities.abilities.ForceFieldAbility(190f, 40f, 30000f, 60f * 8),
+                new mindustry.entities.abilities.RepairFieldAbility(600f, 60f, 220f){{ healPercent = 2f; }}
             );
 
             // PU_V8: weapons.add(new Weapon(name + "-laser"){{ bottomWeapons.add(this); ... }})
@@ -3888,7 +3898,7 @@ public class Z_Units {
                 // mirror 默认 true (v158 Weapon.mirror 默认值), PU_V8 未显式设置
 
                 bullet = new HealingConeBulletType(3f) {{
-                    healPercent = 3f;
+                    healPercent = 4f;   // ★ 加强: 3% → 4% 最大生命/次
                     cone = 15f;
                     scanAccuracy = 25;
                     allyStatus = mindustry.content.StatusEffects.overclock;
@@ -3903,7 +3913,7 @@ public class Z_Units {
                 y = 10.75f;
                 shootY = 0f;
 
-                reload = 20f * 60f;  // ★ 攻击优化: 30s → 20s, 让 T7 大招更跟得上战局
+                reload = 18f * 60f;  // ★ 加强: 20s → 18s, 治疗核弹更跟得上战局
                 shootCone = 360f;
                 ignoreRotation = true;
 
@@ -3924,7 +3934,7 @@ public class Z_Units {
                     allyStatusDuration = 15f * 60f;
                     status = Z_StatusEffects.disabled;  // PU_V8 UnityStatusEffects.disabled (移速/装填归零+缴械)
                     statusDuration = 120f;
-                    healPercent = 30f;  // ★ 攻击优化: 20% → 30%, 强化"治疗核弹"定位
+                    healPercent = 35f;  // ★ 加强: 30% → 35%, 强化"治疗核弹"定位
                 }};
             }});
         }};
@@ -4017,43 +4027,45 @@ public class Z_Units {
             outlineColor = Color.valueOf("2e3142");
             constructor = mindustry.gen.UnitEntity::create;
             aiController = () -> new zzw.content.units.ai.NewHealerAI();
-            range = 210f;
+            range = 240f;
 
-            // 3 个 RepairBeamWeapon (mirror=true = 6 个维修臂)
-            weapons.add(new mindustry.type.weapons.RepairBeamWeapon("repair-beam-weapon") {{
+            // 3 个 MultiTargetRepairBeamWeapon (mirror=true = 6 个维修臂)
+            // ★ 修复: 原版每个 mount 都锁同一个"最近伤员", 6 条光束实际只治疗 1 个目标;
+            //   改为多目标分配, 并加入按最大生命百分比的治疗 (平铺 39HP/s 对 T6/T7 友军几乎无效)
+            weapons.add(new MultiTargetRepairBeamWeapon("repair-beam-weapon") {{
                 x = 8f; y = 8.25f;
+                shootY = 6f;
                 beamWidth = 0.8f;
                 mirror = true;
                 repairSpeed = 0.65f;
+                fractionRepairSpeed = 2f;   // 每束 2%/s 最大生命
+                targetBuildings = true;     // 同时维修受损建筑
                 bullet = new mindustry.entities.bullet.BulletType(1f, 0f) {{
-                    lifetime = 100f;
-                    maxRange = 210f;       // ★ 决定 RepairBeamWeapon 的射程
-                    collidesTeam = true;
-                    // 不设置 healPercent, 避免 canHeal=true 让 AI 寻找建筑而非单位
+                    maxRange = 240f;        // ★ 决定维修光束射程
                 }};
             }},
-            new mindustry.type.weapons.RepairBeamWeapon("repair-beam-weapon") {{
+            new MultiTargetRepairBeamWeapon("repair-beam-weapon") {{
                 x = 14.25f; y = -3f;
+                shootY = 6f;
                 beamWidth = 0.8f;
                 mirror = true;
                 repairSpeed = 0.65f;
+                fractionRepairSpeed = 2f;
+                targetBuildings = true;
                 bullet = new mindustry.entities.bullet.BulletType(1f, 0f) {{
-                    lifetime = 100f;
-                    maxRange = 210f;
-                    collidesTeam = true;
-                    // 不设置 healPercent, 避免 canHeal=true 让 AI 寻找建筑而非单位
+                    maxRange = 240f;
                 }};
             }},
-            new mindustry.type.weapons.RepairBeamWeapon("repair-beam-weapon") {{
+            new MultiTargetRepairBeamWeapon("repair-beam-weapon") {{
                 x = 11.75f; y = -12f;
+                shootY = 6f;
                 beamWidth = 0.8f;
                 mirror = true;
                 repairSpeed = 0.65f;
+                fractionRepairSpeed = 2f;
+                targetBuildings = true;
                 bullet = new mindustry.entities.bullet.BulletType(1f, 0f) {{
-                    lifetime = 100f;
-                    maxRange = 210f;
-                    collidesTeam = true;
-                    // 不设置 healPercent, 避免 canHeal=true 让 AI 寻找建筑而非单位
+                    maxRange = 240f;
                 }};
             }});
 

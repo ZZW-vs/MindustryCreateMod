@@ -30,6 +30,8 @@ public class AcceleratingLaserBulletType extends BulletType {
     public float width = 12f, collisionWidth = 8f;
     public float fadeTime = 60f;
     public float fadeInTime = 8f;
+    /** 结束前是否随 fadeTime 把光束长度收束回炮口 (false 时只淡出宽度) */
+    public boolean retractFade = false;
     public float oscOffset = 1.4f, oscScl = 1.1f;
     public float pierceAmount = 4f;
     public boolean fastUpdateLength = true;
@@ -70,12 +72,21 @@ public class AcceleratingLaserBulletType extends BulletType {
         float fade = Mathf.clamp(b.time > b.lifetime - fadeTime ? 1f - (b.time - (lifetime - fadeTime)) / fadeTime : 1f) * fadeIn;
         float tipHeight = width / 2f;
 
-        Lines.lineAngle(b.x, b.y, b.rotation(), b.fdata);
+        // ★ 收束: 生命末期把可见长度平滑缩回炮口 (伤害/实际长度不变, 仅视觉)
+        float len = b.fdata;
+        if (retractFade) {
+            float end = Math.max(b.lifetime - fadeTime, 0f);
+            float retract = Mathf.clamp((b.time - end) / fadeTime);
+            len *= 1f - retract;
+        }
+        float tip = Math.max(len - tipHeight, 0f);
+
+        Lines.lineAngle(b.x, b.y, b.rotation(), len);
         for (int i = 0; i < colors.length; i++) {
             float f = ((float)(colors.length - i) / colors.length);
             float w = f * (width + Mathf.absin(Time.time + (i * oscOffset), oscScl, width / 4)) * fade;
 
-            Tmp.v2.trns(b.rotation(), b.fdata - tipHeight).add(b);
+            Tmp.v2.trns(b.rotation(), tip).add(b);
             Tmp.v1.trns(b.rotation(), width * 2f).add(Tmp.v2);
             Draw.color(colors[i]);
             Fill.circle(b.x, b.y, w / 2f);
@@ -86,7 +97,7 @@ public class AcceleratingLaserBulletType extends BulletType {
                 Fill.tri(Tmp.v2.x, Tmp.v2.y, Tmp.v1.x, Tmp.v1.y, Tmp.v2.x + Tmp.v3.x, Tmp.v2.y + Tmp.v3.y);
             }
         }
-        Tmp.v2.trns(b.rotation(), b.fdata + tipHeight).add(b);
+        Tmp.v2.trns(b.rotation(), len + tipHeight).add(b);
         Drawf.light(b.x, b.y, Tmp.v2.x, Tmp.v2.y, width * 2f, colors[0], 0.5f);
         Draw.reset();
     }
