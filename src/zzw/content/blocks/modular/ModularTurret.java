@@ -662,8 +662,10 @@ public class ModularTurret extends Turret{
                     float ly = (gy + part.th * 0.5f - gridH * 0.5f) * 32f;
                     Tmp.v1.set(lx, ly).rotate(rot).add(x, y);
                     float alpha = getPaidRatio() < 1f ? 0.45f + 0.55f * aniProg : 1f;
+                    // 零件图标按 26px/格 制作, 映射到地图上的 32px/格
+                    float scale = 32f / 26f;
                     Draw.alpha(alpha);
-                    Draw.rect(tex, Tmp.v1.x, Tmp.v1.y, part.tw * 32f, part.th * 32f, rot);
+                    Draw.rect(tex, Tmp.v1.x, Tmp.v1.y, tex.width * scale, tex.height * scale, rot);
                     Draw.alpha(1f);
                 }
             }else if(rootRegion.found()){
