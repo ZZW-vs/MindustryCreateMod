@@ -615,7 +615,7 @@
 - 新增螺旋石油钻井（oil-derrick）：扭矩驱动的石油抽取器（`SolidPump`，`result=Liquids.oil`、`attribute=Attribute.oil`，需建在油层上），绘制为螺旋钻杆样式（类 `zzw.content.mechanics.torque.blocks.production.OilDerrick`）
 
 ## 更新日志
-- **tenmeikiri 终结炮台小幅加强**（用户指定）：血量 43000 → 52000；单次受到的伤害上限 500 → 10000（新增 `maxDamagePerHit` 字段，异常掉血阈值同步改为 10000，避免高单发伤害被反作弊判定为异常并回满血）；输出伤害 123456 → 12345678
+- **tenmeikiri 终结炮台小幅加强**（用户指定）：血量 43000 → 104000（先提到 52000，再按需求翻倍）；单次受到的伤害上限 500 → 2500（新增 `maxDamagePerHit` 字段，单帧异常掉血阈值复用同一字段，保证判罚逻辑与上限一致）；输出伤害 123456 → 12345678
 - **endgame 终局炮台重做（bug 修复 + 不可摧毁 + 全面强化）**：
   - **修复"炮台一直刷新自身状态 → 电力节点连上后很快断开、交互失效"**：根因是 v160 的 `Building.add()` 只把建筑登记到 `Groups.build`（不再进 `Groups.all`），而建筑防作弊守卫沿用 `Groups.all` 判定，必然认定"已被抹掉"，于是**每 15 帧对炮台重跑一次 `tile.setBlock()`**；该调用走 `init()` → `power.init = false` + `new PowerGraph().add(this)`，炮台被摘进一个全新电力图，电力节点一侧的图不再包含它（链路永久断开），同时整座建筑状态被重置。现改为按"地块上是否仍是本建筑"判定，只在真被抹掉/被覆盖/被拆除时写回；并删除建筑侧每帧强制 `update()`（v160 建筑本就由 `Groups.logic` 逐帧更新，重复调用会让 `updateTile` 一帧跑两遍）
   - **真正不可摧毁**：`damage()` 直接忽略（血量恒定不降）、`kill()` 与 `killed()` 空实现（堵住 `Call.buildDestroyed → Tile.buildDestroyed → killed()` 销毁入口），不靠天文数字血量，血条/存档/伤害结算保持正常；地块被外部抹掉或被拆除时由防作弊守卫写回，且不再因同队拆除而注销

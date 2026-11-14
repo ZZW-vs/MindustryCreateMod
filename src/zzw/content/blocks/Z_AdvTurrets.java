@@ -599,7 +599,7 @@ public class Z_AdvTurrets {
             requirements(Category.turret, ItemStack.with(
                 Items.phaseFabric, 3000, Items.surgeAlloy, 4000,
                 Z_Items.darkAlloy, 1800, Z_Items.terminum, 1200, Z_Items.terminaAlloy, 200));
-            health = 52000;
+            health = 104000;
             range = 900f;
             size = 15;
             shootCone = 1.5f;

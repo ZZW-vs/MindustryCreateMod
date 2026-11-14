@@ -33,7 +33,7 @@ import zzw.content.units.effects.ChargeEffect;
  * - 充能后发射持续激光 (chargeTime, chargeEffects, chargeMaxDelay)
  * - 激光子弹锁定到炮台旋转方向, 持续到 lifetime 结束
  * - 激光激活期间炮台不旋转, 保持在 heat/recoil 状态
- * - 防作弊伤害系统: 单次受到的伤害最多结算 {@link #maxDamagePerHit} (10000);
+ * - 防作弊伤害系统: 单次受到的伤害最多结算 {@link #maxDamagePerHit} (2500);
  *   单帧掉血超过该阈值视为异常, 直接恢复到 lastHealth
  * - lastHealth 追踪: 防止外部代码修改 health
  * - 7 层灯光贴图叠加 (加法混合 + 颜色循环), alpha 随 power.status 渐变
@@ -52,8 +52,8 @@ import zzw.content.units.effects.ChargeEffect;
 public class EndLaserTurret extends PowerTurret {
     public float minDamage = 170f, minDamageTaken = 600f;
     public float resistScl = 0.25f;
-    /** 单次受到的伤害上限 (需求: 10000)。 */
-    public float maxDamagePerHit = 10000f;
+    /** 单次受到的伤害上限 (需求: 2500); 单帧异常掉血阈值同步使用该值。 */
+    public float maxDamagePerHit = 2500f;
     public TextureRegion[] lightRegions;
     public TextureRegion baseOutline;
     /** 液体冷却强化表 */
