@@ -6,6 +6,7 @@ import arc.graphics.Color;
 import arc.graphics.g2d.Draw;
 import arc.graphics.g2d.TextureRegion;
 import arc.math.Mathf;
+import arc.math.geom.Position;
 import arc.math.geom.Vec2;
 import arc.struct.Seq;
 import arc.util.Time;
@@ -49,13 +50,13 @@ import zzw.util.AntiCheatBuildings;
  *
  * <p>行为:</p>
  * <ul>
- *   <li><b>通电</b>: 眼睛亮起 (eyesAlpha 由 "电力满足度 + 储能" 驱动);</li>
+ *   <li><b>通电</b>: 眼睛亮起 (eyesAlpha 由电力满足度驱动);</li>
  *   <li><b>通电 + 有目标 + 有弹药</b>: 环灯亮起、轮盘旋转、随机释放慢速闪电,
- *       并且 16 只眼睛按逆时针顺序轮流发射秒杀光束;</li>
- *   <li><b>装填完成</b>: 以自身为中心释放 "终局齐射" —— 范围内所有敌方单位被
- *       瞬间湮灭, 所有敌方建筑被汽化;</li>
- *   <li><b>限伤</b>: 单次伤害被 {@code resist} 折减到最多 410, 且一次掉血超过
- *       860 会被 {@link #verify()} 直接忽略 (防一击秒杀 / 防作弊)。</li>
+ *       并且 16 只眼睛按逆时针顺序轮流发射秒杀光束 (激光射程 = {@code range});</li>
+ *   <li><b>装填完成</b>: 以自身为中心释放 "终局齐射" —— {@link #blastRadius} 内
+ *       所有敌方单位被瞬间湮灭, 所有敌方建筑被汽化 (爆炸范围与激光射程相互独立);</li>
+ *   <li><b>不可摧毁</b>: {@code damage / kill / killed} 全部被阻断, 血量恒定不降;
+ *       地块被外部抹掉或被拆除时由建筑防作弊登记写回。</li>
  * </ul>
  *
  * <p>★ v132 → v158 适配要点 (与"通电就亮"反复不生效的根因):</p>
@@ -86,6 +87,19 @@ public class EndGameTurret extends PowerTurret {
 
     /** End 系列主色 (scarColor)。 */
     public static final Color scarColor = Color.valueOf("f53036");
+
+    /**
+     * 爆炸齐射半径 (世界单位) —— 与激光射程解耦, 固定保持原版 820。
+     *
+     * <p>需求: "激光的攻击范围翻倍, 但爆炸的攻击范围保持不变"。激光 (眼睛光束 /
+     * 炮台索敌) 使用 {@code range}, 爆炸 (装填完成时的全屏湮灭) 只使用本常量。</p>
+     */
+    public static final float blastRadius = 820f;
+
+    /** 每次齐射最多播放的激光特效数量 (性能上限, 超出只结算伤害)。 */
+    public static final int maxBurstLasers = 10;
+    /** 每次齐射最多播放的汽化特效数量 (性能上限)。 */
+    public static final int maxBurstVapourizes = 12;
 
     /** 三层环的旋转速度系数 (原版 ringProgresses)。 */
     private static final float[] ringProgresses = {0.013f, 0.035f, 0.024f};
@@ -120,7 +134,8 @@ public class EndGameTurret extends PowerTurret {
         health = 68000;
         consumePower(320f);
         reload = 430f;
-        range = 820f;
+        // ★ 需求: 激光攻击范围翻倍 (原 820 → 1640); 爆炸范围另见 blastRadius, 保持 820
+        range = 1640f;
         size = 14;
         shootCone = 360f;
         rotate = false;
@@ -135,7 +150,9 @@ public class EndGameTurret extends PowerTurret {
         outlineIcon = false;
         noUpdateDisabled = false;
         hasItems = true;
-        itemCapacity = 10;
+        // ★ 32 倍装填下每轮齐射仍消耗 2 个 terminum: 原版 10 的缓冲只够约 1 秒,
+        //   这里按 32 倍同比放大 (10 × 32) 让一箱弹药的总射击时长与原版一致。
+        itemCapacity = 320;
         loopSound = Z_Sounds.endgameActive;
         loopSoundVolume = 0.2f;
         shootSound = Z_Sounds.endgameShoot;
@@ -151,6 +168,9 @@ public class EndGameTurret extends PowerTurret {
             collides = false;
             hittable = false;
             absorbable = false;
+            // ★ 需求: 装填倍率 = 32。走原版 BulletType.reloadMultiplier 通道
+            //   (TurretBuild.ammoReloadMultiplier() 读取), 不需要额外覆写装填逻辑。
+            reloadMultiplier = 32f;
             // 见上方 targetBlocks 注释: 占位子弹也必须声明可索敌建筑,
             // 否则 findEnemy() 的 buildingPred 恒为 false, 基类 target 取不到建筑
             targetBlocks = true;
@@ -192,16 +212,8 @@ public class EndGameTurret extends PowerTurret {
 
         // ===== 运行状态 (与 PU132 EndGameTurretBuilding 字段一一对应) =====
 
-        /** PU132 charge: 由超大单次伤害积攒的储能, 提供额外效率/装填速度。 */
-        protected float energyCharge = 0f;
-        /** 伤害折减系数 (越大减伤越多)。 */
-        protected float resist = 1f;
-        /** 距上次受击的时间 (帧), 超过 15 帧后 resist 自动回落。 */
-        protected float resistTime = 10f;
         /** 威胁等级 (1 + 范围内敌人强度), 放大眼睛光束伤害。 */
         protected float threatLevel = 1f;
-        /** 上一帧血量, 用于 {@link #verify()} 检测异常掉血。 */
-        protected float lastHealth = 0f;
         /** 停火后开始熄灭环灯的延时计时。 */
         protected float eyeResetTime = 0f;
         /** 眼睛亮度 (0~1)。 */
@@ -257,15 +269,19 @@ public class EndGameTurret extends PowerTurret {
             return power == null ? 0f : power.status;
         }
 
-        /** PU132 trueEfficiency(): 电力满足度 + 储能, 钳制到 [0, 1]。 */
+        /** PU132 trueEfficiency(): 电力满足度, 钳制到 [0, 1]。 */
         float trueEfficiency(){
-            return Mathf.clamp(powerStatus() + energyCharge, 0f, 1f);
+            return Mathf.clamp(powerStatus(), 0f, 1f);
         }
 
-        /** PU132 baseReloadSpeed(): 电力满足度 + 储能, 钳制到 [0, 1.2]。 */
+        /**
+         * ★ 装填倍率 32 由占位子弹的 {@code reloadMultiplier} 提供
+         * (见构造里的 {@code shootType}), 这里只保留基础速度倍率 (电力满足度),
+         * 眼睛光束的发射节奏同样使用该值, 不额外乘 32。
+         */
         @Override
         protected float baseReloadSpeed(){
-            return Mathf.clamp(powerStatus() + energyCharge, 0f, 1.2f);
+            return Mathf.clamp(powerStatus(), 0f, 1f);
         }
 
         /** PU132 deltaB(): 按 baseReloadSpeed 缩放的 delta。 */
@@ -274,18 +290,14 @@ public class EndGameTurret extends PowerTurret {
         }
 
         /**
-         * PU132 consValid(): "可以工作" = 电力满足 (或储能充足) 且 有 terminum 弹药。
+         * PU132 consValid(): "可以工作" = 电力满足 且 有 terminum 弹药。
          *
          * <p>v158 中 {@code canConsume()} (potentialEfficiency > 0) 已经同时表达了
-         * "所有必选消费者 (电力 + 物品) 都满足", 因此先用它判定; 当它失败但
-         * 仍有储能时, 额外允许 (储能 > 0 且 有弹药)。</p>
+         * "所有必选消费者 (电力 + 物品) 都满足", 这里按原版语义显式判定。</p>
          */
         @Override
         public boolean canConsume(){
-            boolean valid = powerStatus() > 0.0001f;
-            valid |= energyCharge > 0.001f;
-            valid &= items != null && items.total() > 0;
-            return valid;
+            return powerStatus() > 0.0001f && items != null && items.total() > 0;
         }
 
         @Override
@@ -296,60 +308,49 @@ public class EndGameTurret extends PowerTurret {
         // ================= 受击 / 死亡 =================
 
         /**
-         * PU132 damage(): 储能累积 + resist 折减 + 单次伤害上限 410。
+         * ★ 真正不可摧毁 —— 需求: "受击不掉血、不会被任何方式拆除或摧毁",
+         * 且不能用天文数字血量 (会让血条/存档/伤害结算出现异常)。
          *
-         * <p>这是原版 "打不死" 的核心: 无论来袭伤害多高, 单次最多结算 410 点,
-         * 且每次受击都会提升 resist 让后续伤害更小。</p>
+         * <p>做法是把所有掉血入口直接掐断:</p>
+         * <ul>
+         *   <li>{@code damage()} —— 引擎里所有伤害 (子弹/爆炸/逻辑伤害/碰撞) 的唯一入口,
+         *       这里直接返回, 血量永远保持满值;</li>
+         *   <li>{@code kill()} —— 外部模组常用的"强制击杀"入口, 直接忽略;</li>
+         *   <li>{@code killed()} —— 引擎真正的销毁入口 ({@code Call.buildDestroyed}
+         *       → {@code Tile.buildDestroyed} → {@code killed()}), 空实现即可堵住
+         *       "直接调用销毁"这条旁路;</li>
+         *   <li>地块被外部抹掉/被拆除 → 由防作弊登记把炮台写回 (见
+         *       {@link zzw.util.AntiCheat} / {@link AntiCheatBuildings})。</li>
+         * </ul>
          */
         @Override
         public void damage(float amount){
-            if(verify()) return;
-
-            // 超过 1 万的巨额伤害会转化为储能 (PU132: /150, 上限 15)
-            if(amount > 10000f) energyCharge += Mathf.clamp(amount - 10000f, 0f, 2000000f) / 150f;
-            if(energyCharge > 15f) energyCharge = 15f;
-
-            float trueAmount = Mathf.clamp(amount / resist, 0f, 410f);
-            super.damage(trueAmount);
-
-            resist += 0.125f + (Mathf.clamp(amount - 520f, 0f, Float.MAX_VALUE) / 70f);
-            if(Float.isNaN(resist)) resist = Float.MAX_VALUE;
-            resistTime = 0f;
+            // 不可摧毁: 任何来源的伤害都不结算
         }
 
-        /** PU132 verify(): 一帧内掉血超过 860 (或血量 NaN) 视为异常, 直接忽略后续伤害。 */
-        boolean verify(){
-            return (health < lastHealth - 860f) || Float.isNaN(health);
+        @Override
+        public void kill(){
+            // 不可摧毁: 忽略一切强制击杀
+        }
+
+        @Override
+        public void killed(){
+            // 不可摧毁: 忽略引擎的销毁入口 (damage/kill 之外的最后一条路径)
         }
 
         /**
-         * PU132 kill(): 只有血量已经很低 (上一帧 lastHealth < 10) 才允许真正销毁,
-         * 否则忽略外部的强制 kill (防一击删除 / 防作弊)。
+         * 碰撞: 吞掉来袭子弹 (不做伤害结算), 并对射程外偷袭者施加一次反击。
          */
         @Override
-        public void kill(){
-            if(lastHealth < 10f){
-                // 真的被打死了 → 同步注销防作弊登记, 避免守卫把它复活
-                AntiCheatBuildings.remove(this);
-                super.kill();
-            }
-        }
-
-        /** PU132 collision(): 吸收来袭子弹并按其伤害结算, 同时惩罚射程外的攻击者。 */
-        @Override
         public boolean collision(Bullet other){
-            float amount = other.owner != null && !ownerWithin(other.owner)
-                ? 0f : other.damage() * other.type.buildingDamageMultiplier;
-            damage(amount);
-
             if(other.owner != null && !ownerWithin(other.owner) && other.owner instanceof Healthc){
                 Healthc en = (Healthc)other.owner;
-                en.damage(0.5f * en.maxHealth() * Math.max(resist / 10f, 1f));
+                en.damage(0.5f * en.maxHealth());
             }
             return true;
         }
 
-        /** 攻击者是否位于本炮台射程之内 (用于 "射程外偷袭" 判定)。 */
+        /** 攻击者是否位于本炮台激光射程之内 (用于 "射程外偷袭" 判定)。 */
         protected boolean ownerWithin(Entityc owner){
             Posc p = (Posc)owner;
             return Mathf.within(x, y, p.getX(), p.getY(), range);
@@ -363,8 +364,8 @@ public class EndGameTurret extends PowerTurret {
                 targets[i] = null;
             }
             super.add();
-            // ★ PU132 Unity.antiCheat.addBuilding(this): 登记进建筑防作弊守卫,
-            //   之后即使被外部模组强行从地图上抹掉也会被写回 (见 AntiCheatBuildings)。
+            // ★ 登记进建筑防作弊守卫: 地块被外部模组抹掉 / 被拆除时写回
+            //   (见 AntiCheat)。登记按建筑 id 幂等, 重复 add() 不会重复登记。
             AntiCheatBuildings.add(this);
         }
 
@@ -372,10 +373,7 @@ public class EndGameTurret extends PowerTurret {
         public void onRemoved() {
             lightnings.clear();
             entitySeq.clear();
-            // 只有"真的死了"才注销登记; 被外部强行移除时保留登记, 由守卫写回地图
-            if(lastHealth <= 0f || health <= 0f){
-                AntiCheatBuildings.remove(this);
-            }
+            // ★ 不可摧毁: 即使被外部强行移除也<b>不注销</b>登记, 由守卫写回地图。
             super.onRemoved();
         }
 
@@ -383,17 +381,6 @@ public class EndGameTurret extends PowerTurret {
 
         @Override
         public void updateTile() {
-            enabled = true;
-            lastHealth = health;
-            energyCharge = Math.max(0f, energyCharge - (Time.delta / 20f));
-
-            // resist 回落: 距上次受击超过 15 帧才开始缓慢恢复
-            if(resistTime >= 15f){
-                resist = Math.max(1f, resist - Time.delta);
-            }else{
-                resistTime += Time.delta;
-            }
-
             updateEyes();
 
             float trueEff = trueEfficiency();
@@ -456,8 +443,8 @@ public class EndGameTurret extends PowerTurret {
          * <p>★ 与 PU132 的差异 (按需求调整):</p>
          * <ul>
          *   <li><b>延伸距离</b>: PU132 原版 {@code range = 810f}, 闪电会一路延伸出去
-         *       打远处单位; 本实现改为<b>炮台射程的一半</b> (820 / 2 = 410), 只在炮台
-         *       周边闪烁, 不飞出去攻击远处目标;</li>
+         *       打远处单位; 本实现改为<b>激光射程的一半</b>, 只在炮台周边闪烁,
+         *       不飞出去攻击远处目标;</li>
          *   <li><b>数量上限</b>: 同时存在的闪电不超过 {@link #maxLightnings} 条。</li>
          * </ul>
          *
@@ -475,7 +462,7 @@ public class EndGameTurret extends PowerTurret {
             l.colorFrom = Color.red;
             l.colorTo = Color.black;
             l.damage = dmg;
-            // ★ 需求: 延伸距离 = 炮台射程的一半 (原版为 810)
+            // ★ 需求: 延伸距离 = 激光射程的一半
             l.range = range * 0.5f;
             // 其余形态参数全部沿用 SlowLightning 中 PU132 的默认值, 不要在这里覆盖
             // (曾经把 nodeTime 改成 5、并在 SlowLightning 里把纠偏量乘上 nodeTime,
@@ -543,10 +530,12 @@ public class EndGameTurret extends PowerTurret {
                 }
             }
 
-            updateThreats();
-
             // 注意 PU132 的 eyeTime 计时与 "存在基类目标" 两个前置条件
             if(timer.get(eyeTime, 15f) && target != null && !isControlled()){
+                // ★ 性能: 威胁统计原本每帧跑一次全量单位查询 (射程翻倍后查询盒更大);
+                //   它只需要一个粗略的强度值, 与 15 帧一次的目标刷新共用节拍即可。
+                updateThreats();
+
                 Seq<Healthc> nTargets = UnityUtils.nearbyEnemySorted(team, x, y, range, 8f);
                 if(!nTargets.isEmpty()){
                     for(int i = 0; i < targets.length; i++){
@@ -618,7 +607,7 @@ public class EndGameTurret extends PowerTurret {
             targets[index] = null;
         }
 
-        /** PU132 playerShoot(): 玩家手动控制时, 朝鼠标位置 15 范围内秒杀。 */
+        /** 玩家手动控制时, 朝鼠标位置 15 范围内秒杀。 */
         void playerShoot(int index){
             final float rnge = 15f;
             float ux = unit.aimX();
@@ -626,22 +615,35 @@ public class EndGameTurret extends PowerTurret {
 
             if(!Mathf.within(x, y, ux, uy, range * 1.5f)) return;
 
-            UnityUtils.trueEachBlock(ux, uy, rnge, b -> b.team != team && !b.dead, building -> {
-                damaged(building, 490f);
-                Object[] data = {new Vec2(ux, uy), building, 0.525f};
-                ScarFx.endgameLaser.at(x, y, 0f, data);
+            // ★ 建筑: 用空间索引查询 (半径很小, 但索引仍比逐 tile 扫描便宜);
+            //   先收集再摧毁, 避免在索引遍历中直接删除建筑
+            entitySeq.clear();
+            Vars.indexer.allBuildings(ux, uy, rnge, building -> {
+                if(building.team == team || building == this || building.dead) return;
+                if(!Mathf.within(ux, uy, building.x, building.y, rnge)) return;
+                entitySeq.add(building);
             });
+            for(int i = 0; i < entitySeq.size; i++){
+                Building b = (Building)entitySeq.get(i);
+                announceLaser(new Vec2(ux, uy), b, 0.525f);
+                annihilateBuilding(b);
+            }
+            entitySeq.clear();
 
+            // ★ 先收集再击杀: 在单位空间索引遍历过程中直接删除单位会破坏遍历
+            entitySeq.clear();
             Units.nearbyEnemies(team, ux - rnge, uy - rnge, rnge * 2f, rnge * 2f, e -> {
-                if(Mathf.within(ux, uy, e.x, e.y, rnge + e.hitSize) && !e.dead){
-                    e.damage(490f * threatLevel);
-                    if(e.dead){
-                        SpecialFx.endgameVapourize.at(e.x, e.y, angleTo(e), new Object[]{this, e});
-                        annihilateUnit(e);
-                    }
-                    ScarFx.endgameLaser.at(x, y, 0f, new Object[]{new Vec2(ux, uy), e, 0.525f});
+                if(!e.dead && Mathf.within(ux, uy, e.x, e.y, rnge + e.hitSize)){
+                    entitySeq.add(e);
                 }
             });
+            for(int i = 0; i < entitySeq.size; i++){
+                Unit u = (Unit)entitySeq.get(i);
+                if(u == null || u.dead) continue;
+                SpecialFx.endgameVapourize.at(u.x, u.y, angleTo(u), new Object[]{this, u});
+                annihilateUnit(u);
+            }
+            entitySeq.clear();
 
             Tmp.v1.set(eyesVecArray[index]).add(ux, uy).scl(0.5f);
 
@@ -650,9 +652,10 @@ public class EndGameTurret extends PowerTurret {
             Z_Sounds.endgameSmallShoot.at(x, y);
         }
 
-        /** 对建筑造成伤害 (统一入口, 便于日后替换为更强的破坏方式)。 */
-        protected void damaged(Building b, float amount){
-            b.damage(amount);
+        /** 画一道从本炮台指向目标的终局激光 (统一入口, 便于限流)。 */
+        protected void announceLaser(Position from, Posc to, float width){
+            Object[] data = {from, to, width};
+            ScarFx.endgameLaser.at(x, y, 0f, data);
         }
 
         /**
@@ -662,10 +665,9 @@ public class EndGameTurret extends PowerTurret {
          * 全场累计威力 > 13000 / 攻击者本身在射程之外。</p>
          */
         void updateAntiBullets(){
-            entitySeq.clear();
-
             float trueEff = trueEfficiency();
-            if(trueEff > 0.0001f && timer.get(bulletTime, 4f / Math.max(trueEff, 0.001f))){
+            // ★ 性能: 场上没有子弹时直接跳过空间查询
+            if(trueEff > 0.0001f && !Groups.bullet.isEmpty() && timer.get(bulletTime, 4f / Math.max(trueEff, 0.001f))){
                 damageFull = 0f;
 
                 // ★ 性能优化: 原版做了两次空间查询 (第一次求和, 第二次判定并移除)。
@@ -683,6 +685,7 @@ public class EndGameTurret extends PowerTurret {
                 });
 
                 boolean killed = false;
+                int fx = 0;
                 for(int i = 0; i < entitySeq.size; i++){
                     Bullet b = (Bullet)entitySeq.get(i);
                     damageB = bulletDamages.get(i);
@@ -690,8 +693,11 @@ public class EndGameTurret extends PowerTurret {
 
                     if(damageB > 1600f || b.type.splashDamageRadius > 120f || damageFull + damageB > 13000f || ownerOut){
                         killed = true;
-                        Object[] data = {new Vec2(x + (eyeOffset.x * 2f), y + (eyeOffset.y * 2f)), new Vec2(b.x, b.y), 0.625f};
-                        ScarFx.endgameLaser.at(x, y, 0f, data);
+                        // ★ 特效上限: 一次扫描最多画 maxBurstLasers 道
+                        if(fx++ < maxBurstLasers){
+                            Object[] data = {new Vec2(x + (eyeOffset.x * 2f), y + (eyeOffset.y * 2f)), new Vec2(b.x, b.y), 0.625f};
+                            ScarFx.endgameLaser.at(x, y, 0f, data);
+                        }
                         try{
                             b.remove();
                         }catch(Throwable ignored){
@@ -724,72 +730,89 @@ public class EndGameTurret extends PowerTurret {
         }
 
         /**
-         * PU132 killUnits(): 齐射时湮灭范围内所有敌方单位。
+         * PU132 killUnits(): 齐射时湮灭爆炸范围内的所有敌方单位。
          *
-         * <p>★ 顺序调整: 先播放汽化特效, 再执行湮灭 —— 特效需要目标的实时
-         * 坐标/朝向, 而湮灭会把单位移出世界 (旧实现先杀后放, 导致特效画在
-         * 无效坐标上而不可见)。</p>
+         * <p>★ 性能与范围:</p>
+         * <ul>
+         *   <li>范围固定用 {@link EndGameTurret#blastRadius} (820, 与激光射程解耦, 保持不变);</li>
+         *   <li>先收集再击杀 —— 在单位空间索引遍历中直接删除单位会破坏遍历;</li>
+         *   <li>汽化 / 激光特效各有数量上限, 目标很多时只给前若干个播放
+         *       (整体范围观感由 {@link ScarFx#endGameShoot} 的冲击波承担),
+         *       伤害结算对所有目标照常执行;</li>
+         *   <li>击杀走 {@link #annihilateUnit} 的三级升级链, 常规单位在最低开销的
+         *       第一层就会消失。</li>
+         * </ul>
          */
         void killUnits(){
             entitySeq.clear();
 
-            Units.nearbyEnemies(team, x - range, y - range, range * 2f, range * 2f, e -> {
-                if(Mathf.within(x, y, e.x, e.y, range) && !e.dead){
-                    Object[] data = {new Vec2(x + eyeOffset.x, y + eyeOffset.y), e, 1f};
-                    ScarFx.endgameLaser.at(x, y, 0f, data);
+            Units.nearbyEnemies(team, x - blastRadius, y - blastRadius, blastRadius * 2f, blastRadius * 2f, e -> {
+                if(!e.dead && Mathf.within(x, y, e.x, e.y, blastRadius)){
                     entitySeq.add(e);
                 }
             });
 
+            int fx = 0;
             for(int i = 0; i < entitySeq.size; i++){
-                Entityc e = entitySeq.get(i);
-                if(!(e instanceof Unit)) continue;
-                Unit u = (Unit)e;
-                SpecialFx.endgameVapourize.at(u.x, u.y, angleTo(u), new Object[]{this, u});
+                Unit u = (Unit)entitySeq.get(i);
+                if(u == null || u.dead) continue;
+
+                if(fx < maxBurstVapourizes){
+                    SpecialFx.endgameVapourize.at(u.x, u.y, angleTo(u), new Object[]{this, u});
+                }
+                if(fx < maxBurstLasers){
+                    announceLaser(new Vec2(x + eyeOffset.x, y + eyeOffset.y), u, 1f);
+                }
+                fx++;
+
                 annihilateUnit(u);
             }
             entitySeq.clear();
         }
 
         /**
-         * PU132 killTiles(): 齐射时摧毁范围内所有敌方建筑。
+         * PU132 killTiles(): 齐射时摧毁爆炸范围内所有敌方建筑。
          *
-         * <p>大的方块 (size>=3) 播放汽化; 每 5 个 (或 size>=5) 画一道终局激光;
-         * 最后以 "最远建筑距离 ×2" 作为半径放一次批量建筑汽化。</p>
+         * <p>★ 性能: 原实现 {@code trueEachBlock} 逐个 tile 扫描 (半径 820 时约 1 万次
+         * {@code world.build}), 目标一多就是齐射卡顿的主要来源。改为方块空间索引
+         * ({@code indexer.allBuildings}) 一次查询 —— 每个建筑只回调一次, 天然去重。</p>
+         *
+         * <p>大的方块 (size>=3) 播放汽化; 每 5 个 (或 size>=5) 画一道终局激光
+         * (两者均有数量上限); 最后以 "最远建筑距离 ×2" 为半径放一次批量建筑汽化。</p>
          */
         void killTiles(){
             entitySeq.clear();
             damageB = 0f;
             shouldLaser = 0;
 
-            UnityUtils.trueEachBlock(x, y, range + 5f, b -> b.team != team, building -> {
-                if(!building.dead && building != this){
-                    if(building.block.size >= 3){
-                        ScarFx.vapourizeTile.at(building.x, building.y, building.block.size, building);
-                    }
-                    if((shouldLaser % 5) == 0 || building.block.size >= 5){
-                        Object[] data = {new Vec2(x + (eyeOffset.x * 2f), y + (eyeOffset.y * 2f)), building, 1f};
-                        ScarFx.endgameLaser.at(x, y, 0f, data);
-                    }
-                    entitySeq.add(building);
-                    shouldLaser++;
-                }
-            });
+            Vars.indexer.allBuildings(x, y, blastRadius + 5f, building -> {
+                if(building == this || building.dead || building.team == team || !building.isValid()) return;
+                if(!Mathf.within(x, y, building.x, building.y, blastRadius + 5f)) return;
 
-            for(int i = 0; i < entitySeq.size; i++){
-                Entityc e = entitySeq.get(i);
-                Posc ep = (Posc)e;
-                damageB = Math.max(Mathf.dst2(ep.getX(), ep.getY(), x, y), damageB);
-                annihilateEntity(e);
-            }
+                if(shouldLaser < maxBurstVapourizes && building.block.size >= 3){
+                    ScarFx.vapourizeTile.at(building.x, building.y, building.block.size, building);
+                }
+                if(shouldLaser < maxBurstLasers && ((shouldLaser % 5) == 0 || building.block.size >= 5)){
+                    announceLaser(new Vec2(x + (eyeOffset.x * 2f), y + (eyeOffset.y * 2f)), building, 1f);
+                }
+                entitySeq.add(building);
+                damageB = Math.max(Mathf.dst2(building.x, building.y, x, y), damageB);
+                shouldLaser++;
+            });
 
             damageB = Mathf.sqrt(damageB) * 2f;
 
-            Building[] arr = new Building[entitySeq.size];
-            for(int i = 0; i < entitySeq.size; i++){
-                arr[i] = (Building)entitySeq.get(i);
+            int count = entitySeq.size;
+            if(count > 0){
+                Building[] arr = new Building[count];
+                for(int i = 0; i < count; i++){
+                    arr[i] = (Building)entitySeq.get(i);
+                }
+                for(int i = 0; i < count; i++){
+                    annihilateBuilding(arr[i]);
+                }
+                SpecialFx.endgameVapourize.at(x, y, damageB, new Object[]{this, arr, hitSize() / 4f});
             }
-            SpecialFx.endgameVapourize.at(x, y, damageB, new Object[]{this, arr, hitSize() / 4f});
             entitySeq.clear();
         }
 
@@ -806,42 +829,116 @@ public class EndGameTurret extends PowerTurret {
 
         // ================= 湮灭 (秒杀机制核心) =================
 
-        /** 统一湮灭入口: 单位走 {@link #annihilateUnit}, 建筑走标准摧毁。 */
+        /**
+         * 统一湮灭入口: 单位走 {@link #annihilateUnit}, 建筑走 {@link #annihilateBuilding}。
+         *
+         * <p>★ 性能: 该入口不再只给眼睛光束用, 而是每个齐射目标都会走一次, 因此
+         * 必须保持"绝大多数目标在第一层就结束"的开销特性。</p>
+         */
         void annihilateEntity(Entityc e){
             if(e instanceof Unit){
                 annihilateUnit((Unit)e);
             }else if(e instanceof Building){
+                annihilateBuilding((Building)e);
+            }
+        }
+
+        /**
+         * 摧毁建筑: 标准 {@code kill()} → 仍存活则抹掉地块。
+         *
+         * <p>部分模组会重写建筑的 {@code kill()} 让建筑"打不死"; 地块抹除是最后兜底。</p>
+         */
+        void annihilateBuilding(Building b){
+            if(b == null || b == this) return;
+
+            try{
+                b.kill();
+            }catch(Throwable ignored){
+            }
+
+            if(b.isValid() && b.tile != null && b.tile.build == b){
                 try{
-                    ((Building)e).kill();
+                    b.tile.remove();
                 }catch(Throwable ignored){
                 }
             }
         }
 
         /**
-         * ★ 湮灭单位 —— 分层击杀 + 跨模组 "不死单位" 克制, 保证任何单位都能被真正消灭。
+         * ★ 湮灭单位 —— 三级升级链, 保证任何单位都能被真正消灭, 同时把开销压到最低。
          *
-         * <p>与普通扣血的区别:</p>
-         * <ul>
-         *   <li><b>不写 NaN 坐标</b>。旧实现用 NaN 让引用失效, 但这会连带把汽化
-         *       特效画到 NaN 上 (特效消失), 且 NaN 会沿弹道/索敌/统计系统扩散;</li>
-         *   <li><b>不手工拆解实体</b>。统一交给 {@code kill() → destroy() → remove()}
-         *       这三个自带幂等守卫的引擎方法, 队伍单位计数不会被重复扣减;</li>
-         *   <li><b>专门克制 "外部不死单位"</b>: 部分模组 (如 FlameOut 的共鸣
-         *       Empathy / 消沉 Despondency) 用 "独立血量池 + 每帧回血 + 拒绝
-         *       {@code remove()} + 注册表复活" 实现打不死, 这里逐层拆解;</li>
-         *   <li><b>层层兜底</b>: 每一层都只在前一层没把单位清掉时才执行,
-         *       对原版单位只有第一层会生效, 开销与副作用最小。</li>
-         * </ul>
+         * <p>需求: "特别强但开销大的手段放到最低优先级: 只有前面的手段全部失效时才启用,
+         * 正常运行时不启用"。这里的层级顺序就是该优先级:</p>
+         * <ol>
+         *   <li><b>第一层 (极低成本)</b>: 血量归零 + 引擎 {@code kill → destroy → remove}。
+         *       原版单位、绝大多数模组单位都在这一层就消失;</li>
+         *   <li><b>第二层 (低成本)</b>: 打上复活封印 {@link zzw.util.ReviveSeal} 后再走一次
+         *       击杀链 —— 覆盖"会检查血量台账复活"的本项目 End 单位</li>
+         *   <li><b>第三层 (高成本, 反射)</b>: 只在单位仍然存活/仍在实体组里时启用 ——
+         *       关闭外部复活注册表、清空防秒杀字段、打穿独立血量池、移植 FlameOut 的
+         *       两种"逆天攻击", 最后从实体组硬摘除。</li>
+         * </ol>
+         *
+         * <p>另外两条设计约束保持不变: 不写 NaN 坐标 (会扩散到特效/索敌/统计),
+         * 不手工拆解实体 (kill/destroy/remove 自带幂等守卫, 队伍计数不会被重复扣减)。</p>
          *
          * @param u 要湮灭的单位
          */
         void annihilateUnit(Unit u){
             if(u == null) return;
 
-            // ★ 第 0 层: 复活封印 —— 本项目 End 单位与 FlameOut 共鸣都会在 kill/remove
-            //   里检查自己的血量台账并复活; 打上封印后这些实体直接跳过复活逻辑。
+            // ★ 第一层: 廉价击杀
+            if(killDirect(u)) return;
+
+            // ★ 第二层: 复活封印后重试
             zzw.util.ReviveSeal.seal(u);
+            if(killDirect(u)) return;
+
+            // ★ 第三层: 反射拆解 (只有打不死的单位才会走到这里)
+            annihilateStubbornUnit(u);
+        }
+
+        /**
+         * 廉价击杀: 血量归零 → {@code kill()} → {@code destroy()} → {@code remove()},
+         * 每一步都用引擎自带的幂等守卫。
+         *
+         * @return true 表示单位已经不在实体组里 (击杀完成)
+         */
+        protected boolean killDirect(Unit u){
+            try{
+                if(u.health > 0f) u.health = 0f;
+            }catch(Throwable ignored){
+            }
+
+            try{
+                if(!u.dead) u.kill();
+            }catch(Throwable ignored){
+            }
+
+            if(u.isAdded()){
+                try{
+                    u.destroy();
+                }catch(Throwable ignored){
+                }
+            }
+
+            if(u.isAdded()){
+                try{
+                    u.remove();
+                }catch(Throwable ignored){
+                }
+            }
+
+            return !u.isAdded();
+        }
+
+        /**
+         * 第三层: 反射拆解"打不死的单位" (FlameOut 共鸣/消沉、其它锁血模组)。
+         *
+         * <p>开销大, 只在 {@link #annihilateUnit} 的前两层全部失效时才会执行。</p>
+         */
+        void annihilateStubbornUnit(Unit u){
+            if(!u.isAdded() && u.dead) return;
 
             // 外部 "复活注册表" (FlameOut EmpathyDamage) 的启用开关,
             // 必须在整段击杀流程里保持关闭, 否则 remove() 时会 duplicate() 重生。
@@ -851,51 +948,29 @@ public class EndGameTurret extends PowerTurret {
             Boolean respawnWasOn = disableFlameRespawn(u);
 
             try{
-                // ★ 第 1 层: 清除各类 "防秒杀/死亡拒绝" 字段 (含 antiCheat/ac 嵌套台账)
+                // ★ 清除各类 "防秒杀/死亡拒绝" 字段 (含 antiCheat/ac 嵌套台账)
                 clearProtectionFields(u);
 
-                // ★ 第 2 层: 摘除外部复活注册表并关闭共鸣的复活生成器
+                // ★ 摘除外部复活注册表并关闭共鸣的复活生成器
                 if(reviveRegistry != null){
                     purgeReviveRegistry(reviveRegistry, u);
                     neutralizeReviveSpawner(reviveRegistry);
                 }
 
-                // ★ 第 3 层: 打穿模组的 "独立血量池"
+                // ★ 打穿模组的 "独立血量池"
                 breakExternalTrueHealth(u);
 
-                // ★ 第 4 层: 移植 FlameOut 的两种 "逆天攻击" 作为额外秒杀手段
+                // ★ 移植 FlameOut 的两种 "逆天攻击" 作为额外秒杀手段
                 //   消沉 (Despondency) 的长矛贯穿: 直接注入 maxHealth + 1000 的伤害,
                 //   绕开一切防作弊上限 —— 原版武器就是这么强杀的。
                 applyDespondencySpear(u);
                 //   共鸣 (Empathy) 的黑洞坍缩: 5 段 maxHealth/5 连续写入。
                 applyEmpathyCollapse(u);
 
-                // ★ 第 5 层: 血量归零 → 正常击杀链 (kill/destroy/remove 都已被封印放行)
-                try{
-                    if(u.health > 0f) u.health = 0f;
-                }catch(Throwable ignored){
-                }
+                // ★ 血量归零 → 正常击杀链 (kill/destroy/remove 都已被封印放行)
+                killDirect(u);
 
-                try{
-                    if(!u.dead) u.kill();
-                }catch(Throwable ignored){
-                }
-
-                if(u.isAdded()){
-                    try{
-                        u.destroy();
-                    }catch(Throwable ignored){
-                    }
-                }
-
-                if(u.isAdded()){
-                    try{
-                        u.remove();
-                    }catch(Throwable ignored){
-                    }
-                }
-
-                // ★ 第 6 层: 兜底 —— 标记 dead 并直接从实体组摘除。
+                // ★ 兜底 —— 标记 dead 并直接从实体组摘除。
                 //   即使单位重写了 remove()/destroy() 并拒绝死亡, 这里也能保证它消失。
                 try{
                     u.dead = true;

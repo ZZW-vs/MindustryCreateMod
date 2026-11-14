@@ -74,10 +74,10 @@
   - `frost-laser-turret`：弹药换成原版 `frostLaser`（170 / 130 + 冻结状态 + 冰片射击特效），命中生成**冻结圈**（`freezeEffect` + 冻结音效 + 范围冻结/瘫痪）；命中按原版 `expGain = 2` 给炮台加经验（该炮台无碎片弹，这是它唯一的升级途径）；炮台贴图沿用原版（此前误判为无贴图，已恢复）
   - `fractal-laser-turret`：改为**蓄力裂缝激光**（蓄力 `laserFractalCharge` / `laserFractalChargeBegin`，开火 `laserFractalShoot`），命中生成 `DistFieldBulletType` **扭曲力场**（减速场内敌方单位及其子弹）并播放闪电链 + 多个随机小力场；炮台贴图沿用原版（经核对 PU_V8 参考，`fractal-laser-turret.png` 存在且为完整炮台贴图，此前误判为无贴图，已撤销透明化处理并恢复）
   - `swarm-laser-turret`：由"简化版 ExpPowerTurret"改为新建的 `BurstChargePowerTurret`——**一次装填按 20 tick 间隔依次蓄力发射 4 发**，每发独立播放蓄力特效（忠实还原原版连发蓄力攻击方式），弹药为 `branchLaser`（140 / 20 + 3 发分裂碎片）
-- **endgame**：按 PU132 原版**逐行忠实移植**（draw / updateTile / updateEyes / eyeShoot / killUnits / killTiles / shoot / collision / damage 的数值、判定顺序、特效参数与图层全部照抄）——三层旋转环 + 16 眼追踪光束（光束攻击半径 = 炮台射程 820）、攻击时轮盘旋转与底座纹理亮起、眼睛朝目标偏移、内外圈逆时针依次发射秒杀光束、齐射时以自身为中心湮灭爆炸
-  - **慢闪电**：改为 PU132 原版的慢闪电形态——单段长度回到原版 50（远小于延伸距离，因此会自然**弯折 + 分叉**，不再是笔直光柱），延伸距离按需求取**炮台射程的一半**（820 / 2 = 410，原版为 810），并限制同时存在数量不超过 6 条；沿线段连续施加 520 × 效率 的伤害
+- **endgame**：按 PU132 原版**逐行忠实移植**（draw / updateTile / updateEyes / eyeShoot / killUnits / killTiles / shoot / collision / damage 的数值、判定顺序、特效参数与图层全部照抄）——三层旋转环 + 16 眼追踪光束（光束攻击半径 = 炮台射程 1640）、攻击时轮盘旋转与底座纹理亮起、眼睛朝目标偏移、内外圈逆时针依次发射秒杀光束、齐射时以自身为中心湮灭爆炸
+  - **慢闪电**：改为 PU132 原版的慢闪电形态——单段长度回到原版 50（远小于延伸距离，因此会自然**弯折 + 分叉**，不再是笔直光柱），延伸距离按需求取**激光射程的一半**（1640 / 2 = 820，原版为 810），并限制同时存在数量不超过 6 条；沿线段连续施加 520 × 效率 的伤害
   - **通电就亮修复**：v158 中 `efficiency` 会被必选物品消耗（terminum）拖成 0，导致通电也不亮；改用 `power.status`（纯电力满足度）作为"通电"信号，与物品解耦，通电即亮眼睛与底部线路
-  - **建筑防作弊注册**：移植 PU132 `Unity.antiCheat.addBuilding(this)`（`AntiCheatBuildings`）——炮台注册进防作弊表，每 15 帧校验：被外部模组强行从地图上抹掉就原样写回、被从实体组剔除就重新加入；仅在真的被打死或被同队拆除时才注销
+  - **建筑防作弊注册**：移植 PU132 `Unity.antiCheat.addBuilding(this)`（`AntiCheatBuildings`）——炮台注册进防作弊表，每 15 帧校验：地块上已不是本建筑（被外部模组抹掉 / 被其它方块覆盖 / 被拆除）就原样写回；登记一直保留到地图重置（炮台按需求设计为不可被任何方式移除）
   - **秒杀机制（强化）**：保留原版全部湮灭/防作弊机制（`annihilateEntity` / `annihilateUnit` 等），并对射程内**所有敌方单位与建筑**（含带复活、真实血量、特殊护盾等神秘机制者）执行强制湮灭，确保无法被常规手段规避
 
 #### 3D模型展示设备
@@ -615,6 +615,11 @@
 - 新增螺旋石油钻井（oil-derrick）：扭矩驱动的石油抽取器（`SolidPump`，`result=Liquids.oil`、`attribute=Attribute.oil`，需建在油层上），绘制为螺旋钻杆样式（类 `zzw.content.mechanics.torque.blocks.production.OilDerrick`）
 
 ## 更新日志
+- **endgame 终局炮台重做（bug 修复 + 不可摧毁 + 全面强化）**：
+  - **修复"炮台一直刷新自身状态 → 电力节点连上后很快断开、交互失效"**：根因是 v160 的 `Building.add()` 只把建筑登记到 `Groups.build`（不再进 `Groups.all`），而建筑防作弊守卫沿用 `Groups.all` 判定，必然认定"已被抹掉"，于是**每 15 帧对炮台重跑一次 `tile.setBlock()`**；该调用走 `init()` → `power.init = false` + `new PowerGraph().add(this)`，炮台被摘进一个全新电力图，电力节点一侧的图不再包含它（链路永久断开），同时整座建筑状态被重置。现改为按"地块上是否仍是本建筑"判定，只在真被抹掉/被覆盖/被拆除时写回；并删除建筑侧每帧强制 `update()`（v160 建筑本就由 `Groups.logic` 逐帧更新，重复调用会让 `updateTile` 一帧跑两遍）
+  - **真正不可摧毁**：`damage()` 直接忽略（血量恒定不降）、`kill()` 与 `killed()` 空实现（堵住 `Call.buildDestroyed → Tile.buildDestroyed → killed()` 销毁入口），不靠天文数字血量，血条/存档/伤害结算保持正常；地块被外部抹掉或被拆除时由防作弊守卫写回，且不再因同队拆除而注销
+  - **攻击强化**：激光（眼睛光束与索敌）射程翻倍 820→1640；爆炸齐射范围独立为固定 `blastRadius = 820`（需求：爆炸范围保持不变）；装填倍率改为 32（走原版 `BulletType.reloadMultiplier`，约 0.22 秒一轮齐射，眼睛节奏不受影响；弹药缓冲 `itemCapacity` 同比 10→320，保证一箱弹药的总射击时长不缩水）；眼睛光束/齐射/手动射击全部走"必定湮灭"
+  - **齐射性能优化**：`killTiles` 由逐 tile 扫描（半径 820 约 1 万次 `world.build`）改为方块空间索引 `indexer.allBuildings` 一次查询；每次齐射的汽化/激光特效各有数量上限（范围观感由单个冲击波承担），伤害结算仍覆盖全部目标；威胁统计由每帧降为 15 帧一次；湮灭改为**三级升级链**——廉价击杀 → 复活封印后重试 → 反射拆解（关复活注册表/清防秒杀字段/打穿独立血量池/移植 FlameOut 逆天攻击），重型手段只在目标打不死时才启用
 - **banshee 的 terminium 弹加射程改用原版机制**：改用原版 `BulletType.rangeChange` + 块尾 `limitRange(12f)`（同原版 Blocks.java duo/scatter 写法）——炮台基础射程恢复 PU_V8 原值 370f，terminium 弹 `rangeChange = 96f`（→466f），索敌射程（`TurretBuild.range()` 跟随当前弹药）/放置预览圈/子弹存活时间全套自动换算；删除此前"炮台 range 硬拉 466 + 各弹药寿命手调 ×1.3"的非原版写法（手调寿命只延长弹程、索敌仍锁在炮台 range 上，两套数值互相矛盾），其余弹药寿命回归 PU_V8 原值 40×1.1 由 limitRange 接管
 - **经验系列墙体（LevelLimitWall）允许经验颗粒直接进入**：dirium-wall(-large) / steel-wall(-large) / shielded-wall(-large) 等"被动等级方块"原按 PU_V8 设计拒绝 Exp.球（`acceptOrb` 的 `!passive` 拦截），现放开颗粒入口（覆盖 `acceptOrb` 仅检查容量）；其余被动行为不变——仍不能被古代塔/卸载器取走经验；经验提示文本同步更新
 - **传送器（create-teleporter）配置界面重做**：

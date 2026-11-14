@@ -15,7 +15,6 @@ import mindustry.gen.Entityc;
 import mindustry.gen.Groups;
 import mindustry.gen.Healthc;
 import mindustry.gen.Unit;
-import mindustry.world.blocks.ConstructBlock.ConstructBuild;
 import zzw.content.units.effects.ParticleFx;
 
 import java.lang.reflect.Field;
@@ -33,7 +32,7 @@ import java.lang.reflect.Field;
  *       每 15 帧校验一次并 {@code add()} 写回世界; 同时周期性地强制 {@code update()},
  *       防止被"时间停止"类作弊卡住。</li>
  *   <li><b>BuildingQueue</b> —— 受保护建筑登记表 (与 {@link AntiCheatBuildings} 合并,
- *       后者现已委托到本类)。被抹掉的写回地块、被剔除的重新 add、被同队拆除/真死时注销。</li>
+ *       后者现已委托到本类)。每 15 帧检查一次地块, 建筑被抹掉/被覆盖/被拆除时写回。</li>
  *   <li><b>EntitySampler</b> —— 血量采样。被采样实体若在一段时间内血量不降反升
  *       (且未被"已验证"排除), 累计 5 次后直接 {@link #annihilateEntity} 抹除,
  *       用于反"锁血/回血"作弊。</li>
@@ -84,14 +83,6 @@ public class AntiCheat{
         hooked = true;
 
         Events.run(EventType.Trigger.update, AntiCheat::update);
-
-        // 同队主动拆除建筑时放行 (沙盒模式有时不走 remove 路径, 这里补一手)
-        Events.on(EventType.BlockBuildBeginEvent.class, event -> {
-            if(event.breaking && event.tile != null && event.tile.build != null
-                && event.unit != null && event.unit.team == event.tile.build.team){
-                removeBuilding(event.tile.build);
-            }
-        });
 
         Events.on(EventType.ResetEvent.class, event -> {
             exclude.clear();
@@ -205,18 +196,13 @@ public class AntiCheat{
 
         // ---- 每 15 帧: 校验登记表 + 采样衰减 ----
         if(timer.get(15f) && (!unitSeq.isEmpty() || !buildingSeq.isEmpty())){
-            // 先假定全部"已被剔除", 扫描实体组后再逐个确认
+            // 单位: v160 的单位仍会登记进 Groups.all, 按实体组判定即可
             for(UnitQueue u : unitSeq) u.allAdded = false;
-            for(BuildingQueue b : buildingSeq) b.allAdded = false;
 
             for(Entityc e : Groups.all){
                 if(e instanceof Unit){
                     for(UnitQueue u : unitSeq){
                         if(e == u.unit) u.allAdded = true;
-                    }
-                }else if(e instanceof Building){
-                    for(BuildingQueue b : buildingSeq){
-                        if(e == b.build) b.allAdded = true;
                     }
                 }
             }
@@ -227,16 +213,23 @@ public class AntiCheat{
                 u.allAdded = false;
                 u.counter++;
             }
-            // 建筑: 被同队拆除 → 注销; 被抹掉 → 写回地块; 被剔除 → add()
+
+            // ★ 建筑: v160.1 的 {@code Building.add()} 只把建筑登记到 Groups.build,
+            //   建筑<b>不再出现在 Groups.all 里</b> (已用 v160.1 字节码确认)。
+            //   旧实现沿用 Groups.all 判定 → 每 15 帧都认定"建筑已被抹掉", 于是对
+            //   同一座建筑反复调用 tile.setBlock(); 该调用会走 init():
+            //   {@code power.init = false; new PowerGraph().add(build);} —— 建筑被摘到
+            //   一个全新的电力图里, 电力节点那一侧的图不再包含它 (节点与建筑就此
+            //   断连, 需要手动重连), 同时整座建筑的运行状态被重置。
+            //   这就是"炮台一直在刷新自身状态 → 电力节点连上后很快自动断开、
+            //   交互失效"的根因。改为直接看地块: 只有地块上已经不是本建筑
+            //   (被拆除 / 被抹掉 / 被别的方块覆盖) 时才写回。
             for(BuildingQueue b : buildingSeq){
-                if(deconstructed(b.build)){
-                    removeBuilding(b.build);
-                    continue;
+                if(b.removed) continue;
+                Building build = b.build;
+                if(build.tile != null && build.tile.build != build){
+                    build.tile.setBlock(build.block, build.team, build.rotation, () -> build);
                 }
-                if(!b.allAdded && !b.removed){
-                    b.build.tile.setBlock(b.build.block, b.build.team, b.build.rotation, () -> b.build);
-                }
-                b.allAdded = false;
                 b.counter++;
             }
 
@@ -256,13 +249,13 @@ public class AntiCheat{
             }
         }
 
-        // ---- 每帧 (Time.time 去重): 强制 update 受保护实体 + 推进流血状态 ----
+        // ---- 每帧 (Time.time 去重): 强制 update 受保护单位 + 推进流血状态 ----
         if(Time.time > lastTime){
+            // ★ 只对单位做强制 update: v160 的建筑由 Logic 通过 Groups.build 正常
+            //   每帧更新, 这里再补一次会让 updateTile 一帧跑两遍 (眼睛装填计时、
+            //   内部 Interval 全部翻倍), 属于纯粹的性能与逻辑浪费。
             for(UnitQueue u : unitSeq){
                 if(u.counter > 10) u.unit.update();
-            }
-            for(BuildingQueue b : buildingSeq){
-                if(b.counter > 10) b.build.update();
             }
             for(int i = status.size - 1; i >= 0; i--){
                 DisableRegenStatus s = status.get(i);
@@ -386,13 +379,6 @@ public class AntiCheat{
         }
     }
 
-    /** 建筑地块上是否是本队的重构脚手架 (说明是玩家主动拆除)。 */
-    private static boolean deconstructed(Building building){
-        if(building.tile == null) return true;
-        Building alt = building.tile.build;
-        return alt instanceof ConstructBuild && alt.team == building.team;
-    }
-
     // ==================================================================
     // 内部数据结构
     // ==================================================================
@@ -416,7 +402,6 @@ public class AntiCheat{
 
     static class BuildingQueue{
         Building build;
-        boolean allAdded = true;
         int counter = 0;
         boolean removed = false;
 
