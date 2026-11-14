@@ -433,12 +433,12 @@ public class Z_ScarUnits {
         excelsus = new UnityUnitType("excelsus"){{
             aiController = DistanceGroundAI::new;
             speed = 0.6f;
-            health = 46000;  // ★ 加强 (原 38000): 对齐原版腿部 T6 血量曲线 (约 2×T5=44000)
+            health = 68000;  // ★ T6 重平衡: 略低于饱和火力 T6
             hitSize = 66.5f;
             range = 370f;
             allowLegStep = true;
             rotateSpeed = 1.4f;
-            armor = 32f;  // ★ 加强 (原 18f)
+            armor = 36f;  // ★ T6 重平衡: 32f → 36f
             // ★ PU132: 后腿独立贴图翻转渲染 (boolean customBackLegs, 依赖
             //   UnityUnitType.drawLegs 覆盖 + leg-back/leg-base-back/foot-back 三张贴图,
             //   贴图 excelsus-leg-back 系列已就位)
@@ -505,7 +505,7 @@ public class Z_ScarUnits {
                 alternate = false;
                 shootSound = Sounds.none;
 
-                bullet = new ContinuousLaserBulletType(45f){{
+                bullet = new ContinuousLaserBulletType(65f){{  // ★ T6 攻击补强: 45f → 65f
                     length = 180f;
                     lifetime = 10f * 60f;
                     shake = 1.2f;
@@ -530,7 +530,7 @@ public class Z_ScarUnits {
                 alternate = false;
                 shootSound = Sounds.none;
 
-                bullet = new ContinuousLaserBulletType(220f){{
+                bullet = new ContinuousLaserBulletType(320f){{  // ★ T6 攻击补强: 220f → 320f
                     length = 360f;
                     lifetime = 3f * 60f;
                     shake = 3f;
@@ -542,7 +542,8 @@ public class Z_ScarUnits {
                 }};
             }});
 
-            DirectionShieldAbility shield = new DirectionShieldAbility(6, 0.04f, 29f, 3400f, 4.2f, 0.9f, 54f);
+            // ★ T6 攻击/生存补强: 护盾 3400 → 9000, 恢复 4.2 → 5.5, 强化"全身覆盾"特色
+            DirectionShieldAbility shield = new DirectionShieldAbility(6, 0.04f, 29f, 9000f, 5.5f, 0.9f, 54f);
             shield.healthBarColor = UnityPal.endColor;
 
             abilities.add(shield);

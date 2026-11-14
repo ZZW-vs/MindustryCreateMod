@@ -35,7 +35,9 @@ public class HealingNukeBulletType extends BulletType {
     public float allyStatusDuration = 2f * 60f;
 
     public HealingNukeBulletType() {
-        super(0f, 20f);
+        // ★ T7 攻击优化: 基础伤害 20 → 500, 对建筑再乘 10 倍 (5000),
+        //   原值对敌伤害过低, 与"天枢"的 T7 定位严重不符
+        super(0f, 500f);
         hitEffect = Fx.none;
         despawnEffect = Fx.none;
         shootEffect = Fx.none;

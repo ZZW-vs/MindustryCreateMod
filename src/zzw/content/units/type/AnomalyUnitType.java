@@ -49,13 +49,13 @@ public class AnomalyUnitType extends UnityUnitType{
         // ★ 装饰实体: 持有 decors[] 驱动翅膀动画, 没有它翅膀不会显示!
         constructor = DecorationUnitEntity::create;
 
-        health = 35000f;  // ★ 加强 (原 25000): 大型飞行单位, 血量偏低
+        health = 165000f;  // ★ T7 重平衡: 明显高于饱和火力 T6
         speed = 2.1f;
         rotateSpeed = 1f;
         accel = 0.08f;
         drag = 0.07f;
         hitSize = 137.5f;
-        armor = 26f;  // ★ 加强: 18f → 26f
+        armor = 46f;  // ★ T7 重平衡: 26f → 46f
         engineSize = -1f;
         flying = true;
         lowAltitude = true;
@@ -107,7 +107,7 @@ public class AnomalyUnitType extends UnityUnitType{
             mirror = false;
             reload = 2f * 60f;
 
-            bullet = new AnomalyLaserBulletType(800f){{
+            bullet = new AnomalyLaserBulletType(1000f){{  // ★ T7 攻击强化: 800f → 1000f
                 lightningColor = Pal.lancerLaser;
             }};
 
@@ -141,7 +141,7 @@ public class AnomalyUnitType extends UnityUnitType{
                     wy = unit.y + Angles.trnsy(rotation, x, y);
 
                     Units.nearbyEnemies(unit.team, wx, wy, rad, u -> {
-                        u.damage(500f);
+                        u.damage(600f);  // ★ T7 攻击强化: 蓄力吸取 500f → 600f
                         if(u.dead){
                             m.charge += Mathf.sqrt(u.maxHealth) * (u.isFlying() ? Mathf.clamp(u.type.fallSpeed * 5f) : 1f);
                             for(int i = 0; i < 4; i++){

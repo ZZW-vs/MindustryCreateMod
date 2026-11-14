@@ -317,6 +317,10 @@
 - 合并时有烟雾效果和延迟检查
 
 ## 更新日志
+- **T6/T7 单位数值重平衡（基准：饱和火力模组 T6）**
+  - **T6（略低于饱和火力 T6 的 73k~84k 血量 / 25~45 护甲）**：citadel 60k/32→72k/36、cygnus 45k/24→68k/28、araneidae 52k/20→69k/26、mantle 54k/20→69k/26、sedec 45k/30→64k/32、deviation 18.5k/20→64k/26、mantodea 25.5k/20→62k/26、excelsus 46k/32→68k/36、colossus 60k/60→72k/60、fin 36.25k/18→70k/30
+  - **T7（明显高于饱和火力 T6）**：empire 140k/36→180k/50、sagittarius 102.5k/26→165k/46、theraphosidae 125k/28→180k/48、aphelion 130k/28→190k/48、trigintaduo 52.5k/34→155k/50、anomaly 35k/26→165k/46、bastion 120k/104→200k/104、blue 42.5k/20→175k/48；colossus/bastion 保留 Monolith 高护甲特色
+  - **攻击方式优化（保持各自定位，不套模板）**：cygnus 主激光 800→1200、EMP 伤害/半径 20/70→45/90；deviation 雷球放电 120→160、范围 120→140；trigintaduo 治疗核弹对单位伤害 20→500、治疗 20%→30%、充能 30s→20s；excelsus 方向盾 3400→9000、双持续激光 45/220→65/320；mantodea 双联防空炮补破片溅射并改为左右交替开火；anomaly 充能激光 800→1000、蓄力吸取 500→600；fin 导弹 15→22、迫击炮 160→200
 - **修复模块化炮台开火闪退（实体组绘制 NPE）**：`ModularTurret.buildBullet()` 在运行时（改蓝图 / 自动建造完成）才 `new BasicBulletType(...)`／`new ArtilleryBulletType(...)`，而 `BulletType` 的贴图 region 只在内容加载阶段由 `ContentLoader.load()` 填充，运行时新建的实例 `backRegion` / `frontRegion` 恒为 null，第一发子弹进入 `BasicBulletType.draw` 的 `backRegion.found()` 即空指针崩溃。现在组装完字段后手动调用 `type.load()`（专用服务器无图集，按 `!headless` 跳过）
 - **移植 PU132「派系」系统**：一套内容分类元数据（不是玩法系统），全套照抄 PU 原版
   - **`Faction` 枚举**：10 个派系（伤痕 / 深暗 / 演进 / 雷域 / 疫病 / 工业 / 光辉 / 巨构 / 工匠 / 终末），各自带主题色与本地化名（bundle 新增 11 个 `faction.*` 键）

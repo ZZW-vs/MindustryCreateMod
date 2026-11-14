@@ -843,11 +843,11 @@ public class Z_MonolithUnits{
             // PU132: Legsc 实体 (多足, 携带灵魂 -> SoulLegsUnit)
             constructor = SoulLegsUnit::create;
 
-            health = 60000f;
+            health = 72000f;  // ★ T6 重平衡: 略低于饱和火力 T6
             speed = 0.4f;
             rotateSpeed = 1.2f;
             hitSize = 64f;
-            armor = 60f;  // ★ 加强 (原 45f → 47f → 60f)
+            armor = 60f;  // ★ T6 重平衡: 保留 Monolith 高护甲特色
             // TODO: PU132 commandLimit = 8 — v155.4 无该字段
             maxSouls = 12;
 
@@ -906,11 +906,11 @@ public class Z_MonolithUnits{
             // PU132: Legsc 实体 (多足, 携带灵魂 -> SoulLegsUnit)
             constructor = SoulLegsUnit::create;
 
-            health = 120000f;
+            health = 200000f;  // ★ T7 重平衡: 明显高于饱和火力 T6
             speed = 0.4f;
             rotateSpeed = 1.2f;
             hitSize = 67f;
-            armor = 104f;  // ★ 加强 (原 100f)
+            armor = 104f;  // ★ T7 重平衡: 保留巨构护甲特色
             // TODO: PU132 commandLimit = 8 — v155.4 无该字段
             maxSouls = 15;
 

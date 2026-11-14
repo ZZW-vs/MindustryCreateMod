@@ -2885,8 +2885,8 @@ public class Z_Units {
 
         // ===== citadel (T6 Mech, 磁轨炮+火焰喷射) =====
         citadel = new UnitType("citadel") {{
-            health = 60000f;
-            armor = 32f;  // ★ 加强: 16f → 24f → 32f
+            health = 72000f;  // ★ T6 重平衡: 略低于饱和火力 T6 (73k~84k)
+            armor = 36f;      // ★ T6 重平衡: 32f → 36f
             speed = 0.3f;
             hitSize = 49f;
             rotateSpeed = 1.5f;
@@ -2958,8 +2958,8 @@ public class Z_Units {
         // ===== empire (T7 Mech, 火焰+导弹+炮弹) =====
         // PU_V8 原版: UnityUnitTypes.java 第1129-1248行
         empire = new UnitType("empire") {{
-            health = 140000f;
-            armor = 36f;  // ★ 加强: 20f → 30f → 36f
+            health = 180000f;  // ★ T7 重平衡: 明显高于饱和火力 T6 (~79k)
+            armor = 50f;       // ★ T7 重平衡: 36f → 50f
             speed = 0.2f;
             hitSize = 49f;
             rotateSpeed = 1.25f;
@@ -3094,8 +3094,8 @@ public class Z_Units {
         // ===== cygnus (T6 Legs, 反射激光+EMP弹) =====
         // PU_V8 原版: UnityUnitTypes.java 第1250-1328行
         cygnus = new UnitType("cygnus") {{
-            health = 45000f;
-            armor = 24f;  // ★ 加强 (原 10f → 18f → 24f)
+            health = 68000f;  // ★ T6 重平衡: 略低于饱和火力 T6
+            armor = 28f;      // ★ T6 重平衡: 24f → 28f
             speed = 0.26f;
             hitSize = 37f;
             rotateSpeed = 1.3f;
@@ -3125,8 +3125,8 @@ public class Z_Units {
                 shootStatusDuration = 80f;
                 // PU_V8: 齐射前播放充能特效 (greenLaserChargeParent 80tick)
                 shoot.firstShotDelay = zzw.content.units.effects.ChargeFx.greenLaserChargeParent.lifetime;
-                // ★ 大激光伤害提高 (原 500f → 800f)
-                bullet = new ReflectingLaserBulletType(800f) {{
+                // ★ 大激光伤害提高 (原 500f → 800f → 1200f)
+                bullet = new ReflectingLaserBulletType(1200f) {{
                     lifetime = 65f;
                     shootEffect = zzw.content.units.effects.ChargeFx.greenLaserChargeParent;
                     healPercent = 6f;
@@ -3155,17 +3155,17 @@ public class Z_Units {
                 rotate = true;
                 alternate = true;
                 rotateSpeed = 5f;
-                reload = 25f;
+                reload = 22f;
                 inaccuracy = 5f;
                 shootCone = 30f;
                 heatColor = mindustry.graphics.Pal.heal;    // PU_V8: 炮台热色为治疗绿
                 shootSound = Z_Sounds.energyBolt;           // PU_V8 UnitySounds.energyBolt
                 bullet = new CygnusBulletType() {{
                     speed = 6f;
-                    damage = 20f;
-                    radius = 70f;
-                    splashDamage = 5f;
-                    splashDamageRadius = 70f;
+                    damage = 45f;              // ★ 攻击优化: 20f → 45f
+                    radius = 90f;              // ★ 攻击优化: 70f → 90f
+                    splashDamage = 20f;        // ★ 攻击优化: 5f → 20f
+                    splashDamageRadius = 90f;  // ★ 攻击优化: 70f → 90f
                     hitEffect = CombatFx.empSpark;
                     shootEffect = CombatFx.empSpark;
                     smokeEffect = CombatFx.muzzleFlashSmokeBig;
@@ -3185,8 +3185,8 @@ public class Z_Units {
 
         // ===== sagittarius (T7 Legs, 蓄力激光+加速箭弹, 力场护盾) =====
         sagittarius = new UnitType("sagittarius") {{
-            health = 102500f;
-            armor = 26f;  // ★ 加强 (原 12f)
+            health = 165000f;  // ★ T7 重平衡: 明显高于饱和火力 T6
+            armor = 46f;       // ★ T7 重平衡: 26f → 46f
             speed = 0.25f;
             hitSize = 55f;
             rotateSpeed = 0.8f;
@@ -3274,8 +3274,8 @@ public class Z_Units {
         // ===== araneidae (T6 Legs, 吸血激光+磁轨炮) =====
         // PU_V8 原版: UnityUnitTypes.java 第1415-1508行
         araneidae = new UnitType("araneidae") {{
-            health = 52000f;
-            armor = 20f;  // ★ 加强: 13f → 20f
+            health = 69000f;  // ★ T6 重平衡: 略低于饱和火力 T6
+            armor = 26f;      // ★ T6 重平衡: 20f → 26f
             speed = 0.42f;
             hitSize = 35.5f;
             rotateSpeed = 1.3f;
@@ -3412,8 +3412,8 @@ public class Z_Units {
         // ===== theraphosidae (T7 Legs, 导弹+持续激光+磁轨炮) =====
         // PU_V8 原版: UnityUnitTypes.java 第1510-1635行
         theraphosidae = new UnitType("theraphosidae") {{
-            health = 125000f;
-            armor = 28f;  // ★ 加强: 16f → 28f
+            health = 180000f;  // ★ T7 重平衡: 明显高于饱和火力 T6
+            armor = 48f;       // ★ T7 重平衡: 28f → 48f
             speed = 0.4f;
             drag = 0.12f;
             hitSize = 49f;
@@ -3582,8 +3582,8 @@ public class Z_Units {
         // ===== mantle (T6 Flying, 加速激光+炮弹) =====
         // PU_V8 原版: UnityUnitTypes.java 第1637-1710行
         mantle = new UnitType("mantle") {{
-            health = 54000f;
-            armor = 20f;  // ★ 加强: 17f → 20f
+            health = 69000f;  // ★ T6 重平衡: 略低于饱和火力 T6
+            armor = 26f;      // ★ T6 重平衡: 20f → 26f
             speed = 0.45f;
             accel = 0.04f;
             drag = 0.04f;
@@ -3669,8 +3669,8 @@ public class Z_Units {
         // ===== aphelion (T7 Flying, 加速激光+闪电炮弹) =====
         // PU_V8 原版: UnityUnitTypes.java 第1712-1805行
         aphelion = new UnitType("aphelion") {{
-            health = 130000f;
-            armor = 28f;  // ★ 加强: 16f → 28f
+            health = 190000f;  // ★ T7 重平衡: 明显高于饱和火力 T6
+            armor = 48f;       // ★ T7 重平衡: 28f → 48f
             speed = 0.44f;
             accel = 0.04f;
             drag = 0.03f;
@@ -3781,8 +3781,8 @@ public class Z_Units {
             constructor = mindustry.gen.UnitEntity::create;
             // PU_V8: defaultController = HealingDefenderAI::new (v158 用 aiController 等效)
             aiController = () -> new zzw.content.units.ai.HealingDefenderAI();
-            health = 45000f;
-            armor = 30f;  // ★ 加强 (原 20f → 24f → 30f)
+            health = 64000f;  // ★ T6 重平衡: 支援型, 略低于饱和火力 T6
+            armor = 32f;      // ★ T6 重平衡: 30f → 32f
             speed = 0.7f;
             rotateSpeed = 1f;
             accel = 0.04f;
@@ -3840,8 +3840,8 @@ public class Z_Units {
             constructor = mindustry.gen.UnitEntity::create;
             // PU_V8: defaultController = HealingDefenderAI::new (v158 用 aiController 等效)
             aiController = () -> new zzw.content.units.ai.HealingDefenderAI();
-            health = 52500f;
-            armor = 34f;  // ★ 加强 (原 22f → 30f → 34f)
+            health = 155000f;  // ★ T7 重平衡: 支援型, 仍明显高于饱和火力 T6
+            armor = 50f;       // ★ T7 重平衡: 34f → 50f
             speed = 0.6f;
             rotateSpeed = 1f;
             accel = 0.04f;
@@ -3891,7 +3891,7 @@ public class Z_Units {
                 y = 10.75f;
                 shootY = 0f;
 
-                reload = 30f * 60f;
+                reload = 20f * 60f;  // ★ 攻击优化: 30s → 20s, 让 T7 大招更跟得上战局
                 shootCone = 360f;
                 ignoreRotation = true;
 
@@ -3912,7 +3912,7 @@ public class Z_Units {
                     allyStatusDuration = 15f * 60f;
                     status = Z_StatusEffects.disabled;  // PU_V8 UnityStatusEffects.disabled (移速/装填归零+缴械)
                     statusDuration = 120f;
-                    healPercent = 20f;
+                    healPercent = 30f;  // ★ 攻击优化: 20% → 30%, 强化"治疗核弹"定位
                 }};
             }});
         }};
@@ -4440,11 +4440,11 @@ public class Z_Units {
             accel = 0.03f;
             fallSpeed = 0.0025f;
             fallRotateSpeed = 0.8f;
-            health = 25500f;
+            health = 62000f;  // ★ T6 重平衡: 略低于饱和火力 T6
             engineSize = 0f;
             flying = true;
             hitSize = 45f;
-            armor = 20f;  // ★ 加强: 6f → 20f
+            armor = 26f;  // ★ T6 重平衡: 20f → 26f
             lowAltitude = true;
             rotateSpeed = 2.3f;
             outlineColor = Color.valueOf("2e3142");
@@ -4461,6 +4461,11 @@ public class Z_Units {
                 lightningLengthRand = 3;
                 lightningDamage = 32f;
                 lightningColor = Pal.surge;
+                // ★ 攻击优化: 补上真正的防空破片溅射, 让"封锁空域"的定位有实际表现
+                splashDamage = 25f;
+                splashDamageRadius = 35f;
+                hitEffect = Fx.flakExplosion;
+                shootEffect = Fx.shootBig2;
             }};
 
             weapons.add(new Weapon("create-mantodea-gun") {{
@@ -4476,6 +4481,8 @@ public class Z_Units {
                 shoot.shots = 6;   // ★ 每轮 6 发子弹 (原 20)
                 shoot.shotDelay = 3f;   // ★ 单发间隔加大 (原 1f)
                 reload = 13.5f;   // ★ 每轮总 DPS ≈ 3800 (显示值; 2 门炮, 含溅射 15)
+                // ★ 攻击优化: 左右炮交替开火, 避免两门炮同帧齐喷造成的"糊成一团"
+                alternate = true;
                 bullet = mantodeaFlak;
             }});
 
@@ -4492,6 +4499,7 @@ public class Z_Units {
                 shoot.shots = 6;   // ★ 每轮 6 发子弹 (原 20)
                 shoot.shotDelay = 3f;   // ★ 单发间隔加大 (原 1f)
                 reload = 13.5f;   // ★ 每轮总 DPS ≈ 3800 (显示值; 2 门炮, 含溅射 15)
+                alternate = true;  // ★ 攻击优化: 与上方炮组错峰交替
                 bullet = mantodeaFlak;
             }});
 
@@ -4531,11 +4539,11 @@ public class Z_Units {
 
         // ===== fin (鳍级战列舰, PU_V8 原版) =====
         fin = new UnitType("fin") {{
-            health = 36250f;  // ★ 对齐原版: 31000f → 36250f (PU_V8 fin)
+            health = 70000f;  // ★ T6 重平衡: 海军线 T6, 略低于饱和火力 T6
             speed = 0.5f;
             drag = 0.18f;
             hitSize = 77.5f;
-            armor = 18f;  // ★ 加强 (原 17f)
+            armor = 30f;  // ★ T6 重平衡: 18f → 30f
             accel = 0.19f;
             rotateSpeed = 0.86f;
             faceTarget = false;   // PU_V8: 海军单位朝行进方向, 不盯着目标
@@ -4553,7 +4561,7 @@ public class Z_Units {
                 reload = 7f;
                 xRand = 2.25f;
                 shootSound = Sounds.shootMissile;
-                bullet = new mindustry.entities.bullet.MissileBulletType(4.2f, 15f) {{
+                bullet = new mindustry.entities.bullet.MissileBulletType(4.2f, 22f) {{  // ★ T6 火力补强: 15f → 22f
                     homingPower = 0.12f;
                     width = 8f;
                     height = 8f;
@@ -4580,7 +4588,7 @@ public class Z_Units {
                 reload = 7f;
                 xRand = 2.25f;
                 shootSound = Sounds.shootMissile;
-                bullet = new mindustry.entities.bullet.MissileBulletType(4.2f, 15f) {{
+                bullet = new mindustry.entities.bullet.MissileBulletType(4.2f, 22f) {{  // ★ T6 火力补强: 15f → 22f
                     homingPower = 0.12f;
                     width = 8f;
                     height = 8f;
@@ -4617,7 +4625,7 @@ public class Z_Units {
                     width = 22f;
                     height = 22f;
                     splashDamageRadius = 160f;
-                    splashDamage = 160f;
+                    splashDamage = 200f;  // ★ T6 火力补强: 160f → 200f
                     trailWidth = 7f;
                     trailColor = mindustry.graphics.Pal.bulletYellowBack;
                     hitEffect = zzw.content.units.effects.HitEffect.hitExplosionMassive;  // ★ 还原原版: PU132 fin mortar 用 HitFx.hitExplosionMassive
@@ -4645,11 +4653,11 @@ public class Z_Units {
         // 注意: v158 无 rotateShooting/trailX/trailY/trailScl 字段, 已删除
         // 注意: schistocerca 已移植 (作为简化的直升机单位, CopterUnitType)
         blue = new UnitType("blue") {{
-            health = 42500f;
+            health = 175000f;  // ★ T7 重平衡: 海军线 T7, 明显高于饱和火力 T6
             speed = 0.4f;
             drag = 0.18f;
             hitSize = 80f;
-            armor = 20f;  // ★ 加强 (原 18f)
+            armor = 48f;  // ★ T7 重平衡: 20f → 48f
             accel = 0.19f;
             rotateSpeed = 0.78f;
             faceTarget = false;   // PU_V8: 海军单位朝行进方向, 不盯着目标

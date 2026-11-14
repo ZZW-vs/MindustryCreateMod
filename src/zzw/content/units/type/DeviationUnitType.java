@@ -34,12 +34,12 @@ public class DeviationUnitType extends UnityUnitType{
         // ★ 装饰实体: 持有 decors[] 驱动翅膀动画, 没有它翅膀不会显示!
         constructor = DecorationUnitEntity::create;
 
-        health = 18500f;
+        health = 64000f;  // ★ T6 重平衡: 略低于饱和火力 T6
         speed = 2.8f;
         accel = 0.07f;
         drag = 0.05f;
         hitSize = 96f;
-        armor = 20f;  // ★ 加强: 12f → 20f
+        armor = 26f;  // ★ T6 重平衡: 20f → 26f
         engineOffset = 38f;
         engineSize = 4.75f;
         flying = true;
@@ -58,10 +58,10 @@ public class DeviationUnitType extends UnityUnitType{
 
             // 闪电炮弹: 发射一枚光球, 命中后驻留原地持续闪电攻击周围敌人
             bullet = new LightningTurretBulletType(8f, 600f){{
-                range = 120f;
+                range = 140f;  // ★ 攻击优化: 放电覆盖更符合 T6 定位
                 trailLength = 15;
                 trailColor = color = lightningColor = Pal.lancerLaser;
-                lightningDamage = 120f;
+                lightningDamage = 160f;  // ★ 攻击优化: 120f → 160f
                 lightning = 10;
                 splashDamage = 26f;
                 splashDamageRadius = 32f;
