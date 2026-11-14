@@ -123,6 +123,70 @@ public class Z_Turrets {
     }
 
     /**
+     * 射程统一校准 (显示圈 = 索敌 = 实际可达)。
+     *
+     * <p>以 PU132 射程为基准整体上调 10%，同时把每门炮台的弹药寿命/激光长度
+     * 同步到 {@code range}。此前只有 banshee 调用了原版 limitRange，
+     * 其余炮台的手写 lifetime/length 与 range 逐渐脱钩，导致玩家看到的目标在圈内却打不到。</p>
+     */
+    public static void applyRanges() {
+        for (PowerTurret turret : new PowerTurret[]{
+                electron, proton, neutron, gluon, photon, graviton,
+                celsius, kelvin, fahrenheit, current, muon, higgsBoson,
+                caster, storm, eclipse, wBoson, singularity, orb, plasma, shockwire, zBoson, xenoCorruptor
+        }) {
+            TurretRangeUtil.scale(turret, 1.1f);
+        }
+        for (ItemTurret turret : new ItemTurret[]{apparition, ghost, banshee, electrobomb}) {
+            TurretRangeUtil.scale(turret, 1.1f);
+        }
+
+        // 缓速/蓄力类特殊弹按原机制保留
+        TurretRangeUtil.scale(ephemeron, 1.1f);   // scaleLife 由炮台按目标距离自动缩放
+        TurretRangeUtil.scale(shielder, 1f);      // 护盾弹靠 drag 停驻，距离由弹体决定
+
+        // orb-turret 原本漏设 range，补上并校准
+        TurretRangeUtil.set(orbTurret, 170f);
+
+        applyEffects();
+    }
+
+    /**
+     * 开火/命中特效补齐。
+     *
+     * <p>此前光子/重力/希格斯/μ子等激光炮台只有弹体命中特效，炮口默认白色闪光，
+     * 与各自的蓝色/紫色弹道割裂。这里按弹体主色逐个配置炮口，高频小炮台
+     * (celsius/kelvin/fahrenheit) 维持无特效以控制开销。</p>
+     */
+    private static void applyEffects() {
+        // 光子科技: 蓝白激光系
+        photon.shootEffect = CombatFx.laserShoot;
+        photon.shootType.hitColor = Color.valueOf("9fe4ff");
+        graviton.shootEffect = CombatFx.railShoot;   // 重力子: 重炮冲击环
+        graviton.shootType.hitColor = Color.valueOf("9a7dff");
+        higgsBoson.shootEffect = CombatFx.muzzleFlash; // 希格斯: 能量球爆发
+        higgsBoson.shootType.hitColor = Pal.lancerLaser;
+        muon.shootEffect = CombatFx.laserShoot;
+        muon.shootType.hitColor = Pal.lancerLaser;
+        current.shootEffect = CombatFx.laserShoot;
+        current.shootType.hitColor = Pal.lancerLaser;
+        xenoCorruptor.shootEffect = CombatFx.laserShoot;
+        xenoCorruptor.shootType.hitColor = Color.valueOf("59a7ff");
+
+        // imber 电系: 电弧炮口 + 绿色光束命中
+        shockwire.shootEffect = CombatFx.lightningShoot;
+        shockwire.shootType.hitColor = Pal.heal;
+
+        // 高能/等离子/浮游球: 更大更厚的炮口火焰
+        singularity.shootEffect = CombatFx.muzzleFlash;
+        singularity.shootType.hitColor = Pal.sapBullet;
+        ephemeron.shootEffect = CombatFx.laserShoot;
+        plasma.shootEffect = CombatFx.muzzleFlashSmokeBig;
+        plasma.shootType.hitColor = Pal.surge;
+        orbTurret.shootType.hitColor = Pal.surge;   // OrbTurret 自绘发射逻辑，不使用 block.shootEffect
+    }
+
+    /**
      * 模块化炮台注册 (PU132 younggamExperimental ModularTurret)。
      *
      * <p>蓝图 6x6 / 8x8, 零件表见 {@link ModularTurret#addDefaultParts()}。</p>

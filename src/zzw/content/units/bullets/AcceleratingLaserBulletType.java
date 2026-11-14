@@ -61,7 +61,9 @@ public class AcceleratingLaserBulletType extends BulletType {
     @Override
     public void init() {
         super.init();
-        range = maxRange > 0 ? maxRange : maxLength / 1.5f;
+        // ★ 射程一致性修复: 光束实际打满 maxLength, 面板/索敌也应使用 maxLength
+        //   (原 maxLength / 1.5f 会让单位面板显示的距离只有真实攻击距离的 2/3)
+        range = maxRange > 0 ? maxRange : maxLength;
         drawSize = maxLength * 2f;
         despawnHit = false;
     }

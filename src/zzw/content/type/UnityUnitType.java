@@ -16,6 +16,7 @@ import mindustry.gen.*;
 import mindustry.graphics.*;
 import mindustry.type.*;
 import mindustry.world.blocks.environment.*;
+import zzw.content.blocks.turrets.TurretRangeUtil;
 import zzw.content.units.AbilityTextures;
 import zzw.content.units.entities.DecorationUnitEntity;
 import zzw.content.units.type.decal.UnitDecorationType;
@@ -404,6 +405,16 @@ public class UnityUnitType extends UnitType{
     public void setStats(){
         super.setStats();
 
+        // ★ 显示最大攻击距离: 原版 maxRange 取的是 UnitType.range 或子弹 range,
+        //   而自定义激光的 range 常被折算过 (如 maxLength/1.5), 与实际光束长度不符。
+        //   这里按每把武器弹体的真实可达距离取最大值, 保证面板与实战一致。
+        float maxReach = maxWeaponReach();
+        if(maxReach > 0f){
+            stats.remove(mindustry.world.meta.Stat.range);
+            stats.add(mindustry.world.meta.Stat.range, Strings.autoFixed(maxReach / mindustry.Vars.tilesize, 1),
+                    mindustry.world.meta.StatUnit.blocks);
+        }
+
         if(maxSouls > 0){
             stats.add(mindustry.world.meta.Stat.abilities, t -> t.table(bt -> {
                 bt.left().defaults().padRight(3).left();
@@ -412,5 +423,18 @@ public class UnityUnitType extends UnitType{
                 bt.add(Core.bundle.get("soul.disabled"));
             }));
         }
+    }
+
+    /** 取所有武器中弹体的最大实际可达距离 (像素)。 */
+    public float maxWeaponReach(){
+        float max = 0f;
+        for(Weapon weapon : weapons){
+            if(weapon.noAttack || weapon.bullet == null) continue;
+            mindustry.entities.bullet.BulletType bullet = weapon.bullet;
+            float reach = bullet.scaleLife ? Math.max(bullet.range, maxRange) : TurretRangeUtil.reach(bullet);
+            if(reach <= 0f) reach = bullet.range;
+            max = Math.max(max, reach);
+        }
+        return max;
     }
 }

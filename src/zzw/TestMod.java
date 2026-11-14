@@ -230,6 +230,11 @@ public class TestMod extends Mod{
         // 模块化炮台 (turret 类别; 蓝图拼装, 分类/属性面板接线)
         Z_Turrets.loadModular();
 
+        // ★ 炮台射程统一校准: 必须放在所有炮台注册之后 (显示圈 = 索敌 = 实际可达)
+        zzw.content.blocks.Z_SoulTurrets.applyRanges();
+        zzw.content.blocks.Z_AdvTurrets.applyRanges();
+        Z_Turrets.applyRanges();
+
         // 经验系统 (effect 类别末尾)
         Z_Exp.load();
 

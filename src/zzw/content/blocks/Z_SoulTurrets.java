@@ -21,6 +21,7 @@ import zzw.content.blocks.soul.RicochetBulletType;import zzw.content.blocks.soul
 import zzw.content.units.effects.MonolithFx;
 import zzw.content.units.effects.ParticleFx;
 import zzw.content.blocks.soul.SoulTurretPowerTurret;
+import zzw.content.blocks.turrets.TurretRangeUtil;
 
 import static mindustry.Vars.tilesize;
 
@@ -54,6 +55,50 @@ public class Z_SoulTurrets {
         loadPart1();
         loadPart2();
         loadPart3();
+    }
+
+    /**
+     * 射程统一校准 (显示圈 = 索敌 = 实际可达)。
+     *
+     * <p>整体上调 10%，弹跳弹/激光的寿命与长度同步到 range。</p>
+     */
+    public static void applyRanges() {
+        TurretRangeUtil.scale(ricochet, 1.1f);
+        TurretRangeUtil.scale(diviner, 1.1f);
+        TurretRangeUtil.scale(mage, 1.1f);
+        TurretRangeUtil.scale(blackout, 1.1f);
+        TurretRangeUtil.scale(shellshock, 1.1f);
+        TurretRangeUtil.scale(purge, 1.1f);
+
+        applyEffects();
+    }
+
+    /**
+     * 灵魂炮台开火/命中特效。
+     *
+     * <p>此前 6 门灵魂炮台只有弹体拖尾，炮口是默认白色闪光。这里按灵魂色调
+     * (蓝紫/暗灰/电光) 分别配置炮口与命中反馈，弹跳弹额外补上激光命中特效。</p>
+     */
+    private static void applyEffects() {
+        ricochet.shootEffect = zzw.content.units.effects.CombatFx.laserShoot;
+        ricochet.shootType.hitColor = Pal.lancerLaser;
+        ricochet.shootType.hitEffect = zzw.content.units.effects.CombatFx.laserHit;
+
+        diviner.shootEffect = zzw.content.units.effects.CombatFx.laserShoot;
+        diviner.shootType.hitColor = Pal.sapBullet;
+
+        mage.shootEffect = zzw.content.units.effects.CombatFx.lightningShoot;
+
+        blackout.shootEffect = zzw.content.units.effects.CombatFx.muzzleFlashSmoke;
+        blackout.shootType.hitColor = Color.valueOf("6b6f7a");
+
+        shellshock.shootEffect = zzw.content.units.effects.CombatFx.muzzleFlashSmokeBig;
+        shellshock.shootType.hitColor = Pal.lancerLaser;
+        shellshock.shootType.hitEffect = zzw.content.units.effects.CombatFx.laserHit;
+
+        purge.shootEffect = zzw.content.units.effects.CombatFx.muzzleFlashSmokeBig;
+        purge.shootType.hitColor = Color.valueOf("b58cff");
+        purge.shootType.hitEffect = zzw.content.units.effects.CombatFx.laserHit;
     }
 
     /** monolith 组第 1 段: ricochet, diviner (PU132 交错序列前 2 个) */

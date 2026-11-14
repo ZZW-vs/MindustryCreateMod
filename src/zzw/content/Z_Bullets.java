@@ -502,7 +502,10 @@ public class Z_Bullets {
 
         public ShieldBulletType(float speed) {
             super(speed, 0);
-            drag = 0.3f;
+            // ★ 射程一致性修复: 原 0.3f 为笔误, 护盾弹会在炮口附近骤停 (8/0.3≈27px),
+            //   玩家看到 260 的射程圈却几乎打不出去。0.03f 时收敛距离 ≈ 266px,
+            //   且 ShieldTurret 按目标距离缩放初速 (distance/range), 护盾正好停在目标建筑处。
+            drag = 0.03f;
             lifetime = 20000f;
             shootEffect = Fx.none;
             despawnEffect = Fx.none;

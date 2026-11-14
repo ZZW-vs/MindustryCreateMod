@@ -38,6 +38,7 @@ import zzw.content.blocks.turrets.EndGameTurret;
 import zzw.content.blocks.turrets.LonginusTurret;
 import zzw.content.blocks.turrets.ObjPowerTurret;
 import zzw.content.blocks.turrets.PrismTurret;
+import zzw.content.blocks.turrets.TurretRangeUtil;
 import zzw.content.blocks.turrets.WavefrontTurret;
 import zzw.content.units.bullets.EndCutterLaserBulletType;
 import zzw.content.units.bullets.LonginusSpearBulletType;
@@ -135,6 +136,37 @@ public class Z_AdvTurrets {
         loadPart3();
         load3D();
         loadEnd();
+    }
+
+    /**
+     * 射程统一校准 (显示圈 = 索敌 = 实际可达)。
+     *
+     * <p>以 PU132 射程为基准整体上调 10%；激光类把 length/maxLength 同步到 range，
+     * 弹药类同步 lifetime。endGame 为自定义终局炮台，保持既有设定不参与缩放。</p>
+     */
+    public static void applyRanges() {
+        // 灵魂牵引/热射线不是 Turret 子类，没有弹药寿命概念，直接按同口径放大范围
+        lifeStealer.range *= 1.1f;
+        absorberAura.range *= 1.1f;
+        heatRay.range *= 1.1f;
+        incandescence.range *= 1.1f;
+        TurretRangeUtil.scale(recluse, 1.1f);
+        TurretRangeUtil.scale(oracle, 1.1f);
+        TurretRangeUtil.scale(prism, 1.1f);
+        TurretRangeUtil.scale(supernova, 1.1f);
+        TurretRangeUtil.scale(cube, 1.1f);
+        TurretRangeUtil.scale(wavefront, 1.1f);
+        TurretRangeUtil.scale(tenmeikiri, 1.1f);
+        TurretRangeUtil.scale(longinus, 1.1f);
+
+        // oracle 的副弹幕激光不走 shootType，需单独同步
+        TurretRangeUtil.sync(oracle.subShootType, oracle.range);
+
+        // 开火特效补齐: 按各炮台弹体色调配置，避免统一的白色闪光
+        recluse.shootEffect = CombatFx.muzzleFlash;
+        cube.shootEffect = CombatFx.laserShoot;
+        longinus.shootEffect = CombatFx.muzzleFlashSmokeBig;
+        tenmeikiri.shootEffect = CombatFx.muzzleFlashSmokeBig;
     }
 
     /** monolith 组第 1 段 (PU132 顺序): life-stealer, recluse, absorber-aura (交错于 Z_SoulTurrets.loadPart1 之后) */
@@ -579,12 +611,16 @@ public class Z_AdvTurrets {
             consumePower(260f);
             coolantMultiplier = 0.9f;
             shootSound = Sounds.shootLancer;  // ★ v155.4 替代 UnitySounds.cubeBlast (无 shootBig)
+            // ★ 打击感重做: 重后坐 + 强震动 + 专属蓝色炮口冲击环
+            recoil = 16f;
+            shake = 12f;
+            shootEffect = WavefrontLaserBulletType.muzzle;
+            smokeEffect = Fx.none;
             // ★ 蓄力闪电特效: 开火前摇 90f, 蓄力期间锁定炮管不转动
             shoot.firstShotDelay = 90f;
             moveWhileCharging = false;
             chargeSound = Sounds.chargeLancer;
             shootType = new WavefrontLaserBulletType(2400f) {{
-                maxLength = 700f;                          // ★ 激光加长 (450 → 700)
                 chargeEffect = wavefrontChargeLightning;   // ★ 蓄力闪电特效 (内联)
             }};
         }};

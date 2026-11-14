@@ -317,6 +317,13 @@
 - 合并时有烟雾效果和延迟检查
 
 ## 更新日志
+- **炮台射程口径统一 + 整体上调 10% / 特效补齐 / wavefront 打击感重做**
+  - **根因**：显示圈与索敌使用 `Turret.range`，实际命中距离由 `speed × lifetime` 或激光 `length / maxLength` 决定；此前除 banshee 外都没有调用原版 `limitRange`，手写值长期脱钩（如 gluon 显示 480 实际仅约 208、wavefront 显示 420 实际 700、tenmeikiri 900/1200、orb 145/298、recluse 110/216）
+  - **统一校准**：新增 `TurretRangeUtil`，在全部炮台注册完成后把每门炮台的弹药 lifetime / drag、激光 length·maxLength 同步到 `range`；弹药 `rangeChange` 继续保留（banshee 终末弹总射程 648）
+  - **数值**：全部 PU 炮台整体上调 10%（gluon 480→528、wavefront 420→462、tenmeikiri 900→990、longinus 480→528 等）；修正 shielder 护盾弹 `drag 0.3 → 0.03` 的笔误（原护盾弹在炮口约 27px 处就停住）
+  - **特效**：photon/graviton/higgs/muon/current/xeno 补蓝紫激光炮口，shockwire 补电弧炮口，singularity/plasma 补重炮口；6 门灵魂炮台按蓝紫/暗灰/电光分别补炮口与命中反馈；高频 celsius/kelvin/fahrenheit 保持零特效以控制开销
+  - **wavefront**：重做攻击表现——专属蓝色炮口冲击环 + 8 向电弧、后坐 16 / 震动 12、激光更快更粗、光束顶端每 5 tick 生成命中火花
+  - **单位**：修正 AcceleratingLaser / EndCutter 的 `calculateRange`（原只上报实际长度的 2/3 或 1/2），UnityUnitType 面板改为按武器真实最大可达距离显示攻击范围
 - **单位调整：thalassophobia 主炮时长 / 治疗三单位技能修复与加强 / mantle·aphelion 激光手感**
   - **thalassophobia（深海恐惧）**：奇异点连续激光持续时间 15s → 14s
   - **seraphim（炽天使）技能修复与加强**：修复 6 条维修光束全部锁定同一个"最近伤员"的问题（现在会分散到多个目标；只剩一个伤员时仍可全部叠加），治疗加入按最大生命 **2%/s·束** 的百分比回复（原平铺 39HP/s 对 T6/T7 友军几乎无效），维修臂同时可修复受损建筑，射程 210 → 240

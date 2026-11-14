@@ -107,7 +107,8 @@ public class EndCutterLaserBulletType extends AntiCheatBulletTypeBase {
 
     @Override
     protected float calculateRange() {
-        return maxLength / 2f;
+        // ★ 射程一致性修复: 实际光束会增长到 maxLength, 面板/索敌不应只显示一半
+        return maxRange > 0f ? maxRange : maxLength;
     }
 
     @Override
