@@ -599,7 +599,7 @@ public class Z_AdvTurrets {
             requirements(Category.turret, ItemStack.with(
                 Items.phaseFabric, 3000, Items.surgeAlloy, 4000,
                 Z_Items.darkAlloy, 1800, Z_Items.terminum, 1200, Z_Items.terminaAlloy, 200));
-            health = 43000;
+            health = 52000;
             range = 900f;
             size = 15;
             shootCone = 1.5f;
@@ -636,8 +636,8 @@ public class Z_AdvTurrets {
             // ★ 强化配方: 冷冻液 220% 伤害 123456
             coolant = consume(new ConsumeLiquidFilter(l -> l == mindustry.content.Liquids.cryofluid, 1f));
             coolantBoost.put(mindustry.content.Liquids.cryofluid, 1.20f);
-            // ★ 修改伤害为 123456
-            shootType.damage = 123456f;
+            // ★ 输出伤害 12345678
+            shootType.damage = 12345678f;
         }};
 
         // ===== endGame (PU_V8 L3586-3607, EndGameTurret) =====
