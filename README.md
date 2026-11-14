@@ -317,6 +317,19 @@
 - 合并时有烟雾效果和延迟检查
 
 ## 更新日志
+- **单位批量调整：cygnus 激光射程修复 / 直升机线与 EMP 线强化 / 多单位数值校准 / devourer 再生**
+  - **cygnus（天鹅座）**：大激光改为"按锁定目标距离截断 + 射线上取最近目标"，修复锁定 300 内目标却飞到 500 最远处、路径/近处目标不受伤的问题；EMP 弹内层光环由纯白改为与弹体一致的淡绿色
+  - **sagittarius**：箭弹直接伤害 25 → 50、溅射 15 → 30
+  - **araneidae**：整体削弱至约 2000 DPS（激光 80 → 60、磁轨 95 → 80、溅射 90 → 75、破片溅射 60 → 50）
+  - **citadel**：两侧穿透炮单发伤害 250/95 → 225/85（略降），射速提升 180%（装填 36f → 13f）
+  - **mantodea**：攻击范围 +15 格（单位索敌 40f → 160f），DPS 5000 → 5500（每发 75/25 → 80/30）
+  - **lepidoptera**：扫尾炮射速加快（装填 45f → 25f），整体 DPS 2806 → 约 3800
+  - **schistocerca**：DPS 246 → 约 420；**anthophila**：DPS 498 → 约 1200；**caelifera**：DPS 190 → 约 250
+  - **直升机系列统一校准（突袭冲锋定位：血厚、护甲不高但不脆、伤害猛）**：caelifera 75/1 → 320/2，schistocerca 220/4 → 800/5，anthophila 650/6 → 2000/6，lepidoptera 15000/16 → 26000/18
+  - **EMP 系**：discharge / pulse / emission / waveform 全部伤害（直伤+溅射）翻倍；ultraviolet 提升 130%
+  - **blue**：射程最远的主炮伤害翻倍 2100 → 4200
+  - **fin**：导弹与主炮伤害约 ×3.1（DPS 1228 → 约 3800）
+  - **devourer-of-eldrich-gods-segment**：身段再生间隔 6 秒 → 45 秒一节
 - **炮台射程统一后的命中/范围问题修复 + ripple / chopper 调整**
   - **弹体只飞最远点、沿途打不到**：根因是 proton 炮弹 `collides = false`，完全跳过命中判定，只在寿命结束的落点起爆；统一 lifetime 后它稳定飞到射程末端，问题被放大。现已开启 `collides / collidesTiles`（保留 `scaleLife` 落点起爆），沿途敌人与建筑可正常命中
   - **kelvin-laser-turret 射程限制失效**：`ExpLaserBulletType.init` 直接按 `getLength()` 调用 `Damage.collideLaser`，不受炮台 range 约束；`GeyserLaserBulletType` 现将动态长度临时压到 `TurretBuild.range()`，瞄准点也沿射线夹回射程内，伤害与喷泉位置均与显示圈一致

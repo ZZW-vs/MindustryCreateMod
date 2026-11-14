@@ -823,12 +823,12 @@ public class Z_Units {
         // ★ 注册 devourer 段身配置 ★
         // PU132: segmentLength=60, segmentOffset=(41f*1.55)+7f ≈ 70.55f
         // PU132: splittable=false, chainable=false (不可分裂合并)
-        // ★ 用户需求: 加入"身段再生", 参数与 toxobyte 一致 (regenTime = 6f*60f)
-        //    段身改为可独立受伤 (splittable=true) → 被击毁后每 6 秒在尾部补回一节
+        // ★ 用户需求: 加入"身段再生", 再生间隔改为 45 秒一节
+        //    段身改为可独立受伤 (splittable=true) → 被击毁后每 45 秒在尾部补回一节
         //    preventSplit=true: 死段直接摘除, 不分裂出新虫 (避免复制出第二个满血 BOSS)
         // PU132 原版: segmentCast=7, anglePhysicsSmooth=0.5f, jointStrength=1f, preventDrifting=true, headOffset=27.75f
         SegmentWormEntity.configs.put(devourer.name,
-            new SegmentWormEntity.SegmentConfig(devourerSegment, 60, 70.55f, 6f * 60f, 60, false, true, false,
+            new SegmentWormEntity.SegmentConfig(devourerSegment, 60, 70.55f, 45f * 60f, 60, false, true, false,
                 30f, 6f, 0.1f, 1f, 7, 0.5f, true, 27.75f, 240f));
         // ★ 只再生不分裂
         SegmentWormEntity.configs.get(devourer.name).preventSplit = true;
@@ -2908,17 +2908,17 @@ public class Z_Units {
                 x = 31.5f;
                 y = -6.25f;
                 shootY = 30.25f;
-                reload = 36f;   // ★ 射速再加快 (原 90f → 60f → 48f → 36f)
+                reload = 13f;   // ★ 射速 +180% (36f ÷ 2.8 ≈ 13f)
                 recoil = 7f;
                 shake = 3f;
                 ejectEffect = mindustry.content.Fx.casing4;
                 shootSound = mindustry.gen.Sounds.shootForeshadow;
 
                 // ★ 子弹速度翻倍 (25f → 50f), 同时把寿命减半以保持原有射程
-                bullet = new SlowRailBulletType(50f, 250f) {{
+                bullet = new SlowRailBulletType(50f, 225f) {{
                     lifetime = 7f;
                     trailSpacing = 25f;
-                    splashDamage = 95f;
+                    splashDamage = 85f;   // ★ 伤害略降: 250/95 → 225/85
                     splashDamageRadius = 50f;
                     hitEffect = zzw.content.units.effects.CombatFx.bulletHitBig;
                     shootEffect = zzw.content.units.effects.CombatFx.railShoot;
@@ -3257,7 +3257,7 @@ public class Z_Units {
                 alternate = false;
                 shoot.shots = 2;
                 shootSound = Z_Sounds.energyBolt;   // PU_V8 UnitySounds.energyBolt
-                bullet = new ArrowBulletType(7f, 25f) {{
+                bullet = new ArrowBulletType(7f, 50f) {{   // ★ 子弹伤害翻倍: 25f → 50f
                     lifetime = 60f;
                     pierce = true;
                     pierceBuilding = true;
@@ -3267,7 +3267,7 @@ public class Z_Units {
                     trailWidth = 4f;
                     width = 9f;
                     height = 15f;
-                    splashDamage = 15f;
+                    splashDamage = 30f;   // ★ 同步翻倍: 15f → 30f
                     splashDamageRadius = 25f;
                     hitEffect = CombatFx.bulletHitSmall;  // ★ 特效美化: 治疗绿命中火花
                     healPercent = 3f;
@@ -3321,7 +3321,7 @@ public class Z_Units {
                 mirror = true;
                 shootCone = 30f;
                 shootSound = Sounds.shootLaser;
-                bullet = new LaserBulletType(80f) {{
+                bullet = new LaserBulletType(60f) {{   // ★ 削弱: 80f → 60f (整体 DPS 约 2000)
                     colors = new Color[]{
                         mindustry.graphics.Pal.sapBulletBack.cpy().a(0.4f),
                         mindustry.graphics.Pal.sapBullet,
@@ -3363,10 +3363,10 @@ public class Z_Units {
                 barrelSpacing = 11.25f;
                 barrelOffset = 8.5f;
                 barrelRecoil = 5f;
-                bullet = new SlowRailBulletType(15f, 95f) {{
+                bullet = new SlowRailBulletType(15f, 80f) {{   // ★ 削弱: 95f → 80f
                     lifetime = 20f;
                     splashDamageRadius = 90f;
-                    splashDamage = 90f;
+                    splashDamage = 75f;   // ★ 削弱: 90f → 75f
                     hitEffect = zzw.content.units.effects.CombatFx.sapExplosion;
                     hitColor = mindustry.graphics.Pal.sapBullet;  // ★ 修复: 命中特效颜色默认是白色, 改为紫色
                     ammoMultiplier = 4f;
@@ -3400,7 +3400,7 @@ public class Z_Units {
                         height = 20f;
                         collidesTiles = false;
                         splashDamageRadius = 70f;
-                        splashDamage = 60f;
+                        splashDamage = 50f;   // ★ 削弱: 60f → 50f (整体 DPS 约 2000)
                         backColor = mindustry.graphics.Pal.sapBulletBack;
                         frontColor = lightningColor = mindustry.graphics.Pal.sapBullet;
                         lightning = 2;
@@ -4080,11 +4080,11 @@ public class Z_Units {
             speed = 5f;
             drag = 0.08f;
             accel = 0.04f;
-            health = 75f;
+            health = 320f;  // ★ 直升机定位: 突袭冲锋 → 血量提升 (75f → 320f)
             engineSize = 0f;
             flying = true;
             hitSize = 12f;
-            armor = 1f;  // ★ 按用户设定 (原缺失)
+            armor = 2f;  // ★ 突击定位: 护甲不高但不脆 (1f → 2f)
             range = 140f;
             outlineColor = Color.valueOf("2e3142");
             constructor = CopterUnitEntity::create;
@@ -4097,7 +4097,7 @@ public class Z_Units {
                 shootY = 1.5f;
                 mirror = true;
                 shootCone = 30f;
-                bullet = new mindustry.entities.bullet.BasicBulletType(5f, 10f) {{
+                bullet = new mindustry.entities.bullet.BasicBulletType(5f, 11f) {{   // ★ DPS 190 → 约 250
                     lifetime = 30f;
                     shrinkY = 0.2f;
                     // ★ 攻击表现: 补齐枪口焰与命中反馈, 避免 T1 机枪打上去"没反应"
@@ -4114,10 +4114,10 @@ public class Z_Units {
                 shootY = 2.25f;
                 mirror = true;
                 shootCone = 30f;
-                bullet = new mindustry.entities.bullet.MissileBulletType(3f, 4f) {{
+                bullet = new mindustry.entities.bullet.MissileBulletType(3f, 7f) {{   // ★ DPS 190 → 约 250
                     speed = 3f;
                     lifetime = 45f;
-                    splashDamage = 55f;
+                    splashDamage = 60f;   // ★ DPS 190 → 约 250
                     splashDamageRadius = 8f;
                     drag = -0.01f;
                     // ★ 攻击表现: 小型溅射也给出爆炸反馈
@@ -4137,11 +4137,11 @@ public class Z_Units {
             speed = 4.5f;
             drag = 0.07f;
             accel = 0.03f;
-            health = 220f;  // ★ 低阶曲线: 150f → 220f, 冲刺型也要扛得住一轮点防
+            health = 800f;  // ★ 直升机定位: 血量提升 (220f → 800f)
             engineSize = 0f;
             flying = true;
             hitSize = 13f;
-            armor = 4f;  // ★ 加强: 2f → 4f
+            armor = 5f;  // ★ 突击定位: 护甲不高但不脆 (4f → 5f)
             range = 165f;
             rotateSpeed = 4.6f;
             outlineColor = Color.valueOf("2e3142");
@@ -4155,7 +4155,7 @@ public class Z_Units {
                 reload = 8f;
                 mirror = true;
                 shootCone = 30f;
-                bullet = new mindustry.entities.bullet.BasicBulletType(5f, 12f) {{
+                bullet = new mindustry.entities.bullet.BasicBulletType(5f, 22f) {{   // ★ DPS 246 → 约 420
                     lifetime = 36f;
                     shrinkY = 0.2f;
                 }};
@@ -4169,7 +4169,7 @@ public class Z_Units {
                 reload = 12f;
                 mirror = true;
                 shootCone = 30f;
-                bullet = new mindustry.entities.bullet.BasicBulletType(4f, 18f) {{
+                bullet = new mindustry.entities.bullet.BasicBulletType(4f, 34f) {{   // ★ DPS 246 → 约 420
                     width = 7f;
                     height = 9f;
                     lifetime = 36f;
@@ -4184,13 +4184,13 @@ public class Z_Units {
                 reload = 30f;
                 mirror = true;
                 shootCone = 30f;
-                bullet = new mindustry.entities.bullet.BasicBulletType(3.2f, 22f) {{
+                bullet = new mindustry.entities.bullet.BasicBulletType(3.2f, 42f) {{   // ★ DPS 246 → 约 420
                     width = 10f;
                     height = 12f;
                     lifetime = 60f;
                     frontColor = mindustry.graphics.Pal.lightishOrange;
                     backColor = mindustry.graphics.Pal.lightOrange;
-                    splashDamage = 15f;
+                    splashDamage = 28f;   // ★ DPS 246 → 约 420
                     splashDamageRadius = 22f;
                     makeFire = true;
                     status = mindustry.content.StatusEffects.burning;
@@ -4215,11 +4215,11 @@ public class Z_Units {
             speed = 4f;
             drag = 0.07f;
             accel = 0.03f;
-            health = 650f;  // ★ 低阶曲线: 450f → 650f
+            health = 2000f;  // ★ 直升机定位: 血量提升 (650f → 2000f)
             engineSize = 0f;
             flying = true;
             hitSize = 15f;
-            armor = 6f;  // ★ 加强: 3f → 6f
+            armor = 6f;  // ★ 突击定位: 保持中级护甲
             range = 165f;
             rotateSpeed = 3.8f;
             outlineColor = Color.valueOf("2e3142");
@@ -4232,7 +4232,7 @@ public class Z_Units {
                 reload = 15f;
                 mirror = true;
                 shootCone = 30f;
-                bullet = new mindustry.entities.bullet.BasicBulletType(6f, 85f) {{
+                bullet = new mindustry.entities.bullet.BasicBulletType(6f, 200f) {{   // ★ DPS 498 → 约 1200
                     lifetime = 30f;
                     width = 16f;
                     height = 20f;
@@ -4250,7 +4250,7 @@ public class Z_Units {
                 mirror = true;
                 shootCone = 30f;
                 bullet = new mindustry.entities.bullet.LightningBulletType() {{
-                    damage = 22f;
+                    damage = 70f;   // ★ DPS 498 → 约 1200
                     lightningLength = 12;
                     lightningLengthRand = 5;  // ★ 攻击表现: 电弧长度随机, 避免三发一模一样
                     lightningColor = mindustry.graphics.Pal.surge;
@@ -4364,11 +4364,11 @@ public class Z_Units {
             speed = 3f;
             drag = 0.1f;
             accel = 0.03f;
-            health = 15000f;  // ★ 低阶曲线: 9500f → 15000f, 贴近 T6 的下沿
+            health = 26000f;  // ★ 直升机定位: 血量提升 (15000f → 26000f)
             engineSize = 0f;
             flying = true;
             hitSize = 45f;
-            armor = 16f;  // ★ 低阶曲线: 14f → 16f
+            armor = 18f;  // ★ 突击定位: 护甲不高但不脆 (16f → 18f)
             range = 300f;
             rotateSpeed = 2.7f;
             lowAltitude = true;
@@ -4425,7 +4425,7 @@ public class Z_Units {
                 x = 8f;
                 y = 3f;
                 shootY = 6.75f;  // ★ 原版 6.75f
-                reload = 45f;
+                reload = 25f;   // ★ 扫尾射速加快: 45f → 25f (整体 DPS 2806 → 约 3800)
                 mirror = true;
                 rotate = true;
                 rotateSpeed = 3f;
@@ -4485,8 +4485,8 @@ public class Z_Units {
             // 使用 Mathf.random(最小值, 最大值) 生成随机伤害
             // 基础伤害在 40f 到 60f 之间随机
 
-            // ★ 伤害 60 每发, 子弹速度放慢 (15f → 10f), 寿命 20f → 30f 保持落点距离
-            BulletType mantodeaFlak = new FlakBulletType(10f, 75f) {{
+            // ★ 每发 80 直接伤害 + 30 溅射, 子弹速度放慢 (10f), 寿命 30f 保持落点距离
+            BulletType mantodeaFlak = new FlakBulletType(10f, 80f) {{   // ★ DPS 5000 → 5500: 75/25 → 80/30
                 lifetime = 30f;
                 collidesGround = true;
                 lightning = 4;
@@ -4495,7 +4495,7 @@ public class Z_Units {
                 lightningDamage = 32f;
                 lightningColor = Pal.surge;
                 // ★ 攻击优化: 补上真正的防空破片溅射, 让"封锁空域"的定位有实际表现
-                splashDamage = 25f;
+                splashDamage = 30f;   // ★ DPS 5000 → 5500
                 splashDamageRadius = 35f;
                 hitColor = Pal.surge;   // ★ 特效美化: 弹体/爆炸/闪电统一为 surge 金
                 hitEffect = CombatFx.flakBlast;
@@ -4508,13 +4508,13 @@ public class Z_Units {
                 rotate = false;
                 x = 14.25f;
                 y = 26.5f;
-                range = 40f;
+                range = 160f;   // ★ 攻击范围 +15 格 (40f → 160f)
                 recoil = 2.5f;
                 shootY = 10f;
                 shootSound = Sounds.shoot;
                 shoot.shots = 6;   // ★ 每轮 6 发子弹 (原 20)
                 shoot.shotDelay = 3f;   // ★ 单发间隔加大 (原 1f)
-                reload = 13.5f;   // ★ 每轮总 DPS ≈ 3800 (显示值; 2 门炮, 含溅射 15)
+                reload = 13.5f;   // ★ 每轮总 DPS ≈ 5500 (显示值; 2 门炮, 含溅射)
                 // ★ 攻击优化: 左右炮交替开火, 避免两门炮同帧齐喷造成的"糊成一团"
                 alternate = true;
                 bullet = mantodeaFlak;
@@ -4526,13 +4526,13 @@ public class Z_Units {
                 rotate = false;
                 x = 26.25f;
                 y = 19.5f;
-                range = 40f;
+                range = 160f;   // ★ 攻击范围 +15 格 (40f → 160f)
                 recoil = 2.5f;
                 shootY = 10f;
                 shootSound = Sounds.shoot;
                 shoot.shots = 6;   // ★ 每轮 6 发子弹 (原 20)
                 shoot.shotDelay = 3f;   // ★ 单发间隔加大 (原 1f)
-                reload = 13.5f;   // ★ 每轮总 DPS ≈ 3800 (显示值; 2 门炮, 含溅射 15)
+                reload = 13.5f;   // ★ 每轮总 DPS ≈ 5500 (显示值; 2 门炮, 含溅射)
                 alternate = true;  // ★ 攻击优化: 与上方炮组错峰交替
                 bullet = mantodeaFlak;
             }});
@@ -4595,7 +4595,7 @@ public class Z_Units {
                 reload = 7f;
                 xRand = 2.25f;
                 shootSound = Sounds.shootMissile;
-                bullet = new mindustry.entities.bullet.MissileBulletType(4.2f, 22f) {{  // ★ T6 火力补强: 15f → 22f
+                bullet = new mindustry.entities.bullet.MissileBulletType(4.2f, 68f) {{  // ★ DPS 1228 → 约 3800
                     homingPower = 0.12f;
                     width = 8f;
                     height = 8f;
@@ -4605,7 +4605,7 @@ public class Z_Units {
                     homingRange = 80f;
                     keepVelocity = false;
                     splashDamageRadius = 35f;
-                    splashDamage = 30f;
+                    splashDamage = 93f;   // ★ DPS 1228 → 约 3800
                     lifetime = 62f;
                     trailColor = mindustry.graphics.Pal.missileYellowBack;
                     hitEffect = Fx.blastExplosion;  // ★ 还原原版: PU132 plagueMissile / fin basicMissile 均为原版特效
@@ -4622,7 +4622,7 @@ public class Z_Units {
                 reload = 7f;
                 xRand = 2.25f;
                 shootSound = Sounds.shootMissile;
-                bullet = new mindustry.entities.bullet.MissileBulletType(4.2f, 22f) {{  // ★ T6 火力补强: 15f → 22f
+                bullet = new mindustry.entities.bullet.MissileBulletType(4.2f, 68f) {{  // ★ DPS 1228 → 约 3800
                     homingPower = 0.12f;
                     width = 8f;
                     height = 8f;
@@ -4632,7 +4632,7 @@ public class Z_Units {
                     homingRange = 80f;
                     keepVelocity = false;
                     splashDamageRadius = 35f;
-                    splashDamage = 30f;
+                    splashDamage = 93f;   // ★ DPS 1228 → 约 3800
                     lifetime = 62f;
                     trailColor = mindustry.graphics.Pal.missileYellowBack;
                     hitEffect = Fx.blastExplosion;  // ★ 还原原版: PU132 plagueMissile / fin basicMissile 均为原版特效
@@ -4655,18 +4655,18 @@ public class Z_Units {
                 velocityRnd = 0.1f;
                 reload = 60f * 2f;
                 recoil = 2f;
-                bullet = new zzw.content.units.bullets.MortarBulletType(7f, 4f) {{
+                bullet = new zzw.content.units.bullets.MortarBulletType(7f, 12f) {{   // ★ DPS 1228 → 约 3800
                     width = 22f;
                     height = 22f;
                     splashDamageRadius = 160f;
-                    splashDamage = 200f;  // ★ T6 火力补强: 160f → 200f
+                    splashDamage = 620f;  // ★ DPS 1228 → 约 3800
                     trailWidth = 7f;
                     trailColor = mindustry.graphics.Pal.bulletYellowBack;
                     hitColor = mindustry.graphics.Pal.bulletYellow;
                     shootEffect = CombatFx.muzzleFlashSmokeBig;   // ★ 特效美化: 迫击炮大口径炮口烟
                     hitEffect = zzw.content.units.effects.HitEffect.hitExplosionMassive;  // ★ 还原原版: PU132 fin mortar 用 HitFx.hitExplosionMassive
                     lifetime = 65f;
-                    fragBullet = new mindustry.entities.bullet.ArtilleryBulletType(3f, 20f) {{
+                    fragBullet = new mindustry.entities.bullet.ArtilleryBulletType(3f, 62f) {{   // ★ DPS 1228 → 约 3800
                         // hitEffect 用引擎默认 (v160 ArtilleryBulletType 默认特效), PU132 原版即原版 artilleryDense
                         knockback = 0.8f;
                         lifetime = 80f;
@@ -4674,7 +4674,7 @@ public class Z_Units {
                         height = 11f;
                         collidesTiles = false;
                         splashDamageRadius = 25f * 0.75f;
-                        splashDamage = 33f;
+                        splashDamage = 102f;   // ★ DPS 1228 → 约 3800
                     }};
                     fragBullets = 7;
                     fragLifeMax = 0.15f;
@@ -4917,7 +4917,7 @@ public class Z_Units {
                 reload = 60f * 2.5f;
                 shootSound = Sounds.shootForeshadow;
 
-                bullet = new SlowRailBulletType(70f, 2100f) {{
+                bullet = new SlowRailBulletType(70f, 4200f) {{   // ★ 射程最远的主炮伤害翻倍: 2100f → 4200f
                     lifetime = 10f;
                     width = 20f;
                     height = 38f;
@@ -4980,10 +4980,10 @@ public class Z_Units {
                 reload = 4f * 60f;
                 shootCone = 360f;
                 shootSound = Z_Sounds.zbosonShoot;  // ★ 原版 UnitySounds.zbosonShoot
-                bullet = new zzw.content.units.bullets.EmpBasicBulletType(6f, 3f) {{
+                bullet = new zzw.content.units.bullets.EmpBasicBulletType(6f, 6f) {{   // ★ EMP 系伤害翻倍
                     lifetime = 35f;
                     splashDamageRadius = 20f;
-                    splashDamage = 3f;
+                    splashDamage = 6f;   // ★ EMP 系伤害翻倍
                     shrinkY = 0f;
                     height = 14f;
                     width = 11f;
@@ -5026,9 +5026,9 @@ public class Z_Units {
                 shootStatusDuration = 70f;
                 shootCone = 360f;
                 shootSound = Z_Sounds.zbosonShoot;  // ★ 原版 UnitySounds.zbosonShoot
-                bullet = new zzw.content.units.bullets.EmpBasicBulletType(6.25f, 4f) {{
+                bullet = new zzw.content.units.bullets.EmpBasicBulletType(6.25f, 8f) {{   // ★ EMP 系伤害翻倍
                     splashDamageRadius = 25f;
-                    splashDamage = 9f;
+                    splashDamage = 18f;   // ★ EMP 系伤害翻倍
                     shrinkY = 0f;
                     height = 16f;
                     width = 12f;
@@ -5070,10 +5070,10 @@ public class Z_Units {
                 reload = 1.7f * 60f;
                 shootCone = 30f;
                 shootSound = Z_Sounds.zbosonShoot;  // ★ 原版 UnitySounds.zbosonShoot
-                bullet = new zzw.content.units.bullets.EmpBasicBulletType(6f, 2f) {{
+                bullet = new zzw.content.units.bullets.EmpBasicBulletType(6f, 4f) {{   // ★ EMP 系伤害翻倍
                     lifetime = 35f;
                     splashDamageRadius = 17f;
-                    splashDamage = 2f;
+                    splashDamage = 4f;   // ★ EMP 系伤害翻倍
                     shrinkY = 0f;
                     height = 13f;
                     width = 10f;
@@ -5101,9 +5101,9 @@ public class Z_Units {
                 shootStatusDuration = 70f;
                 shootCone = 360f;
                 shootSound = Z_Sounds.zbosonShoot;  // ★ 原版 UnitySounds.zbosonShoot
-                bullet = new zzw.content.units.bullets.EmpBasicBulletType(6.7f, 8f) {{
+                bullet = new zzw.content.units.bullets.EmpBasicBulletType(6.7f, 16f) {{   // ★ EMP 系伤害翻倍
                     splashDamageRadius = 30f;
-                    splashDamage = 12f;
+                    splashDamage = 24f;   // ★ EMP 系伤害翻倍
                     shrinkY = 0f;
                     height = 17f;
                     width = 13f;
@@ -5151,10 +5151,10 @@ public class Z_Units {
                 rotateSpeed = 3f;
                 shootCone = 30f;
                 shootSound = Z_Sounds.zbosonShoot;  // ★ 原版 UnitySounds.zbosonShoot
-                bullet = new zzw.content.units.bullets.EmpBasicBulletType(5.5f, 9f) {{
+                bullet = new zzw.content.units.bullets.EmpBasicBulletType(5.5f, 18f) {{   // ★ EMP 系伤害翻倍
                     lifetime = 38f;
                     splashDamageRadius = 15f;
-                    splashDamage = 1.5f;
+                    splashDamage = 3f;   // ★ EMP 系伤害翻倍
                     shrinkY = 0f;
                     height = 12f;
                     width = 9f;
@@ -5182,10 +5182,10 @@ public class Z_Units {
                 rotateSpeed = 3f;
                 shootCone = 30f;
                 shootSound = Z_Sounds.zbosonShoot;
-                bullet = new zzw.content.units.bullets.EmpBasicBulletType(5.5f, 9f) {{
+                bullet = new zzw.content.units.bullets.EmpBasicBulletType(5.5f, 18f) {{   // ★ EMP 系伤害翻倍
                     lifetime = 38f;
                     splashDamageRadius = 15f;
-                    splashDamage = 1.5f;
+                    splashDamage = 3f;   // ★ EMP 系伤害翻倍
                     shrinkY = 0f;
                     height = 12f;
                     width = 9f;
@@ -5212,10 +5212,10 @@ public class Z_Units {
                 shootY = 5f;
                 shootCone = 30f;
                 shootSound = Z_Sounds.zbosonShoot;
-                bullet = new zzw.content.units.bullets.EmpBasicBulletType(6.8f, 8f) {{
+                bullet = new zzw.content.units.bullets.EmpBasicBulletType(6.8f, 16f) {{   // ★ EMP 系伤害翻倍
                     hitSize = 6f;
                     splashDamageRadius = 30f;
-                    splashDamage = 14f;
+                    splashDamage = 28f;   // ★ EMP 系伤害翻倍
                     shrinkY = 0f;
                     height = 18f;
                     width = 14f;
@@ -5256,10 +5256,10 @@ public class Z_Units {
             // 实现逆时针一个一个开炮: 0→2→4→6→8→9→7→5→3→1→0 (循环)
             // v158 Weapon 原生支持 otherSide 字段 + update() 中的翻转逻辑, 直接使用
             // 共享弹药
-            BulletType empSmall = new zzw.content.units.bullets.EmpBasicBulletType(5.7f, 25f) {{
+            BulletType empSmall = new zzw.content.units.bullets.EmpBasicBulletType(5.7f, 33f) {{   // ★ T5 伤害 +30%: 25f → 33f
                 lifetime = 40f;
                 splashDamageRadius = 15f;
-                splashDamage = 5f;
+                splashDamage = 6.5f;   // ★ T5 伤害 +30%
                 shrinkY = 0f;
                 height = 14f;
                 width = 10f;
@@ -5367,11 +5367,11 @@ public class Z_Units {
                 reload = 4f * 60f;
                 shootCone = 30f;
                 shootSound = Z_Sounds.zbosonShoot;
-                bullet = new zzw.content.units.bullets.EmpBasicBulletType(6.8f, 9f) {{
+                bullet = new zzw.content.units.bullets.EmpBasicBulletType(6.8f, 12f) {{   // ★ T5 伤害 +30%: 9f → 12f
                     lifetime = 42f;
                     hitSize = 6f;
                     splashDamageRadius = 45f;
-                    splashDamage = 23f;
+                    splashDamage = 30f;   // ★ T5 伤害 +30%
                     shrinkY = 0f;
                     height = 19f;
                     width = 14.5f;

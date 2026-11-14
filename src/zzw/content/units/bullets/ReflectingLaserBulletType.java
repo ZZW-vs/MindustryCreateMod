@@ -15,6 +15,7 @@ import mindustry.entities.Lightning;
 import mindustry.entities.bullet.BulletType;
 import mindustry.gen.Bullet;
 import mindustry.gen.Posc;
+import mindustry.gen.Unit;
 import mindustry.graphics.Drawf;
 
 /**
@@ -70,42 +71,76 @@ public class ReflectingLaserBulletType extends BulletType {
         if (b.data instanceof ReflectLaserData) {
             ReflectLaserData data = (ReflectLaserData) b.data;
             float len = b.fdata;
-            Vec2 pos = vec.trns(b.rotation(), len).add(b);
-            p = 0;
 
-            // 简化版碰撞检测: 沿激光线检测敌方单位和建筑
+            // ★ 射程修复: 有锁定目标时, 光束长度不应超过目标距离
+            //   (原来固定 length=500, 会出现"锁定 300 内目标, 光束却飞到 500 最远处")
+            if (b.aimX != 0f || b.aimY != 0f) {
+                float aimDist = Mathf.dst(b.x, b.y, b.aimX, b.aimY);
+                if (aimDist > 0f) {
+                    len = java.lang.Math.min(len, java.lang.Math.max(aimDist + 24f, minimumTargetLength));
+                    b.fdata = len;
+                }
+            }
+
+            Vec2 pos = vec.trns(b.rotation(), len).add(b);
+            float dirx = Angles.trnsx(b.rotation(), 1f), diry = Angles.trnsy(b.rotation(), 1f);
+            final float scanLen = len;
+
             float[] hitXY = {pos.x, pos.y};
             boolean[] hit = {false};
 
-            // 检测单位
+            // ★ 射程修复: 取射线上"最近"的敌人, 而不是遍历到的第一个
+            //   (原实现命中即停, 可能先命中远处目标, 近处/路径上的目标完全不受伤)
+            Unit[] nearestUnit = {null};
+            float[] nearestUnitAlong = {Float.MAX_VALUE};
             mindustry.entities.Units.nearbyEnemies(b.team, b.x, b.y, len + 50f, unit -> {
-                if (hit[0]) return;
                 if (!unit.hittable()) return;
                 if (Intersector.distanceSegmentPoint(b.x, b.y, pos.x, pos.y, unit.x, unit.y) > width / 3f + unit.hitSize / 2f)
                     return;
-                hit[0] = true;
-                hitXY[0] = unit.x;
-                hitXY[1] = unit.y;
-                hitEntity(b, unit, unit.health);
-                hit(b, unit.x, unit.y);
-                if (!b.within(unit, minimumTargetLength)) p++;
+                float along = (unit.x - b.x) * dirx + (unit.y - b.y) * diry;
+                if (along < 0f || along > scanLen) return;
+                if (along < nearestUnitAlong[0]) {
+                    nearestUnitAlong[0] = along;
+                    nearestUnit[0] = unit;
+                }
             });
 
-            // 检测建筑 (如果没有命中单位)
-            if (!hit[0]) {
+            if (nearestUnit[0] != null) {
+                Unit u = nearestUnit[0];
+                hit[0] = true;
+                hitXY[0] = u.x;
+                hitXY[1] = u.y;
+                b.fdata = nearestUnitAlong[0];
+                hitEntity(b, u, u.health);
+                hit(b, u.x, u.y);
+                if (!b.within(u, minimumTargetLength)) p++;
+            } else {
+                // 没有单位时, 同样取射线上最近的建筑
+                mindustry.gen.Building[] nearestBuild = {null};
+                float[] nearestBuildAlong = {Float.MAX_VALUE};
                 mindustry.Vars.indexer.eachBlock(null, b.x, b.y, len + 50f,
                         build -> build.team != b.team,
                         build -> {
-                            if (hit[0]) return;
                             float size = build.block.size * mindustry.Vars.tilesize / 2f;
                             if (Intersector.distanceSegmentPoint(b.x, b.y, pos.x, pos.y, build.x, build.y) > width / 3f + size)
                                 return;
-                            hit[0] = true;
-                            hitXY[0] = build.x;
-                            hitXY[1] = build.y;
-                            hit(b, build.x, build.y);
-                            if (build.block.absorbLasers || !b.within(build, minimumTargetLength)) p++;
+                            float along = (build.x - b.x) * dirx + (build.y - b.y) * diry;
+                            if (along < 0f || along > scanLen) return;
+                            if (along < nearestBuildAlong[0]) {
+                                nearestBuildAlong[0] = along;
+                                nearestBuild[0] = build;
+                            }
                         });
+
+                if (nearestBuild[0] != null) {
+                    mindustry.gen.Building build = nearestBuild[0];
+                    hit[0] = true;
+                    hitXY[0] = build.x;
+                    hitXY[1] = build.y;
+                    b.fdata = nearestBuildAlong[0];
+                    hit(b, build.x, build.y);
+                    if (build.block.absorbLasers || !b.within(build, minimumTargetLength)) p++;
+                }
             }
 
             // 治疗友军 (沿激光线)
@@ -123,7 +158,7 @@ public class ReflectingLaserBulletType extends BulletType {
                 Vec2 hitPt = Intersector.nearestSegmentPoint(b.x, b.y, pos.x, pos.y, data.hitX, data.hitY, Tmp.v2);
                 float hx = hitPt.x;
                 float hy = hitPt.y;
-                b.fdata = b.dst(hx, hy);
+                b.fdata = java.lang.Math.min(len, b.dst(hx, hy));
 
                 if (data.reflect < reflections) {
                     float delay = lifetime * 0.2f;

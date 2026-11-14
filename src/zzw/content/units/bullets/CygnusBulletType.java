@@ -25,6 +25,8 @@ public class CygnusBulletType extends EmpBulletType {
     public float size = 8f;
     public float allyStatusDuration = 60f * 2f;
     public StatusEffect allyStatus = StatusEffects.overclock;
+    /** ★ 内层光环颜色: 由纯白改为淡绿, 与治疗绿弹体保持一致 */
+    public Color ringColor = mindustry.graphics.Pal.heal.cpy().lerp(Color.white, 0.45f);
 
     public CygnusBulletType() {
         super();
@@ -58,11 +60,11 @@ public class CygnusBulletType extends EmpBulletType {
             Drawf.tri(b.x + Angles.trnsx(r, size - 2f), b.y + Angles.trnsy(r, size - 2f),
                     size, (size * 1.5f) + Mathf.sin(Time.time, 15f, size / 2f), r);
         }
-        // ★ 按 PU132 原版还原: 两层 shiningCircle 光环 (外层 backColor 7 尖刺 + 内层白色 7 尖刺)
-        //   之前用 Fill.circle 手搓的"圆点环"与原来的尖刺光环差别很大, 所以看起来奇怪
+        // ★ 按 PU132 原版还原: 两层 shiningCircle 光环 (外层 backColor 7 尖刺 + 内层淡绿 7 尖刺)
+        //   ★ 内层原为纯白, 与弹体治疗绿割裂, 改为淡绿
         zzw.content.units.effects.UnityDrawf.shiningCircle(
                 b.id, Time.time, b.x, b.y, size, 7, 30f, 17f, 12f, 180f);
-        Draw.color(Color.white);
+        Draw.color(ringColor);
         zzw.content.units.effects.UnityDrawf.shiningCircle(
                 b.id, Time.time, b.x, b.y, size * 0.65f, 7, 30f, 23f, 11f, 180f);
     }
