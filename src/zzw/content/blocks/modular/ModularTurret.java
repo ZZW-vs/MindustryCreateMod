@@ -460,6 +460,13 @@ public class ModularTurret extends Turret{
                 type.homingPower = 0.05f;
                 type.homingRange = turretRange * 0.75f;
             }
+
+            // ★ 必须手动 load(): 这颗子弹是运行时 (改蓝图/自动建造完成) 才 new 出来的,
+            //   不会经过内容加载阶段的 ContentLoader.load(), 贴图 region 会一直是 null;
+            //   一旦开火, BasicBulletType.draw 里 backRegion.found() 就会 NPE (实体组绘制崩溃)。
+            //   专用服务器 (headless) 没有图集, 跳过。
+            if(!headless) type.load();
+
             return type;
         }
 

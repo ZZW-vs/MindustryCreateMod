@@ -317,6 +317,7 @@
 - 合并时有烟雾效果和延迟检查
 
 ## 更新日志
+- **修复模块化炮台开火闪退（实体组绘制 NPE）**：`ModularTurret.buildBullet()` 在运行时（改蓝图 / 自动建造完成）才 `new BasicBulletType(...)`／`new ArtilleryBulletType(...)`，而 `BulletType` 的贴图 region 只在内容加载阶段由 `ContentLoader.load()` 填充，运行时新建的实例 `backRegion` / `frontRegion` 恒为 null，第一发子弹进入 `BasicBulletType.draw` 的 `backRegion.found()` 即空指针崩溃。现在组装完字段后手动调用 `type.load()`（专用服务器无图集，按 `!headless` 跳过）
 - **移植 PU132「派系」系统**：一套内容分类元数据（不是玩法系统），全套照抄 PU 原版
   - **`Faction` 枚举**：10 个派系（伤痕 / 深暗 / 演进 / 雷域 / 疫病 / 工业 / 光辉 / 巨构 / 工匠 / 终末），各自带主题色与本地化名（bundle 新增 11 个 `faction.*` 键）
   - **`FactionMeta` 归属表**：本项目内容名与 PU 一一对应，故直接照抄 PU 生成的内容名单，运行时按内容名匹配；改名的内容（`endgame` / `the-cube` / `arc-caster` / `arc-storm` / `blue-eclipse` / `archaic-*` / `devourer-of-eldrich-gods` / 去掉 `ore-` 前缀的矿石）走别名表补登
