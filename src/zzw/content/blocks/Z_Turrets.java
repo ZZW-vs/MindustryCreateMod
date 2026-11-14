@@ -87,7 +87,7 @@ public class Z_Turrets {
     // ===== 28个新增炮台 (PU_V8 移植) =====
     // 简单 (7): apparition, electrobomb, celsius, kelvin, current, muon, higgsBoson
     public static ItemTurret apparition, electrobomb;
-    public static PowerTurret celsius, kelvin, current, muon, higgsBoson;
+    public static PowerTurret celsius, kelvin, fahrenheit, current, muon, higgsBoson;
     // 中等 (21): caster, storm, eclipse, wBoson, singularity, orb, plasma, shockwire, shielder,
     //           zBoson, ephemeron, ghost, banshee, fallout, catastrophe, calamity, extinction,
     //           absorber, orbTurret
@@ -1683,6 +1683,40 @@ public class Z_Turrets {
                 pierce = true;
                 statusDuration = 770f;
                 status = Z_StatusEffects.blueBurn;  // PU132 原版 blueBurn
+                hitEffect = HitEffect.hitAdvanceFlame;
+            }};
+        }};
+
+        // ===== fahrenheit (温度炮第三级: 三管高温烟雾弹, 对齐 celsius/kelvin 手感) =====
+        fahrenheit = new PowerTurret("fahrenheit") {{
+            requirements(Category.turret, ItemStack.with(Items.silicon, 200, Z_Items.xenium, 90, Items.titanium, 230, Z_Items.advanceAlloy, 130));
+            health = 6200;
+            size = 3;
+            reload = 3f;
+            range = 150f;
+            shootCone = 50f;
+            heatColor = Color.valueOf("ccffff");
+            inaccuracy = 9.2f;
+            rotateSpeed = 5.5f;
+            shoot = new ShootSpread(3, 8f);
+            recoil = 1.2f;
+            consumePower(27.8f);
+            targetAir = true;
+            shootSound = Sounds.shootFlame;
+            shootType = new SmokeBulletType(4.7f, 52f) {{
+                drag = 0.012f;
+                lifetime = 42f;
+                hitSize = 4f;
+                shootEffect = Fx.none;
+                smokeEffect = Fx.none;
+                hitEffect = CombatFx.liquidHit;
+                despawnEffect = Fx.none;
+                collides = true;
+                collidesTiles = true;
+                collidesAir = true;
+                pierce = true;
+                statusDuration = 770f;
+                status = Z_StatusEffects.blueBurn;
                 hitEffect = HitEffect.hitAdvanceFlame;
             }};
         }};

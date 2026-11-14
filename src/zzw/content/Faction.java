@@ -33,7 +33,7 @@ public enum Faction{
         "extinction", "dark-wall", "dark-wall-large", "dark-alloy-forge"),
 
     advance("advance", Color.sky,
-        "advance-constructor-module", "advance-constructor", "celsius", "kelvin", "caster",
+        "advance-constructor-module", "advance-constructor", "celsius", "kelvin", "fahrenheit", "caster",
         "storm", "eclipse", "xeno-corruptor", "cube", "wavefront", "deviation", "anomaly"),
 
     imber("imber", Pal.surge,
