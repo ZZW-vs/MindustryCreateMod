@@ -1,6 +1,5 @@
 package zzw.content.units.entities;
 
-import arc.math.Interp;
 import arc.math.Mathf;
 import arc.util.Time;
 import mindustry.Vars;
@@ -19,17 +18,14 @@ import mindustry.gen.UnitEntity;
  *
  * 防作弊机制 (完全照搬 PU132 EndComp 核心, 简化参数配置):
  * 1. 多槽位无敌帧 (invFrames[]): 每次受伤占用一个槽位, 轮询使用
- * 2. 抗性累积 (resist): 高伤害累积抗性, 减少后续伤害
- * 3. 伤害曲线衰减 (Pow(2)): 超过 damageThreshold 的伤害按曲线衰减
- * 4. 单次伤害硬上限 (maxDamageTaken)
- * 5. 怒气系统 (aggression): 受伤后加速武器 reload
- * 6. 死亡拒绝: trueHealth > 0 时拒绝 destroy/kill/remove
+ * 2. 单次伤害上限 (maxDamageTaken): 上限内的伤害全额结算
+ * 3. 超量抗性 (resist): 仅超过单次上限的部分累积抗性并衰减,
+ *    正常武器命中不会被抗性/曲线削减 (旧曲线在阈值处会直接把伤害归零)
+ * 4. 怒气系统 (aggression): 受到超量伤害后加速武器 reload
+ * 5. 死亡拒绝: trueHealth > 0 时拒绝 destroy/kill/remove
  *
- * ★ 参数按单位 health 比例计算 (PU132 voidVessel/chronos 配置 L3804/L3839):
- *   damageThreshold       = health / 20f
- *   maxDamageThreshold    = health / 1.25f
- *   maxDamageTaken        = health / 15f
- *   resistStart           = health / 25f
+ * ★ 参数按单位 health 比例计算 (无 antiCheatType 时的回退值):
+ *   maxDamageTaken        = health / 4f
  *   resistScl             = 0.2f
  *   resistDuration        = 6f * 60f
  *   resistTime            = 3f * 60f
@@ -43,8 +39,6 @@ public class EndLegsUnit extends UnitEntity implements zzw.content.Factionc {
     public zzw.content.Faction faction(){
         return zzw.content.FactionMeta.map(type);
     }
-
-    private static final Interp curveType = new Interp.Pow(2);
 
     // 防作弊运行时数据
     private float trueHealth, trueMaxHealth;
@@ -179,51 +173,43 @@ public class EndLegsUnit extends UnitEntity implements zzw.content.Factionc {
 
     @Override
     public void damage(float amount) {
-        // ★ 防作弊伤害处理 (完全复刻 PU132 EndComp.damage L210-257)
-        if (invFrames[invIndex] <= 0f) {
-            // 优先按单位配置参数, 无配置回退 PU132 voidVessel/chronos 默认比例
-            float damageThreshold = ac != null ? ac.damageThreshold : trueMaxHealth / 20f;
-            float maxDamageThreshold = ac != null ? ac.maxDamageThreshold : trueMaxHealth / 1.25f;
-            float maxDamageTaken = ac != null ? ac.maxDamageTaken : trueMaxHealth / 15f;
-            float resistStart = ac != null ? ac.resistStart : trueMaxHealth / 25f;
-            float resistScl = ac != null ? ac.resistScl : 0.2f;
-            float invincibilityDuration = ac != null ? ac.invincibilityDuration : 15f;
-            float resistTimeMax = ac != null ? ac.resistTime : 3f * 60f;
-            Interp curve = ac != null ? ac.curveType : curveType;
+        // ★ 防作弊伤害处理 (PU132 EndComp.damage 结构 + 段身单位的"超量伤害才衰减"规则)
+        if (Float.isNaN(amount) || Float.isInfinite(amount) || amount <= 0f) return;
+        // 无敌帧中, 拒绝伤害
+        if (invFrames[invIndex] > 0f) return;
 
-            float nextAmount = Math.min(amount, maxDamageTaken);
+        float resistScl = ac != null ? ac.resistScl : 0.2f;
+        float invincibilityDuration = ac != null ? ac.invincibilityDuration : 15f;
+        float resistTimeMax = ac != null ? ac.resistTime : 3f * 60f;
+        // 单次伤害上限: 上限之内的正常弹丸全额结算 (旧实现先被 h/15~h/10 封顶,
+        // 再被 150~900 点护甲吃掉大半, 实际单次只有几十点 → 小单位"打不动")
+        float maxDamageTaken = ac != null ? ac.maxDamageTaken : trueMaxHealth / 4f;
 
-            // 抗性累积
-            if (amount > resistStart) {
-                float a = amount - resistStart;
-                resist += a;
-                if (Float.isInfinite(resist)) resist = Float.MAX_VALUE;
-                resistMax = Math.max(resistMax, resist);
-                resistTime = resistTimeMax;
-                aggression += Math.min(a / (trueMaxHealth / 5f), 1.5f);
-                aggression = Math.min(aggression, 4f);
-                aggressionTime = 5f * 60f;
-            }
+        float nextAmount = Math.min(amount, maxDamageTaken);
 
-            // 伤害曲线衰减 (PU132 curveType, 默认 Pow(2))
-            if (amount > damageThreshold) {
-                float in = 1f - curve.apply(Mathf.clamp((amount - damageThreshold) / (maxDamageThreshold - damageThreshold)));
-                nextAmount *= in;
-            }
+        // ★ 只有超过单次上限的"超量伤害"(作弊/秒杀级)才进入抗性衰减 + 怒气;
+        //   正常武器命中不再被抗性削减 (与 SegmentWormEntity 的修复口径一致)
+        if (amount > maxDamageTaken) {
+            float excess = amount - maxDamageTaken;
+            float immunityAdd = (float)Math.pow(excess / maxDamageTaken, 2f) * 2f;
+            resist = Math.min(resist + Math.min(immunityAdd, 10f), 100f);
+            if (Float.isInfinite(resist)) resist = Float.MAX_VALUE;
+            resistMax = Math.max(resistMax, resist);
+            resistTime = resistTimeMax;
+            aggression += Math.min(excess / (trueMaxHealth / 5f), 1.5f);
+            aggression = Math.min(aggression, 4f);
+            aggressionTime = 5f * 60f;
+            nextAmount = maxDamageTaken / Math.max(resist * resistScl + 1f, 1f);
+        }
 
-            // 抗性缩放
-            amount = nextAmount / ((resist * resistScl) + 1f);
+        amount = nextAmount;
 
-            // 占用无敌帧槽位
-            invFrames[invIndex] = invincibilityDuration;
-            if (invTimer <= 0f) {
-                invIndex++;
-                invIndex %= invFrames.length;
-                invTimer = 3f;
-            }
-        } else {
-            // 无敌帧中, 拒绝伤害
-            return;
+        // 占用无敌帧槽位
+        invFrames[invIndex] = invincibilityDuration;
+        if (invTimer <= 0f) {
+            invIndex++;
+            invIndex %= invFrames.length;
+            invTimer = 3f;
         }
 
         // 台账扣减 (按防作弊上限/曲线/抗性后的金额)

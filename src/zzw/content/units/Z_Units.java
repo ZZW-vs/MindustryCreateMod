@@ -1344,9 +1344,12 @@ public class Z_Units {
         // ═══════════════════════════════════════════════════════════
         enigma = new zzw.content.type.UnityUnitType("enigma") {{
             health = 2000f;
-            // PU132: antiCheatType = (900, 1000, h/10, 1000, 0.2, 6m, 3m, 15, 1)
+            // PU132 原版: antiCheatType = (900, 1000, h/10, 1000, 0.2, 6m, 3m, 15, 1)
+            // ★ 单次伤害上限 h/10(200) → h/4(500): 原上限还没 150 点护甲高, 扣甲后单次只剩 ~50;
+            //   且超过 1000 的伤害会被原伤害曲线直接归零 → 高伤武器完全打不动。
+            //   现改为上限内全额结算, 只有超量伤害才衰减。
             antiCheatType = new zzw.content.units.anticheat.EndCheatVars(
-                900f, 1000f, health / 10f, 1000f, 0.2f, 6f * 60f, 3f * 60f, 15f, 1);
+                900f, 1000f, health / 4f, 1000f, 0.2f, 6f * 60f, 3f * 60f, 15f, 1);
             speed = 4f;
             drag = 0.4f;
             accel = 0.5f;
@@ -1386,9 +1389,11 @@ public class Z_Units {
         // ═══════════════════════════════════════════════════════════
         voidVessel = new zzw.content.type.UnityUnitType("void-vessel") {{
             health = 13000f;
-            // PU132: antiCheatType = (h/20, h/1.25, h/15, h/25, 0.2, 6m, 3m, 15, 4)
+            // PU132 原版: antiCheatType = (h/20, h/1.25, h/15, h/25, 0.2, 6m, 3m, 15, 4)
+            // ★ 单次伤害上限 h/15(≈867) → h/4(3250): 原上限扣掉 300 点护甲后只剩约 567,
+            //   正常弹丸被压得过低; 现只有超量伤害进入抗性衰减。
             antiCheatType = new zzw.content.units.anticheat.EndCheatVars(
-                health / 20f, health / 1.25f, health / 15f, health / 25f, 0.2f, 6f * 60f, 3f * 60f, 15f, 4);
+                health / 20f, health / 1.25f, health / 4f, health / 25f, 0.2f, 6f * 60f, 3f * 60f, 15f, 4);
             speed = 3f;
             accel = 0.1f;
             drag = 0.03f;
@@ -1465,9 +1470,11 @@ public class Z_Units {
         // ═══════════════════════════════════════════════════════════
         chronos = new zzw.content.type.UnityUnitType("chronos") {{
             health = 17000f;
-            // PU132: antiCheatType = (h/20, h/1.25, h/15, h/25, 0.2, 6m, 3m, 15, 4)
+            // PU132 原版: antiCheatType = (h/20, h/1.25, h/15, h/25, 0.2, 6m, 3m, 15, 4)
+            // ★ 单次伤害上限 h/15(≈1133) → h/4(4250): 900 点护甲会把原上限吃到只剩 233,
+            //   与 1.7 万血严重不匹配; 现改为上限内全额结算。
             antiCheatType = new zzw.content.units.anticheat.EndCheatVars(
-                health / 20f, health / 1.25f, health / 15f, health / 25f, 0.2f, 6f * 60f, 3f * 60f, 15f, 4);
+                health / 20f, health / 1.25f, health / 4f, health / 25f, 0.2f, 6f * 60f, 3f * 60f, 15f, 4);
             speed = 2f;
             accel = 0.1f;
             drag = 0.08f;
@@ -1511,9 +1518,12 @@ public class Z_Units {
         // ═══════════════════════════════════════════════════════════
         opticaecus = new zzw.content.units.types.InvisibleUnitType("opticaecus") {{
             health = 60000f;
-            // PU132: antiCheatType = (h/15, h/1.5, h/12.5, h/20, 0.2, 6m, 3m, 30, 4)
+            // PU132 原版: antiCheatType = (h/15, h/1.5, h/12.5, h/20, 0.2, 6m, 3m, 30, 4)
+            // ★ 单次伤害上限 h/12.5(4800) → h/4(15000): EndInvisibleUnit 现在会读取
+            //   这份配置 (旧实现固定用 AntiCheatBase 的 220 点硬上限, 对本单位实际只有
+            //   ~11 点/次, 参数完全没生效)。5000 点护甲要求上限足够高才有意义。
             antiCheatType = new zzw.content.units.anticheat.EndCheatVars(
-                health / 15f, health / 1.5f, health / 12.5f, health / 20f, 0.2f, 6f * 60f, 3f * 60f, 30f, 4);
+                health / 15f, health / 1.5f, health / 4f, health / 20f, 0.2f, 6f * 60f, 3f * 60f, 30f, 4);
             speed = 1.8f;
             drag = 0.02f;
             hitSize = 60.5f;

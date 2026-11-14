@@ -35,6 +35,8 @@ public class EndInvisibleUnit extends UnitEntity implements zzw.content.Factionc
 
     /** 所属阵营 (PU132 trueTeam): 被作弊改队后, 台账充足时强制恢复原阵营 */
     private mindustry.game.Team trueTeam = null;
+    /** 单位配置的防作弊参数集 (add() 时从 UnitType.antiCheatType 读取) */
+    private zzw.content.units.anticheat.EndCheatVars ac;
 
     /** 派系 (FactionMeta 按单位类型登记, End 单位统一为 end 派系)。 */
     @Override
@@ -53,6 +55,10 @@ public class EndInvisibleUnit extends UnitEntity implements zzw.content.Factionc
         if (added) return;
         super.add();
         antiCheat.lastHealth = health;
+        // 读取单位配置的防作弊参数 (无配置时走 AntiCheatBase 的保底上限)
+        if (type instanceof zzw.content.type.UnityUnitType u && u.antiCheatType != null) {
+            ac = u.antiCheatType;
+        }
         // 所属阵营 (PU132 trueTeam): 被作弊改队后, 台账充足时强制恢复
         trueTeam = team;
         // 登记进全局防作弊管理器 (PU132 Unity.antiCheat.addUnit)
@@ -123,10 +129,29 @@ public class EndInvisibleUnit extends UnitEntity implements zzw.content.Factionc
 
     @Override
     public void damage(float amount) {
+        if (Float.isNaN(amount) || Float.isInfinite(amount) || amount <= 0f) return;
         if (invFrame < 15f) return;
-        // 台账按防作弊上限扣减 (慢); 显示血量按原始伤害走原版路径 (快, 含护甲/护盾/死亡触发)
-        float trueDamage = antiCheat.applyAntiCheatDamage(amount);
+
+        // ★ 单次伤害上限: 优先用 UnitType 上配置的 antiCheatType。
+        //   旧实现固定走 AntiCheatBase 的 max(220, 满血/700), 对 60000 血的
+        //   opticaecus 只有 220 点, 扣掉 5000 护甲后单次实际仅 ~11 点, 完全打不动;
+        //   单位上声明的 EndCheatVars 也因此形同虚设。
+        float maxDamageTaken = ac != null ? ac.maxDamageTaken : Math.max(2000f, maxHealth / 4f);
+        float resistScl = ac != null ? ac.resistScl : 0.2f;
+
+        float trueDamage = Math.min(amount, maxDamageTaken);
+
+        // ★ 只有超过单次上限的超量伤害才累积免疫并衰减, 正常命中全额进入台账
+        if (amount > maxDamageTaken) {
+            float excess = amount - maxDamageTaken;
+            float immunityAdd = (float)Math.pow(excess / maxDamageTaken, 2f) * 2f;
+            antiCheat.immunity = Mathf.clamp(antiCheat.immunity + Math.min(immunityAdd, 10f), 1f, 100f);
+            trueDamage = maxDamageTaken / Math.max(antiCheat.immunity * resistScl + 1f, 1f);
+        }
+
         if (trueDamage <= 0f) return;
+        // 台账按上限内伤害扣减; 显示血量按原始伤害走原版路径 (含护甲/护盾/死亡触发)
+        antiCheat.lastHealth -= trueDamage;
         disabledTime = Math.max(1.4f * 60f, trueDamage / 25f);
         invFrame = 0f;
         // ★ 传入原始 amount: health 比台账先归零 → kill() → 台账 > 0 → 拒绝死亡+复活
