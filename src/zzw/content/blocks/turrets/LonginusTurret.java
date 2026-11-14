@@ -39,15 +39,21 @@ public class LonginusTurret extends ItemTurret {
     /** 底座贴图: assets/sprites/blocks/fend/turrets/longinus-base.png (192x192, 6x6)。 */
     public TextureRegion baseRegion;
 
-    /** 枪的绘制缩放 (1f = 原始像素)。0.34 → 约 9.5 格长。 */
-    public float spearScale = 0.34f;
+    /**
+     * 枪在世界里的实际长度 (世界单位, 1 格 = 8 单位)。120 ≈ 15 格, 炮台本体 6 格。
+     *
+     * <p>★ 不要改成"像素 × 固定系数": 贴图宽度可能是图集的缩水值, 也可能是原始 896,
+     * 固定系数会让同一张图在不同加载路径下相差数倍。这里按世界长度反算缩放,
+     * 见 {@link LonginusSpearBulletType#scaleFor}。</p>
+     */
+    public float spearLength = 120f;
     /**
      * 握持点距枪尾的比例 (0 = 枪尾, 1 = 枪尖), 该点对准炮台中心。
      *
-     * <p>0.18 表示炮台从靠近枪尾的地方握着它, 所以整杆枪几乎都朝前伸出。
+     * <p>0.35 = 枪尾略微露出底座后方, 大部分枪身朝前伸出, 更像"架在炮座上瞄准"。
      * ★ 贴图本身枪尖朝右 (+x), 代码里不再额外旋转 180°。</p>
      */
-    public float spearPivot = 0.18f;
+    public float spearPivot = 0.35f;
     /** 空枪座 / 能量环的主色。 */
     public Color scarColor = Color.valueOf("f53036");
 
@@ -60,9 +66,6 @@ public class LonginusTurret extends ItemTurret {
         super.load();
         baseRegion = Core.atlas.find(name + "-base");
 
-        // 枪贴图统一交给弹体的解析器: 这张图实测进不了图集, 解析器会自动退回直接读 png
-        TextureRegion spearRegion = LonginusSpearBulletType.spear();
-
         // 显式加载弹药贴图: 部分版本不会自动调用 BulletType.load()
         if (ammoTypes != null) {
             for (BulletType type : ammoTypes.values()) {
@@ -70,7 +73,9 @@ public class LonginusTurret extends ItemTurret {
             }
         }
 
-        arc.util.Log.info("[Longinus] base found=@ spear=@", baseRegion.found(), spearRegion != null && spearRegion.found());
+        // ★ 不在这里解析枪贴图: 模组内容第一次 load() 还处在临时图集阶段,
+        //   此时拿到的 region 是坏坐标, 而且建纹理也可能不在 GL 线程上。
+        arc.util.Log.info("[Longinus] base found=@", baseRegion.found());
     }
 
     public class LonginusBuild extends ItemTurretBuild {
@@ -144,15 +149,15 @@ public class LonginusTurret extends ItemTurret {
          * 绘制枪。
          *
          * <p>贴图本身枪尖朝右 (+x), 所以绘制角度直接用 {@code rotation};
-         * {@code w * (0.5f - spearPivot)} 把图片中心从握持点推开,
-         * 使旋转围绕握持点而不是图片几何中心。</p>
+         * {@code w * (0.5f - spearPivot)} 把图片中心从握持点推开。</p>
          */
         protected void drawSpear() {
             TextureRegion region = LonginusSpearBulletType.spear();
             if (region == null || !region.found() || spearPresence <= 0.01f) return;
 
-            float w = region.width * spearScale;
-            float h = region.height * spearScale;
+            float scale = LonginusSpearBulletType.scaleFor(region, spearLength);
+            float w = region.width * scale;
+            float h = region.height * scale;
 
             float ang = rotation;
             float off = w * (0.5f - spearPivot);

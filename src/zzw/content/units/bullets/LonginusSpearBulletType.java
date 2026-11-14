@@ -1,15 +1,14 @@
 package zzw.content.units.bullets;
 
-import arc.Core;
 import arc.files.Fi;
 import arc.graphics.Blending;
 import arc.graphics.Color;
 import arc.graphics.Pixmap;
+import arc.graphics.Pixmaps;
 import arc.graphics.Texture;
 import arc.graphics.g2d.Draw;
 import arc.graphics.g2d.Fill;
 import arc.graphics.g2d.Lines;
-import arc.graphics.g2d.TextureAtlas.AtlasRegion;
 import arc.graphics.g2d.TextureRegion;
 import arc.math.Angles;
 import arc.math.Interp;
@@ -40,20 +39,15 @@ import mindustry.mod.Mods;
  * </ol>
  *
  * <p>★ 贴图来源: 枪图是 {@code assets/sprites/blocks/fend/turrets/longinus-spear.png}
- * (也就是 {@code assets/sprites/despondency-spear.png})。
- * 注意这张图实测<b>不会</b>被本模组的图集收进去 (底座能进, 枪进不去),
- * 所以 {@link #spear()} 会先试图集, 图集里没有就直接读模组文件里的 png,
- * 自己建一张纹理 — 这样无论图集怎么处理, 炮台和子弹显示的都是这张图。</p>
+ * (与 {@code assets/sprites/despondency-spear.png} 同一张图, 896x96, 枪尖朝右)。
+ * 这张图<b>不能</b>用 {@code Core.atlas.find} 去拿: 模组内容在 {@code Mods.loadAsync}
+ * 里会先在"临时图集"阶段被 {@code load()} 一次, 那时查到的 region 只是占位结果
+ * (坐标属于新图集、纹理却还是旧图集), 一旦缓存下来就永远是一块纯色矩形。
+ * 因此 {@link #spear()} 直接读模组内的 png 自己建纹理, 与图集完全解耦。</p>
  */
 public class LonginusSpearBulletType extends BulletType {
 
-    /** 图集里枪贴图的候选名。不同版本对模组贴图是否加 "create-" 前缀的处理不一致, 全部试一遍。 */
-    private static final String[] spearAtlasNames = {
-        "longinus-spear", "create-longinus-spear",
-        "despondency-spear", "create-despondency-spear"
-    };
-
-    /** 图集里找不到时, 直接从模组文件读取的候选路径。 */
+    /** 枪贴图在模组文件里的候选路径 (assets/ 会被打进 jar 根部)。 */
     private static final String[] spearPaths = {
         "sprites/blocks/fend/turrets/longinus-spear.png",
         "sprites/despondency-spear.png"
@@ -61,80 +55,93 @@ public class LonginusSpearBulletType extends BulletType {
 
     /** 解析结果缓存: 炮台和子弹共用同一份贴图。 */
     private static TextureRegion spearCache;
-    /** 绕开图集时自己创建的纹理, 必须持有引用, 否则会被 GC 当成无主纹理处理。 */
+    /** 自己创建的纹理, 必须持有引用, 否则会被当成无主纹理回收。 */
     private static Texture spearDirect;
-    /** 直接读文件只尝试一次, 失败后不再每帧读盘。 */
+    /** 只尝试解析一次, 失败后不再每帧读盘。 */
     private static boolean spearTried;
 
     /**
      * 获取枪贴图。
      *
-     * <p>顺序: 图集 → 直接读模组 png。解析成功后写入静态缓存,
-     * 之后每次调用只剩一次判空, 可以在每帧绘制里安全地调。</p>
+     * <p>直接读模组内的 png 解码成纹理, <b>不经过图集</b>。原因见类注释:
+     * 模组内容第一次 {@code load()} 时图集还是临时状态, 缓存下来的 region 会是坏的。</p>
+     *
+     * <p>★ 纹理创建必须发生在绘制线程上, 所以这里只在 {@code draw()} 里被首次调用,
+     * 不要在 {@code load()} 里调用 (那时可能不在 GL 线程上)。</p>
      *
      * <p>返回 null 表示彻底失败 (此时调用方画一根光矛兜底)。</p>
      */
     public static TextureRegion spear() {
-        if (spearCache != null && spearCache.found()) return spearCache;
+        if (spearCache != null) return spearCache;
+        if (spearTried) return null;
+        spearTried = true;
 
-        // ---------- 1. 图集 ----------
-        for (String name : spearAtlasNames) {
-            TextureRegion found = Core.atlas.find(name);
-            if (found != null && found.found()) {
-                spearCache = found;
-                Log.info("[Longinus] 枪贴图来自图集: @ (@x@)", name, found.width, found.height);
+        for (String path : spearPaths) {
+            byte[] data = readBytes(path);
+            if (data == null) continue;
+
+            try {
+                Pixmap pix = new Pixmap(data);
+                // 线性过滤下给透明边缘补色, 避免枪身边缘发黑
+                Pixmaps.bleed(pix, 2);
+
+                spearDirect = new Texture(pix);
+                spearDirect.setFilter(Texture.TextureFilter.linear);
+                spearCache = new TextureRegion(spearDirect);
+                pix.dispose();
+
+                Log.info("[Longinus] 枪贴图直接读 png: @ (@x@)", path, spearCache.width, spearCache.height);
                 return spearCache;
+            } catch (Throwable e) {
+                Log.err("[Longinus] 解码枪贴图失败: @", path, e);
             }
         }
 
-        // ---------- 2. 直接读模组里的 png ----------
-        if (!spearTried) {
-            spearTried = true;
-
-            Mods.LoadedMod mod = Vars.mods.getMod("create");
-            if (mod != null) {
-                for (String path : spearPaths) {
-                    Fi file = mod.root.child(path);
-                    if (!file.exists()) continue;
-
-                    try {
-                        Pixmap pix = new Pixmap(file.readBytes());
-                        spearDirect = new Texture(pix);
-                        spearDirect.setFilter(Texture.TextureFilter.linear);
-                        spearCache = new TextureRegion(spearDirect);
-                        pix.dispose();
-
-                        Log.info("[Longinus] 枪贴图绕开图集, 直接读 png 成功: @ (@x@)", path, spearCache.width, spearCache.height);
-                        return spearCache;
-                    } catch (Exception e) {
-                        Log.err("[Longinus] 直接读 png 失败: @", path, e);
-                    }
-                }
-            }
-
-            Log.err("[Longinus] 枪贴图加载失败! 图集 region 总数=@, 名字含 spear/longinus 的: @",
-                Core.atlas.getRegions().size, dumpSpearRegions());
-        }
-
+        Log.err("[Longinus] 枪贴图加载失败, 模组里找不到: @", String.join(" / ", spearPaths));
         return null;
     }
 
-    /** 失败时的诊断输出: 把图集里名字带 spear / longinus 的 region 拼成一行。 */
-    private static String dumpSpearRegions() {
-        StringBuilder sb = new StringBuilder();
-        for (AtlasRegion region : Core.atlas.getRegions()) {
-            if (region.name.contains("spear") || region.name.contains("longinus")) {
-                if (sb.length() > 0) sb.append(", ");
-                sb.append(region.name);
+    /** 依次尝试从模组根目录和类加载器资源读取文件内容。 */
+    private static byte[] readBytes(String path) {
+        try {
+            Mods.LoadedMod mod = Vars.mods == null ? null : Vars.mods.getMod("create");
+            if (mod != null) {
+                Fi file = mod.root.child(path);
+                if (file.exists()) return file.readBytes();
             }
+        } catch (Throwable ignored) {
         }
-        return sb.length() == 0 ? "(无)" : sb.toString();
+
+        try (java.io.InputStream is = LonginusSpearBulletType.class.getClassLoader().getResourceAsStream(path)) {
+            return is == null ? null : is.readAllBytes();
+        } catch (java.io.IOException e) {
+            return null;
+        }
+    }
+
+    /**
+     * 按"世界长度"反算贴图缩放比例。
+     *
+     * <p>不再用固定像素系数: region.width 可能是图集缩水后的值, 也可能是原始像素,
+     * 用固定系数会让同一份贴图在不同加载路径下相差 4 倍。这里只认最终画到世界里的长度。</p>
+     *
+     * @param region      枪贴图
+     * @param worldLength 期望的世界长度 (1 格 = 8 单位)
+     */
+    public static float scaleFor(TextureRegion region, float worldLength) {
+        return region.width <= 0 ? 1f : worldLength / region.width;
     }
 
     /** 光效主色。 */
     public Color glowColor = Color.valueOf("f53036");
-    /** 贴图缩放 (1f = 原始 896x96 像素)。 */
-    public float drawScale = 0.34f;
+    /**
+     * 枪在世界里的实际长度 (世界单位, 1 格 = 8 单位)。128 ≈ 16 格。
+     *
+     * <p>★ 这里不要用"像素 × 固定系数": 贴图宽度可能来自图集缩水值, 也可能来自原始 896,
+     * 固定系数会让同一张图在不同来源下相差数倍。改成按世界长度反算缩放比例
+     * {@link #scaleFor}, 屏幕上的枪就始终是这个长度。</p>
+     */
+    public float drawLength = 128f;
     /** 身后光带长度 (世界单位)。 */
     public float trailLength = 110f;
     /** 动态光源半径。 */
@@ -176,8 +183,8 @@ public class LonginusSpearBulletType extends BulletType {
     public void load() {
         super.load();
 
-        // 提前解析一次, 让日志里第一时间看到贴图到底来自图集还是直接读的 png
-        spear();
+        // ★ 这里不要调 spear(): 模组内容第一次 load() 发生在非绘制线程的临时图集阶段,
+        //   建纹理可能拿不到 GL 上下文。贴图在第一帧 draw 时再延迟解析。
 
         // ---------- 命中冲击: 白闪 + 双环 + 放射电弧 + 顺向撕裂痕 ----------
         // 参考 FlameOut 消沉大招的 rail-hit 表现: 起手一帧白闪, 然后是扩散的双环,
@@ -228,8 +235,9 @@ public class LonginusSpearBulletType extends BulletType {
             // 最后 15% 时间淡出
             float alpha = out > 0.85f ? (1f - out) / 0.15f : 1f;
 
-            float w = region.width * drawScale;
-            float h = region.height * drawScale;
+            float scale = scaleFor(region, drawLength);
+            float w = region.width * scale;
+            float h = region.height * scale;
             float ang = e.rotation;
 
             // 插入瞬间的"钉入"回弹: 前 10 帧枪身往前多扎一点, 之后回位
@@ -292,8 +300,9 @@ public class LonginusSpearBulletType extends BulletType {
             return;
         }
 
-        float w = region.width * drawScale;
-        float h = region.height * drawScale;
+        float scale = scaleFor(region, drawLength);
+        float w = region.width * scale;
+        float h = region.height * scale;
 
         Draw.z(Layer.bullet);
 
