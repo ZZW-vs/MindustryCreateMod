@@ -149,10 +149,9 @@ public class ModularConstructorUI extends Element{
             }
         }
         rebuildParts.run();
-        float editH = Math.max(220f, maxH * 32f + 24f);
         Table leftSide = new Table();
         leftSide.add(catTable).align(Align.left).row();
-        leftSide.add(pane).minWidth(200f).maxHeight(editH).align(Align.top).get().setScrollingDisabled(true, false);
+        leftSide.add(pane).minWidth(200f).maxHeight(400f).align(Align.top).get().setScrollingDisabled(true, false);
 
         Cons<Table> costCons = cstTable -> {
             cstTable.clearChildren();
@@ -167,10 +166,9 @@ public class ModularConstructorUI extends Element{
         };
         Table totals = new Table();
         Runnable rebuildTotals = () -> costCons.get(totals);
-        float editW = Math.max(220f, maxW * 32f + 24f);
         table.add(leftSide).minWidth(150f).align(Align.top);
-        table.add(modElement).size(editW, editH);
-        table.add(totals).minWidth(100f).maxHeight(editH).align(Align.top);
+        table.add(modElement).size(750f, 400f);
+        table.add(totals).minWidth(100f).maxHeight(400f).align(Align.top);
         modElement.onTileAction = () -> {
             rebuildParts.run();
             rebuildTotals.run();
