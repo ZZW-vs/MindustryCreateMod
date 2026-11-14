@@ -7,7 +7,6 @@ import arc.graphics.g2d.Draw;
 import arc.graphics.g2d.Fill;
 import arc.graphics.g2d.Lines;
 import arc.graphics.g2d.TextureRegion;
-import arc.math.Angles;
 import arc.math.Mathf;
 import arc.util.Time;
 import mindustry.entities.bullet.BulletType;
@@ -40,13 +39,13 @@ public class LonginusTurret extends ItemTurret {
     public TextureRegion baseRegion;
 
     /**
-     * 枪在世界里的实际长度 (世界单位, 1 格 = 8 单位)。160 ≈ 20 格。
+     * 枪的<b>可见枪身</b>长度 (世界单位, 1 格 = 8 单位)。160 ≈ 20 格。
      *
      * <p>★ 必须与弹体的 {@code drawLength} 保持一致 (子弹尺寸 = 炮台上的朗枪尺寸)。</p>
      *
-     * <p>不要改成"像素 × 固定系数": 贴图宽度可能是图集的缩水值, 也可能是原始 896,
-     * 固定系数会让同一张图在不同加载路径下相差数倍。这里按世界长度反算缩放,
-     * 见 {@link LonginusSpearBulletType#scaleFor}。</p>
+     * <p>长度与缩放按贴图里不透明区域的实际像素宽度换算 (见
+     * {@link LonginusSpearBulletType#spearScale}), 宽高比由图片自身决定;
+     * 换图后无论四周留白怎么变, 屏幕上枪身的长度都固定是这个值。</p>
      */
     public float spearLength = 160f;
     /**
@@ -151,25 +150,18 @@ public class LonginusTurret extends ItemTurret {
         /**
          * 绘制枪。
          *
-         * <p>贴图本身枪尖朝右 (+x), 所以绘制角度直接用 {@code rotation};
-         * {@code w * (0.5f - spearPivot)} 把图片中心从握持点推开。</p>
+         * <p>贴图本身枪尖朝右 (+x), 绘制角度直接用 {@code rotation};
+         * {@code spearPivot} 表示握持点在"可见枪身由尾到尖"上的比例,
+         * 长度与粗细全部由 {@link LonginusSpearBulletType#drawSpear} 按贴图实际尺寸换算,
+         * 与子弹使用同一套逻辑。</p>
          */
         protected void drawSpear() {
             TextureRegion region = LonginusSpearBulletType.spear();
             if (region == null || !region.found() || spearPresence <= 0.01f) return;
 
-            float scale = LonginusSpearBulletType.scaleFor(region, spearLength);
-            float w = region.width * scale;
-            float h = region.height * scale;
-
-            float ang = rotation;
-            float off = w * (0.5f - spearPivot);
-            float cx = x + Angles.trnsx(ang, off);
-            float cy = y + Angles.trnsy(ang, off);
-
             Draw.color(Color.white);
             Draw.alpha(spearPresence);
-            Draw.rect(region, cx, cy, w, h, ang);
+            LonginusSpearBulletType.drawSpear(region, spearLength, spearPivot, x, y, rotation);
             Draw.alpha(1f);
             Draw.reset();
         }

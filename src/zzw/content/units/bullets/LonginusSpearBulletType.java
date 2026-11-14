@@ -35,7 +35,7 @@ import mindustry.world.blocks.defense.turrets.Turret;
 /**
  * 朗基努斯之枪弹体 (Longinus Spear BulletType)。
  *
- * <p>整张 {@code longinus-spear.png} 就是飞行中的子弹, 除此之外不额外画任何光效。
+ * <p>整张枪贴图就是飞行中的子弹, 除此之外不额外画任何光效。
  * 关键行为:</p>
  * <ol>
  *   <li><b>中途不碰撞</b>: {@code collides = false}, 飞行途中穿过单位、建筑、地形;</li>
@@ -44,20 +44,27 @@ import mindustry.world.blocks.defense.turrets.Turret;
  *   <li>命中后把枪钉在目标身上, 并播放参考 FlameOut 消沉大招的猩红碎片粒子。</li>
  * </ol>
  *
- * <p>★ 贴图来源: 枪图是 {@code assets/sprites/blocks/fend/turrets/longinus-spear.png}
- * (与 {@code assets/sprites/despondency-spear.png} 同一张图, 896x96, 枪尖朝右)。
- * 这张图<b>不能</b>用 {@code Core.atlas.find} 去拿: 模组内容在 {@code Mods.loadAsync}
+ * <p>★ 贴图来源: 只认 {@code assets/sprites/despondency-spear.png} (枪尖朝右, 尺寸不写死在代码里)。
+ * 炮台与子弹共用这一张图、同一套绘制逻辑。</p>
+ *
+ * <p>★ 尺寸不写死: 解析时实测图片中<b>不透明区域</b>的包围盒, 长度按这块真实枪身换算,
+ * 宽高比由图片自身决定。换一张枪图 (哪怕留白、宽高比不同) 也不需要改常数。</p>
+ *
+ * <p>★ 这张图<b>不能</b>用 {@code Core.atlas.find} 去拿: 模组内容在 {@code Mods.loadAsync}
  * 里会先在"临时图集"阶段被 {@code load()} 一次, 那时查到的 region 只是占位结果
  * (坐标属于新图集、纹理却还是旧图集), 一旦缓存下来就永远是一块纯色矩形。
  * 因此 {@link #spear()} 直接读模组内的 png 自己建纹理, 与图集完全解耦。</p>
  */
 public class LonginusSpearBulletType extends BulletType {
 
-    /** 枪贴图在模组文件里的候选路径 (assets/ 会被打进 jar 根部)。 */
-    private static final String[] spearPaths = {
-        "sprites/blocks/fend/turrets/longinus-spear.png",
-        "sprites/despondency-spear.png"
-    };
+    /**
+     * 枪贴图: 唯一来源 {@code assets/sprites/despondency-spear.png}
+     * (打包后位于 jar 根部的 {@code sprites/despondency-spear.png})。
+     *
+     * <p>★ 只认这一个文件: 之前还有一份 {@code longinus-spear.png} 副本作为候选,
+     * 两份一旦不同步就会出现"炮台与子弹不是同一张图"的问题, 现已统一。</p>
+     */
+    private static final String spearPath = "sprites/despondency-spear.png";
 
     /** 解析结果缓存: 炮台和子弹共用同一份贴图。 */
     private static TextureRegion spearCache;
@@ -65,6 +72,16 @@ public class LonginusSpearBulletType extends BulletType {
     private static Texture spearDirect;
     /** 只尝试解析一次, 失败后不再每帧读盘。 */
     private static boolean spearTried;
+
+    /**
+     * 不透明区域 (真实枪身) 在图片里的像素范围, 解析贴图时测量。
+     *
+     * <p>★ 所有长度/缩放/对齐都以这块区域为准, 不再假设"枪身铺满整张画布"。
+     * 换图后即使四周留白不同、宽高比变化, 炮台与子弹也会自动重新适配。</p>
+     */
+    private static float visibleMinX = 0f, visibleWidth = 1f, visibleCenterY = 0f;
+    /** 解析出的图片宽高, 仅用于日志输出。 */
+    private static int imageWidth = 1, imageHeight = 1;
 
     /**
      * 获取枪贴图。
@@ -82,29 +99,70 @@ public class LonginusSpearBulletType extends BulletType {
         if (spearTried) return null;
         spearTried = true;
 
-        for (String path : spearPaths) {
-            byte[] data = readBytes(path);
-            if (data == null) continue;
+        byte[] data = readBytes(spearPath);
+        if (data == null) {
+            Log.err("[Longinus] 枪贴图加载失败, 模组里找不到: @", spearPath);
+            return null;
+        }
 
-            try {
-                Pixmap pix = new Pixmap(data);
-                // 线性过滤下给透明边缘补色, 避免枪身边缘发黑
-                Pixmaps.bleed(pix, 2);
+        try {
+            Pixmap pix = new Pixmap(data);
 
-                spearDirect = new Texture(pix);
-                spearDirect.setFilter(Texture.TextureFilter.linear);
-                spearCache = new TextureRegion(spearDirect);
-                pix.dispose();
+            // ★ 先量出真实枪身的范围, 再 bleed。
+            //   bleed 只是给透明像素补 RGB, 不会透明/不透明, 所以先后顺序不影响测量结果。
+            imageWidth = pix.width;
+            imageHeight = pix.height;
+            measureVisibleBounds(pix);
 
-                Log.info("[Longinus] 枪贴图直接读 png: @ (@x@)", path, spearCache.width, spearCache.height);
-                return spearCache;
-            } catch (Throwable e) {
-                Log.err("[Longinus] 解码枪贴图失败: @", path, e);
+            // 线性过滤下给透明边缘补色, 避免枪身边缘发黑
+            Pixmaps.bleed(pix, 2);
+
+            spearDirect = new Texture(pix);
+            spearDirect.setFilter(Texture.TextureFilter.linear);
+            spearCache = new TextureRegion(spearDirect);
+            pix.dispose();
+
+            Log.info("[Longinus] 枪贴图直读 png: @ (@x@), 可见枪身宽 @ / @ 像素",
+                spearPath, imageWidth, imageHeight, (int) visibleWidth, imageWidth);
+            return spearCache;
+        } catch (Throwable e) {
+            Log.err("[Longinus] 解码枪贴图失败: @", spearPath, e);
+        }
+
+        return null;
+    }
+
+    /**
+     * 测量不透明像素的包围盒 (真实枪身)。
+     *
+     * <p>alpha 阈值取 8, 避免半透明描边被算进来。整张图全透明时退化为整张画布,
+     * 保证后续除零/越界不会发生。</p>
+     */
+    private static void measureVisibleBounds(Pixmap pix) {
+        int minX = pix.width, maxX = -1, minY = pix.height, maxY = -1;
+
+        for (int y = 0; y < pix.height; y++) {
+            for (int x = 0; x < pix.width; x++) {
+                // RGBA8888: 最低字节是 alpha
+                if ((pix.get(x, y) & 0xff) > 8) {
+                    if (x < minX) minX = x;
+                    if (x > maxX) maxX = x;
+                    if (y < minY) minY = y;
+                    if (y > maxY) maxY = y;
+                }
             }
         }
 
-        Log.err("[Longinus] 枪贴图加载失败, 模组里找不到: @", String.join(" / ", spearPaths));
-        return null;
+        if (maxX < minX) {
+            minX = 0;
+            maxX = pix.width - 1;
+            minY = 0;
+            maxY = pix.height - 1;
+        }
+
+        visibleMinX = minX;
+        visibleWidth = Math.max(maxX - minX + 1, 1);
+        visibleCenterY = (minY + maxY) * 0.5f;
     }
 
     /** 依次尝试从模组根目录和类加载器资源读取文件内容。 */
@@ -126,24 +184,56 @@ public class LonginusSpearBulletType extends BulletType {
     }
 
     /**
-     * 按"世界长度"反算贴图缩放比例。
+     * "可见枪身长度" → 画布缩放 (世界单位 / 像素)。
      *
-     * <p>不再用固定像素系数: region.width 可能是图集缩水后的值, 也可能是原始像素,
-     * 用固定系数会让同一份贴图在不同加载路径下相差 4 倍。这里只认最终画到世界里的长度。</p>
+     * <p>不再用"整张画布宽度"换算: 图片四周可能有留白, 直接按画布宽度算会让实际枪身
+     * 比目标长度短一截。这里以实测的不透明区域宽度为基准, 宽高比则由图片自身决定。</p>
      *
-     * @param region      枪贴图
-     * @param worldLength 期望的世界长度 (1 格 = 8 单位)
+     * @param visibleLength 期望的真实枪身长度 (世界单位, 1 格 = 8 单位)
      */
-    public static float scaleFor(TextureRegion region, float worldLength) {
-        return region.width <= 0 ? 1f : worldLength / region.width;
+    public static float spearScale(float visibleLength) {
+        return visibleLength / Math.max(visibleWidth, 1f);
+    }
+
+    /**
+     * 按可见枪身锚点绘制整张枪贴图。
+     *
+     * <p>三个绘制点 (炮台握持、飞行中的子弹、钉在目标身上) 共用这一份逻辑,
+     * 保证枪尖、枪尾、粗细在任何图片下都一致:</p>
+     *
+     * @param visibleLength 真实枪身长度 (世界单位)
+     * @param anchorFrac    锚点在可见枪身上的位置: 0 = 枪尾, 1 = 枪尖
+     * @param px,py         锚点要落到的世界坐标
+     * @param ang           绘制角度 (弧度), 贴图枪尖朝 +x
+     */
+    public static void drawSpear(TextureRegion region, float visibleLength, float anchorFrac,
+                                 float px, float py, float ang) {
+        if (region == null || !region.found()) return;
+
+        float scale = spearScale(visibleLength);
+        float w = region.width * scale;
+        float h = region.height * scale;
+
+        // 锚点在图片中的像素位置
+        float anchorPx = visibleMinX + anchorFrac * visibleWidth;
+        // 画布中心相对锚点的偏移 (图片坐标, +y 向下)
+        float dx = (region.width * 0.5f - anchorPx) * scale;
+        float dy = (region.height * 0.5f - visibleCenterY) * scale;
+
+        // 图片 +y 向下、世界 +y 向上, 所以 y 取反后再按角度旋转
+        float ox = Angles.trnsx(ang, dx, -dy);
+        float oy = Angles.trnsy(ang, dx, -dy);
+
+        Draw.rect(region, px + ox, py + oy, w, h, ang);
     }
 
     /** 光效主色。 */
     public Color glowColor = Color.valueOf("f53036");
     /**
-     * 枪在世界里的实际长度 (世界单位, 1 格 = 8 单位)。160 ≈ 20 格。
+     * 飞行中枪的<b>可见枪身</b>长度 (世界单位, 1 格 = 8 单位)。160 ≈ 20 格。
      *
-     * <p>★ 必须与炮台的 {@code spearLength} 保持一致: 用户要求"子弹尺寸和炮台上的朗枪一样大"。</p>
+     * <p>★ 必须与炮台的 {@code spearLength} 保持一致: 用户要求"子弹尺寸和炮台上的朗枪一样大"。
+     * 绘制时按贴图里不透明区域的实测宽度换算缩放, 宽高比跟随图片本身。</p>
      */
     public float drawLength = 160f;
     /**
@@ -273,23 +363,18 @@ public class LonginusSpearBulletType extends BulletType {
             float out = e.fin();
             // 最后 15% 时间淡出
             float alpha = out > 0.85f ? (1f - out) / 0.15f : 1f;
-
-            float scale = scaleFor(region, drawLength);
-            float w = region.width * scale;
-            float h = region.height * scale;
             float ang = e.rotation;
 
             // 插入瞬间的"钉入"回弹: 极短时间往前多扎一点, 之后回位
             float punch = out < 0.02f ? (1f - out / 0.02f) * 16f : 0f;
-
-            // 枪尖落在目标身上, 枪身向后方延伸
-            float cx = px - Angles.trnsx(ang, 0.5f * w - punch);
-            float cy = py - Angles.trnsy(ang, 0.5f * w - punch);
+            float tipX = px + Angles.trnsx(ang, punch);
+            float tipY = py + Angles.trnsy(ang, punch);
 
             Draw.z(Layer.effect);
             Draw.color(Color.white);
             Draw.alpha(alpha);
-            Draw.rect(region, cx, cy, w, h, ang);
+            // 以可见枪尖为锚 (1f), 枪尖扎在目标身上, 枪身向后方延伸
+            drawSpear(region, drawLength, 1f, tipX, tipY, ang);
 
             // 插入点的猩红余烬, 随时间熄灭
             Draw.blend(Blending.additive);
@@ -379,17 +464,10 @@ public class LonginusSpearBulletType extends BulletType {
             return;
         }
 
-        float scale = scaleFor(region, drawLength);
-        float w = region.width * scale;
-        float h = region.height * scale;
-
         Draw.z(Layer.bullet);
         Draw.color(Color.white);
-        // 贴图枪尖朝右 (+x): 图片中心后退半个枪长, 枪尖正好落在子弹位置上
-        Draw.rect(region,
-            b.x - Angles.trnsx(b.rotation(), w * 0.5f),
-            b.y - Angles.trnsy(b.rotation(), w * 0.5f),
-            w, h, b.rotation());
+        // 以可见枪尖为锚: 枪尖正好落在子弹位置上, 枪身随后方延伸
+        drawSpear(region, drawLength, 1f, b.x, b.y, b.rotation());
         Draw.reset();
     }
 
