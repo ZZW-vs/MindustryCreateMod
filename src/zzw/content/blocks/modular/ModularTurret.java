@@ -39,6 +39,11 @@ import mindustry.world.meta.StatUnit;
 import mindustry.world.meta.Stats;
 import mindustry.world.modules.ItemModule;
 import zzw.content.Z_Items;
+import zzw.content.mechanics.torque.blocks.GraphBlockBase;
+import zzw.content.mechanics.torque.graph.TorqueGraph;
+import zzw.content.mechanics.torque.graphs.GraphTorque;
+import zzw.content.mechanics.torque.graphs.Graphs;
+import zzw.content.mechanics.torque.modules.GraphModules;
 import zzw.util.UnityUtils;
 
 import static mindustry.Vars.*;
@@ -52,9 +57,11 @@ import static mindustry.Vars.*;
  * <p>本类只负责方块本体与运行时行为, 零件表由 {@link #addDefaultParts()} 统一注册,
  * 贴图直接使用 {@code part-*.png} 图标, 分类图标使用 {@code partscategory1..5}。</p>
  */
-public class ModularTurret extends Turret{
+public class ModularTurret extends Turret implements GraphBlockBase{
     /** 造价配比编码: 高 16 位为已付数量, 低 16 位为需求数量 */
     static final int mask = 65535;
+    /** 扭矩网络: 接入扭矩系统后由网络转速提升装填速度 */
+    protected final Graphs graphs = new Graphs();
     /** 当前方块的全部零件 (顺序即蓝图配置中的 id - 1) */
     public final Seq<PartInfo> parts = new Seq<>();
     /** 零件分类, 顺序对应 partscategory1..5 */
@@ -82,6 +89,14 @@ public class ModularTurret extends Turret{
         config(String.class, (ModularTurretBuild build, String value) -> build.changed = build.setBluePrintFromString(value));
         config(IntSeq.class, (ModularTurretBuild build, IntSeq value) -> build.changed = build.setBluePrint(UnityUtils.unpackInts(value)));
         configClear((ModularTurretBuild build) -> build.setBluePrint(null));
+
+        // 接入扭矩网络: 与剁刀共用同一套传动系统
+        addGraph(new GraphTorque());
+    }
+
+    @Override
+    public Graphs graphs(){
+        return graphs;
     }
 
     protected void setGridW(int s){
@@ -207,40 +222,22 @@ public class ModularTurret extends Turret{
     @Override
     public void setStats(){
         super.setStats();
+        // 扭矩网络信息 + 零件属性面板
+        graphs.setStats(stats);
         setStatsExt(stats);
     }
 
-    /** 属性面板: 按分类列出全部零件的实际数值 (数据直接来自零件表, 不使用空表)。 */
+    /** 属性面板: 按分类双列列出零件的关键数值 (紧凑排布, 保证能收进一屏)。 */
     public void setStatsExt(Stats stats){
         stats.add(Stat.ammo, table -> table.table(t -> {
-            t.left().defaults().left();
-            for(PartType cat : getPartsCategories()){
-                boolean has = false;
-                for(PartInfo p : parts) if(p.category == cat) has = true;
-                if(!has) continue;
-                t.row();
-                t.table(head -> {
-                    if(cat.region != null && cat.region.found()) head.image(cat.region).size(28f).padRight(6f);
-                    head.add("[accent]" + Core.bundle.get("part.category." + cat.name())).left();
-                }).left().row();
-                for(PartInfo p : parts){
-                    if(p.category != cat) continue;
-                    t.table(row -> {
-                        if(p.texRegion != null && p.texRegion.found()) row.image(p.texRegion).size(26f).padRight(4f);
-                        row.add(p.name).width(140f).left();
-                        StringBuilder sb = new StringBuilder();
-                        for(var stat : p.stats){
-                            if(sb.length() > 0) sb.append("  ");
-                            sb.append("[lightgray]").append(Core.bundle.get(stat.key.name)).append(": [white]").append(stat.value.value);
-                        }
-                        row.add(sb.toString()).left();
-                    }).left().row();
-                }
-            }
+            PartInfo.addStatsTable(t, getPartsCategories(), parts);
+            t.row();
         }).left());
     }
 
-    public class ModularTurretBuild extends TurretBuild{
+    public class ModularTurretBuild extends TurretBuild implements GraphBlockBase.GraphBuildBase{
+        /** 扭矩网络模块 (接入传动系统后由网络提供装填加成) */
+        protected GraphModules gms;
         final OrderedMap<Item, Integer> blueprintRemainingCost = new OrderedMap<>(12);
         final IntSeq bluePrint = new IntSeq();
         final StatContainer currentStats = new StatContainer();
@@ -279,6 +276,7 @@ public class ModularTurret extends Turret{
         @Override
         public void display(Table table){
             super.display(table);
+            if(gms != null) gms.display(table);
             table.row();
             table.table().left().update(sub -> {
                 sub.clearChildren();
@@ -545,6 +543,7 @@ public class ModularTurret extends Turret{
         @Override
         public void write(Writes write){
             super.write(write);
+            if(gms != null) gms.write(write);
             // ★ 读写必须严格对称: 空蓝图也要写出 0 长度段, 否则 read 会多读两个字节导致后续数据错位
             IntSeq packed = bluePrint.isEmpty() ? new IntSeq() : IntPacker.packArray(bluePrint).packed;
             write.s(packed.size);
@@ -559,6 +558,7 @@ public class ModularTurret extends Turret{
         @Override
         public void read(Reads read, byte revision){
             super.read(read, revision);
+            if(gms != null) gms.read(read, revision);
             short packedSize = read.s();
             IntSeq pack = new IntSeq();
             for(int i = 0; i < packedSize; i++) pack.add(read.i());
@@ -635,7 +635,20 @@ public class ModularTurret extends Turret{
 
         @Override
         protected float baseReloadSpeed(){
-            return validTurret ? super.baseReloadSpeed() * (1f + reloadBonus) : 0f;
+            return validTurret ? super.baseReloadSpeed() * (1f + reloadBonus) * (1f + torqueBoost() * 0.75f) : 0f;
+        }
+
+        /**
+         * 扭矩联动系数 (0~1): 由所在扭矩网络的转速决定。
+         *
+         * <p>网络里转速越高, 装填越快, 最高提升 75%。</p>
+         */
+        protected float torqueBoost(){
+            if(gms == null || gms.torque() == null) return 0f;
+            TorqueGraph<?> net = gms.torque().getNetwork();
+            if(net == null) return 0f;
+            // lastVelocity / 6 即网络转速 (r/s), 取 2 r/s 达到满增益
+            return Mathf.clamp(Math.abs(net.lastVelocity) / 6f / 2f, 0f, 1f);
         }
 
         @Override
@@ -655,6 +668,35 @@ public class ModularTurret extends Turret{
             aniProg = Mathf.lerpDelta(aniProg, prog, 0.02f);
             aniTime += Time.delta;
             super.updateTile();
+            if(gms != null){
+                gms.updateTile();
+                gms.prevTileRotation(((Building)this).rotation);
+            }
+        }
+
+        @Override
+        public void created(){
+            super.created();
+            gms = new GraphModules(this);
+            graphs.injectGraphConnector(gms);
+            gms.created();
+        }
+
+        @Override
+        public GraphModules gms(){
+            return gms;
+        }
+
+        @Override
+        public void onProximityUpdate(){
+            super.onProximityUpdate();
+            if(gms != null) gms.onProximityUpdate();
+        }
+
+        @Override
+        public void onRemoved(){
+            if(gms != null) gms.updateGraphRemovals();
+            super.onRemoved();
         }
 
         @Override
@@ -731,10 +773,6 @@ public class ModularTurret extends Turret{
                 }
                 if(rootRegion.found()){
                     Draw.rect(rootRegion, x + ox, y + oy, rot);
-                }
-                if(headRegion.found()){
-                    Draw.alpha(0.2f + 0.4f * aniProg);
-                    Draw.rect(headRegion, x + ox, y + oy, rot);
                 }
                 Draw.alpha(1f);
             }

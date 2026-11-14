@@ -26,6 +26,8 @@ import mindustry.graphics.Layer;
 import mindustry.graphics.Pal;
 import mindustry.type.Item;
 import mindustry.type.ItemStack;
+import mindustry.world.meta.Stat;
+import mindustry.world.meta.Stats;
 import mindustry.ui.Styles;
 import mindustry.ui.dialogs.BaseDialog;
 import mindustry.world.blocks.storage.CoreBlock.CoreBuild;
@@ -77,6 +79,15 @@ public class Chopper extends GraphBlock{
 
     PartType[] getPartsCategories(){
         return categories;
+    }
+
+    /** 属性面板: 列出刀刃零件的关键数值 (与模块化炮台一致的双列紧凑排布)。 */
+    @Override
+    public void setStatsExt(Stats stats){
+        stats.add(Stat.ammo, table -> table.table(t -> {
+            PartInfo.addStatsTable(t, getPartsCategories(), Seq.with(partInfo));
+            t.row();
+        }).left());
     }
 
     @Override

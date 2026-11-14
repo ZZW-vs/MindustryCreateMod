@@ -159,6 +159,17 @@ public class ExpUnloader extends ExpTank {
                 Draw.rect(topRegion, x, y, rotdeg());
             }
 
+            // 中心经验光圈: 原版这里是一枚缓慢呼吸的绿色光点, 避免中间空着
+            float pulse = Mathf.absin(Time.time * 2f, 1f);
+            Draw.color(UnityPal.exp);
+            Draw.alpha(0.25f + 0.35f * pulse);
+            Fill.circle(x, y, 3f + 1.6f * pulse);
+            Draw.alpha(0.55f + 0.35f * pulse);
+            Lines.stroke(1.1f);
+            Lines.circle(x, y, 5f + 1.6f * pulse);
+            Draw.color();
+            Draw.alpha(1f);
+
             // 绘制抽取激光 (到正在被抽取的相邻方块)
             drawExtractLasers();
         }

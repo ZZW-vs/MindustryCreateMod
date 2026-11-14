@@ -91,6 +91,15 @@ public class ModularConstructorUI extends Element{
             float costInc = modElement.costAccum;
             scrollTable.clearChildren();
             scrollTable.top().left();
+            // 自动选中当前分类的第一个可放置零件, 避免"点了网格却没反应"
+            if(modElement.partsSelect == null || modElement.partsSelect.cannotPlace || modElement.partsSelect.category != currentCat){
+                for(var pinfo : partsConfig){
+                    if(!pinfo.cannotPlace && pinfo.category == currentCat){
+                        modElement.partsSelect = pinfo;
+                        break;
+                    }
+                }
+            }
             for(var pinfo : partsConfig){
                 if(pinfo.cannotPlace || pinfo.category != currentCat) continue;
                 scrollTable.row();
@@ -343,12 +352,6 @@ public class ModularConstructorUI extends Element{
         return true;
     }
 
-    boolean placeTileNoConn(PartInfo partType, int x, int y){
-        if(!canPlaceConn(partType, x, y, true)) return false;
-        placeTileDirect(partType, x, y);
-        return true;
-    }
-
     boolean placeTileDirect(PartInfo partType, int x, int y){
         PartPlaceObj partPlaceObj = new PartPlaceObj(x, y, partType);
         for(var i : partType.connInList){
@@ -489,7 +492,9 @@ public class ModularConstructorUI extends Element{
             if(temp == 0) continue;
             int px = i / gridH;
             int py = i % gridH;
-            placeTileNoConn(partList[temp - 1], px, py);
+            // 蓝图允许自由摆放, 读取时只校验边界与占用, 不再要求与根件连通
+            PartInfo part = partList[temp - 1];
+            if(canPlaceConn(part, px, py, false)) placeTileDirect(part, px, py);
         }
     }
 
