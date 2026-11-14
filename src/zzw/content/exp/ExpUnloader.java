@@ -120,6 +120,8 @@ public class ExpUnloader extends ExpTank {
                     }
                 }else{
                     handleExp(-sent);
+                    // 注入成功时在输出端也播放一次传输特效
+                    transferEffect.at(x, y, 0f, Color.white, front);
                 }
 
                 reload = 0f;
@@ -139,12 +141,17 @@ public class ExpUnloader extends ExpTank {
             Draw.color();
 
             // 输出方向指示: PU 原版 exp-unloader-0..3 对应右/上/左/下四个朝向,
-            // 朝哪边输出就显示哪一侧的箭头, 有经验时脉动闪烁
-            int dirFrame = (4 - rotation) % 4;
+            // 朝哪边输出就显示哪一侧的箭头; 有经验时箭头沿输出方向来回流动
+            int dirFrame = rotation & 3;
             TextureRegion dir = frames[dirFrame];
             if(exp > 0 && dir.found()){
-                Draw.alpha(0.35f + Mathf.absin(10f, 0.25f));
-                Draw.rect(dir, x, y);
+                float flow = Mathf.absin(Time.time * 3f, 1f);
+                float ox = Geometry.d4x(dirFrame) * flow * 2f;
+                float oy = Geometry.d4y(dirFrame) * flow * 2f;
+                Draw.alpha(0.25f + 0.5f * flow);
+                Draw.rect(dir, x + ox, y + oy);
+                Draw.alpha(0.12f + 0.25f * (1f - flow));
+                Draw.rect(dir, x + ox * 0.35f, y + oy * 0.35f);
                 Draw.alpha(1f);
             }
 
@@ -156,21 +163,48 @@ public class ExpUnloader extends ExpTank {
             drawExtractLasers();
         }
 
+        /** 抽取/输出双向传输特效: 光束 + 沿光束流动的经验光点。 */
         protected void drawExtractLasers(){
             if(Mathf.zero(Renderer.laserOpacity)) return;
             Draw.z(Layer.power + 1f);
-            Draw.alpha(Renderer.laserOpacity * (Mathf.absin(5f, 0.3f) + 0.1f));
             for(int i = 0; i < proximity.size; i++){
                 Building b = proximity.get(i);
                 if(b instanceof ExpHolder e && !(b instanceof ExpTurret.ExpTurretBuild) && e.getExp() > 0){
-                    Tmp.v2.set(b);
-                    Tmp.v1.set(Tmp.v2).sub(this).nor().scl(size * tilesize / 2f);
-                    Tmp.v2.sub(Tmp.v1);
-                    Tmp.v1.add(this);
-                    Drawf.laser(laser, laserEnd, Tmp.v1.x, Tmp.v1.y, Tmp.v2.x, Tmp.v2.y, 0.3f);
+                    drawBeam(b, true);
                 }
             }
+            // 朝向前方输出时也画一条向外的光束
+            Building front = front();
+            if(exp > 0 && front instanceof ExpHolder && front.team == team
+                && !(front instanceof ExpTurret.ExpTurretBuild) && !(front instanceof ExpUnloaderBuild)){
+                drawBeam(front, false);
+            }
             Draw.reset();
+        }
+
+        protected void drawBeam(Building target, boolean inward){
+            Tmp.v2.set(target);
+            Tmp.v1.set(Tmp.v2).sub(this).nor().scl(size * tilesize / 2f);
+            Tmp.v2.sub(Tmp.v1);
+            Tmp.v1.add(this);
+
+            float alpha = Math.min(1f, Renderer.laserOpacity * (Mathf.absin(5f, 0.3f) + 0.15f));
+            Draw.alpha(alpha);
+            Drawf.laser(laser, laserEnd, Tmp.v1.x, Tmp.v1.y, Tmp.v2.x, Tmp.v2.y, 0.35f);
+
+            // 沿光束流动的经验光点 (抽取时流向自身, 输出时流向前方)
+            int dots = 3;
+            for(int i = 0; i < dots; i++){
+                float p = (Time.time * 0.02f + i / (float)dots) % 1f;
+                if(!inward) p = 1f - p;
+                float px = Mathf.lerp(Tmp.v1.x, Tmp.v2.x, p);
+                float py = Mathf.lerp(Tmp.v1.y, Tmp.v2.y, p);
+                Draw.color(UnityPal.exp);
+                Draw.alpha(Renderer.laserOpacity);
+                Fill.circle(px, py, 1.7f);
+            }
+            Draw.color();
+            Draw.alpha(1f);
         }
 
         @Override
