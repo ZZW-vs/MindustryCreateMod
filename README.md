@@ -317,6 +317,17 @@
 - 合并时有烟雾效果和延迟检查
 
 ## 更新日志
+- **T6/T7 数值再上一档（新基准：原版 T5）+ 攻击特效美化**
+  - **基准**：原版 T5（`reign` 24000/18、`toxopid` 22000/13、`eclipse` 22000/13，取自 159.7 源码 `UnitTypes.java`）
+  - **T6（全部高于原版 T5）**：citadel 72k/36→84k/42、cygnus 68k/28→80k/34、araneidae 69k/26→80k/32、mantle 69k/26→80k/32、sedec 64k/32→76k/38、deviation 64k/26→76k/32、mantodea 62k/26→74k/32、excelsus 68k/36→82k/42、colossus 72k/60→88k/66、fin 70k/30→82k/36
+  - **T7（远高于原版 T5，且与 T6 拉开明显差距）**：empire 180k/50→240k/56、sagittarius 165k/46→230k/54、theraphosidae 180k/48→240k/56、aphelion 190k/48→250k/54、trigintaduo 155k/50→220k/58、anomaly 165k/46→235k/54、bastion 200k/104→300k/116、blue 175k/48→240k/56
+  - **特效配色统一（特效颜色跟随弹体，不再出现"蓝激光配橙爆炸"）**：
+    - empire 炮弹改用弹色爆炸 + 大口径炮口烟，导弹补金色炮口；mantodea 防空弹命中/爆炸/闪电统一为 surge 金
+    - araneidae 紫激光补紫色炮口与命中；theraphosidae 紫色导弹改为暗蚀爆炸、紫光束补炮口与命中点；cygnus EMP 弹与 sagittarius 箭弹的命中火花改为治疗绿
+    - mantle/aphelion 熔毁橙激光补炮口；fin 迫击炮补大口径炮口烟；blue 主炮与磁轨炮改为黄色大口径命中并补磁轨炮口
+    - excelsus 绯红持续激光补绯红炮口、绯红导弹改弹色爆炸；colossus 主激光改用碑石浅蓝配色（含命中/炮口），bastion 能量弹命中色统一浅蓝
+    - deviation 闪电球补蓝色电弧炮口与命中，anomaly 充能激光命中改为蓝色爆裂
+  - 全部替换使用现有 `CombatFx` 颜色参数化特效，仅在开火/命中瞬间生成，不新增逐帧重绘，大体积单位帧数不受影响
 - **修复朗基努斯炮台显示异常（炮身与子弹都变成一块纯色黑条）**
   - **根因**：模组内容在 `Mods.loadAsync` 里会被「临时图集」阶段先 `load()` 一次，此时 `Core.atlas.find` 拿到的 region 坐标属于新图集、纹理却仍是旧图集；旧代码把这份结果缓存进静态字段，之后炮台和子弹一直用它绘制，实际采样落在单个像素上 → 纯色黑条
   - **贴图获取**：改为直接读取模组内的 `sprites/blocks/fend/turrets/longinus-spear.png`（与 `despondency-spear.png` 同一张图）解码建纹理，彻底绕开图集，并延迟到首次绘制（GL 线程）时才创建；建纹理前做一次 bleed，避免线性过滤下枪身边缘发黑

@@ -2885,8 +2885,8 @@ public class Z_Units {
 
         // ===== citadel (T6 Mech, 磁轨炮+火焰喷射) =====
         citadel = new UnitType("citadel") {{
-            health = 72000f;  // ★ T6 重平衡: 略低于饱和火力 T6 (73k~84k)
-            armor = 36f;      // ★ T6 重平衡: 32f → 36f
+            health = 84000f;  // ★ 新基准: 原版 T5 (reign 24k) 的 3.5 倍
+            armor = 42f;      // ★ 新基准: 原版 T5 (18) 的 2.3 倍
             speed = 0.3f;
             hitSize = 49f;
             rotateSpeed = 1.5f;
@@ -2958,8 +2958,8 @@ public class Z_Units {
         // ===== empire (T7 Mech, 火焰+导弹+炮弹) =====
         // PU_V8 原版: UnityUnitTypes.java 第1129-1248行
         empire = new UnitType("empire") {{
-            health = 180000f;  // ★ T7 重平衡: 明显高于饱和火力 T6 (~79k)
-            armor = 50f;       // ★ T7 重平衡: 36f → 50f
+            health = 240000f;  // ★ 新基准: 原版 T5 (24k) 的 10 倍
+            armor = 56f;       // ★ 新基准: 原版 T5 (18) 的 3.1 倍
             speed = 0.2f;
             hitSize = 49f;
             rotateSpeed = 1.25f;
@@ -3043,6 +3043,8 @@ public class Z_Units {
                     homingRange = 90f;
                     weaveMag = 2f;
                     weaveScale = 8f;
+                    hitColor = mindustry.graphics.Pal.missileYellow;
+                    shootEffect = CombatFx.muzzleFlash;
                     status = mindustry.content.StatusEffects.blasted;
                     statusDuration = 60f;
                     fragBullets = 5;
@@ -3076,7 +3078,9 @@ public class Z_Units {
                 mirror = true;
                 shootSound = Sounds.shootArtillery;
                 bullet = new ArtilleryBulletType(3f, 38f) {{
-                    hitEffect = Fx.blastExplosion;  // ★ 还原原版: PU_V8 empire cannon 即用原版特效
+                    hitEffect = CombatFx.blastExplosion;  // ★ 特效美化: 弹色爆炸, 与黄色炮弹一致
+                    hitColor = mindustry.graphics.Pal.bulletYellow;
+                    shootEffect = CombatFx.muzzleFlashSmokeBig;
                     knockback = 0.8f;
                     lifetime = 150f;  // ★ 加强 (原 125f): 射程加远 (3f × 150 = 450px)
                     width = 14f;
@@ -3094,8 +3098,8 @@ public class Z_Units {
         // ===== cygnus (T6 Legs, 反射激光+EMP弹) =====
         // PU_V8 原版: UnityUnitTypes.java 第1250-1328行
         cygnus = new UnitType("cygnus") {{
-            health = 68000f;  // ★ T6 重平衡: 略低于饱和火力 T6
-            armor = 28f;      // ★ T6 重平衡: 24f → 28f
+            health = 80000f;  // ★ 新基准: 原版 T5 (22k) 的 3.6 倍
+            armor = 34f;      // ★ 新基准: 原版 T5 (13) 的 2.6 倍
             speed = 0.26f;
             hitSize = 37f;
             rotateSpeed = 1.3f;
@@ -3169,7 +3173,7 @@ public class Z_Units {
                     hitEffect = CombatFx.empSpark;
                     shootEffect = CombatFx.empSpark;
                     smokeEffect = CombatFx.muzzleFlashSmokeBig;
-                    backColor = mindustry.graphics.Pal.heal;
+                    backColor = hitColor = mindustry.graphics.Pal.heal;
                     // PU_V8: 治疗绿拖尾
                     trailLength = 15;
                     trailWidth = 6f;
@@ -3185,8 +3189,8 @@ public class Z_Units {
 
         // ===== sagittarius (T7 Legs, 蓄力激光+加速箭弹, 力场护盾) =====
         sagittarius = new UnitType("sagittarius") {{
-            health = 165000f;  // ★ T7 重平衡: 明显高于饱和火力 T6
-            armor = 46f;       // ★ T7 重平衡: 26f → 46f
+            health = 230000f;  // ★ 新基准: 原版 T5 (22k) 的 10.5 倍
+            armor = 54f;       // ★ 新基准: 原版 T5 (13) 的 4.2 倍
             speed = 0.25f;
             hitSize = 55f;
             rotateSpeed = 0.8f;
@@ -3264,6 +3268,7 @@ public class Z_Units {
                     height = 15f;
                     splashDamage = 15f;
                     splashDamageRadius = 25f;
+                    hitEffect = CombatFx.bulletHitSmall;  // ★ 特效美化: 治疗绿命中火花
                     healPercent = 3f;
                     homingRange = 70f;
                     homingPower = 0.05f;
@@ -3274,8 +3279,8 @@ public class Z_Units {
         // ===== araneidae (T6 Legs, 吸血激光+磁轨炮) =====
         // PU_V8 原版: UnityUnitTypes.java 第1415-1508行
         araneidae = new UnitType("araneidae") {{
-            health = 69000f;  // ★ T6 重平衡: 略低于饱和火力 T6
-            armor = 26f;      // ★ T6 重平衡: 20f → 26f
+            health = 80000f;  // ★ 新基准: 原版 T5 (22k) 的 3.6 倍
+            armor = 32f;      // ★ 新基准: 原版 T5 (13) 的 2.5 倍
             speed = 0.42f;
             hitSize = 35.5f;
             rotateSpeed = 1.3f;
@@ -3325,6 +3330,8 @@ public class Z_Units {
                     width = 25f;
                     sideLength = 0f;
                     sideWidth = 0f;
+                    shootEffect = CombatFx.laserShoot;   // ★ 特效美化: 紫激光炮口 (原版为蓝色 lancer 闪光)
+                    hitEffect = CombatFx.laserHit;       // ★ 特效美化: 紫激光命中 (原版为白色 X)
                     hitColor = lightColor = lightningColor = mindustry.graphics.Pal.sapBullet;
                     status = mindustry.content.StatusEffects.sapped;
                     statusDuration = 80f;
@@ -3412,8 +3419,8 @@ public class Z_Units {
         // ===== theraphosidae (T7 Legs, 导弹+持续激光+磁轨炮) =====
         // PU_V8 原版: UnityUnitTypes.java 第1510-1635行
         theraphosidae = new UnitType("theraphosidae") {{
-            health = 180000f;  // ★ T7 重平衡: 明显高于饱和火力 T6
-            armor = 48f;       // ★ T7 重平衡: 28f → 48f
+            health = 240000f;  // ★ 新基准: 原版 T5 (22k) 的 11 倍
+            armor = 56f;       // ★ 新基准: 原版 T5 (13) 的 4.3 倍
             speed = 0.4f;
             drag = 0.12f;
             hitSize = 49f;
@@ -3462,8 +3469,9 @@ public class Z_Units {
                     drag = -0.01f;
                     splashDamageRadius = 30f;
                     splashDamage = 65f;  // ★ 伤害加强 (原 55f)
-                    hitEffect = Fx.blastExplosion;  // ★ 还原原版: PU132 blue 导弹井为原版特效
-                    despawnEffect = Fx.blastExplosion;
+                    hitEffect = CombatFx.sapExplosion;  // ★ 特效美化: 紫色导弹 → 紫色暗蚀爆炸 (原版为橙色)
+                    despawnEffect = CombatFx.sapExplosion;
+                    shootEffect = CombatFx.muzzleFlash;
                     hitColor = mindustry.graphics.Pal.sapBullet;  // ★ 修复: 命中特效颜色默认是白色, 改为紫色
                     backColor = trailColor = mindustry.graphics.Pal.sapBulletBack;
                     frontColor = lightningColor = lightColor = mindustry.graphics.Pal.sapBullet;
@@ -3508,6 +3516,8 @@ public class Z_Units {
                     statusDuration = 80f;
                     lifetime = 180f;
                     incendChance = 0f;
+                    shootEffect = CombatFx.laserShoot;   // ★ 特效美化: 紫光束炮口
+                    hitEffect = CombatFx.beamHit;        // ★ 特效美化: 持续光束命中点 (紫色菱形)
                 }};
             }});
 
@@ -3582,8 +3592,8 @@ public class Z_Units {
         // ===== mantle (T6 Flying, 加速激光+炮弹) =====
         // PU_V8 原版: UnityUnitTypes.java 第1637-1710行
         mantle = new UnitType("mantle") {{
-            health = 69000f;  // ★ T6 重平衡: 略低于饱和火力 T6
-            armor = 26f;      // ★ T6 重平衡: 20f → 26f
+            health = 80000f;  // ★ 新基准: 原版 T5 (22k) 的 3.6 倍
+            armor = 32f;      // ★ 新基准: 原版 T5 (13) 的 2.5 倍
             speed = 0.45f;
             accel = 0.04f;
             drag = 0.04f;
@@ -3630,6 +3640,7 @@ public class Z_Units {
                     pierceCap = 2;
                     hitEffect = zzw.content.units.effects.ScarFx.coloredHitLarge;   // PU_V8 HitFx.coloredHitLarge
                     hitColor = mindustry.graphics.Pal.meltdownHit;
+                    shootEffect = CombatFx.laserShoot;   // ★ 特效美化: 熔毁橙炮口 (原版默认小闪光)
                 }};
             }});
 
@@ -3669,8 +3680,8 @@ public class Z_Units {
         // ===== aphelion (T7 Flying, 加速激光+闪电炮弹) =====
         // PU_V8 原版: UnityUnitTypes.java 第1712-1805行
         aphelion = new UnitType("aphelion") {{
-            health = 190000f;  // ★ T7 重平衡: 明显高于饱和火力 T6
-            armor = 48f;       // ★ T7 重平衡: 28f → 48f
+            health = 250000f;  // ★ 新基准: 原版 T5 (22k) 的 11.4 倍
+            armor = 54f;       // ★ 新基准: 原版 T5 (13) 的 4.2 倍
             speed = 0.44f;
             accel = 0.04f;
             drag = 0.03f;
@@ -3752,6 +3763,7 @@ public class Z_Units {
                     pierceCap = 5;
                     hitEffect = zzw.content.units.effects.ScarFx.coloredHitLarge;   // PU_V8 HitFx.coloredHitLarge
                     hitColor = mindustry.graphics.Pal.meltdownHit;
+                    shootEffect = CombatFx.laserShoot;   // ★ 特效美化: 熔毁橙炮口
                 }};
                 // PU_V8: 射击期间自身减速, 持续整个激光生存期 (4*60 tick)
                 shootStatus = mindustry.content.StatusEffects.slow;
@@ -3781,8 +3793,8 @@ public class Z_Units {
             constructor = mindustry.gen.UnitEntity::create;
             // PU_V8: defaultController = HealingDefenderAI::new (v158 用 aiController 等效)
             aiController = () -> new zzw.content.units.ai.HealingDefenderAI();
-            health = 64000f;  // ★ T6 重平衡: 支援型, 略低于饱和火力 T6
-            armor = 32f;      // ★ T6 重平衡: 30f → 32f
+            health = 76000f;  // ★ 新基准: 支援型, 原版 T5 的 3.2 倍
+            armor = 38f;      // ★ 新基准: 原版 T5 (18) 的 2.1 倍
             speed = 0.7f;
             rotateSpeed = 1f;
             accel = 0.04f;
@@ -3840,8 +3852,8 @@ public class Z_Units {
             constructor = mindustry.gen.UnitEntity::create;
             // PU_V8: defaultController = HealingDefenderAI::new (v158 用 aiController 等效)
             aiController = () -> new zzw.content.units.ai.HealingDefenderAI();
-            health = 155000f;  // ★ T7 重平衡: 支援型, 仍明显高于饱和火力 T6
-            armor = 50f;       // ★ T7 重平衡: 34f → 50f
+            health = 220000f;  // ★ 新基准: 支援型, 原版 T5 的 9.2 倍
+            armor = 58f;       // ★ 新基准: 原版 T5 (18) 的 3.2 倍
             speed = 0.6f;
             rotateSpeed = 1f;
             accel = 0.04f;
@@ -4449,11 +4461,11 @@ public class Z_Units {
             accel = 0.03f;
             fallSpeed = 0.0025f;
             fallRotateSpeed = 0.8f;
-            health = 62000f;  // ★ T6 重平衡: 略低于饱和火力 T6
+            health = 74000f;  // ★ 新基准: 原版 T5 的 3.1 倍 (防空特化)
             engineSize = 0f;
             flying = true;
             hitSize = 45f;
-            armor = 26f;  // ★ T6 重平衡: 20f → 26f
+            armor = 32f;  // ★ 新基准: 原版 T5 (13) 的 2.5 倍
             lowAltitude = true;
             rotateSpeed = 2.3f;
             outlineColor = Color.valueOf("2e3142");
@@ -4473,8 +4485,9 @@ public class Z_Units {
                 // ★ 攻击优化: 补上真正的防空破片溅射, 让"封锁空域"的定位有实际表现
                 splashDamage = 25f;
                 splashDamageRadius = 35f;
-                hitEffect = Fx.flakExplosion;
-                shootEffect = Fx.shootBig2;
+                hitColor = Pal.surge;   // ★ 特效美化: 弹体/爆炸/闪电统一为 surge 金
+                hitEffect = CombatFx.flakBlast;
+                shootEffect = CombatFx.muzzleFlash;
             }};
 
             weapons.add(new Weapon("create-mantodea-gun") {{
@@ -4548,11 +4561,11 @@ public class Z_Units {
 
         // ===== fin (鳍级战列舰, PU_V8 原版) =====
         fin = new UnitType("fin") {{
-            health = 70000f;  // ★ T6 重平衡: 海军线 T6, 略低于饱和火力 T6
+            health = 82000f;  // ★ 新基准: 海军线 T6, 原版 T5 的 3.4 倍
             speed = 0.5f;
             drag = 0.18f;
             hitSize = 77.5f;
-            armor = 30f;  // ★ T6 重平衡: 18f → 30f
+            armor = 36f;  // ★ 新基准: 原版 T5 (18) 的 2 倍
             accel = 0.19f;
             rotateSpeed = 0.86f;
             faceTarget = false;   // PU_V8: 海军单位朝行进方向, 不盯着目标
@@ -4637,6 +4650,8 @@ public class Z_Units {
                     splashDamage = 200f;  // ★ T6 火力补强: 160f → 200f
                     trailWidth = 7f;
                     trailColor = mindustry.graphics.Pal.bulletYellowBack;
+                    hitColor = mindustry.graphics.Pal.bulletYellow;
+                    shootEffect = CombatFx.muzzleFlashSmokeBig;   // ★ 特效美化: 迫击炮大口径炮口烟
                     hitEffect = zzw.content.units.effects.HitEffect.hitExplosionMassive;  // ★ 还原原版: PU132 fin mortar 用 HitFx.hitExplosionMassive
                     lifetime = 65f;
                     fragBullet = new mindustry.entities.bullet.ArtilleryBulletType(3f, 20f) {{
@@ -4662,11 +4677,11 @@ public class Z_Units {
         // 注意: v158 无 rotateShooting/trailX/trailY/trailScl 字段, 已删除
         // 注意: schistocerca 已移植 (作为简化的直升机单位, CopterUnitType)
         blue = new UnitType("blue") {{
-            health = 175000f;  // ★ T7 重平衡: 海军线 T7, 明显高于饱和火力 T6
+            health = 240000f;  // ★ 新基准: 海军线 T7, 原版 T5 的 10 倍
             speed = 0.4f;
             drag = 0.18f;
             hitSize = 80f;
-            armor = 48f;  // ★ T7 重平衡: 20f → 48f
+            armor = 56f;  // ★ 新基准: 原版 T5 (18) 的 3.1 倍
             accel = 0.19f;
             rotateSpeed = 0.78f;
             faceTarget = false;   // PU_V8: 海军单位朝行进方向, 不盯着目标
@@ -4701,6 +4716,8 @@ public class Z_Units {
                     width = 16f;
                     height = 23f;
                     shootEffect = CombatFx.muzzleFlash;
+                    hitEffect = CombatFx.bulletHitBig;   // ★ 特效美化: 黄色大口径命中
+                    hitColor = mindustry.graphics.Pal.bulletYellow;
                     pierceCap = 2;
                     pierceBuilding = true;
                     knockback = 0.7f;
@@ -4726,6 +4743,8 @@ public class Z_Units {
                     width = 16f;
                     height = 23f;
                     shootEffect = CombatFx.muzzleFlash;
+                    hitEffect = CombatFx.bulletHitBig;   // ★ 特效美化: 黄色大口径命中
+                    hitColor = mindustry.graphics.Pal.bulletYellow;
                     pierceCap = 2;
                     pierceBuilding = true;
                     knockback = 0.7f;
@@ -4910,6 +4929,9 @@ public class Z_Units {
                     backColor = Pal.bulletYellowBack;
                     trailColor = Pal.bulletYellowBack;
                     frontColor = Pal.bulletYellow;
+                    hitColor = Pal.bulletYellow;
+                    shootEffect = CombatFx.railShoot;      // ★ 特效美化: 旗舰磁轨炮炮口
+                    hitEffect = CombatFx.bulletHitBig;     // ★ 特效美化: 黄色大口径命中
                     collisionWidth = 12f;
                 }};
             }});

@@ -34,12 +34,12 @@ public class DeviationUnitType extends UnityUnitType{
         // ★ 装饰实体: 持有 decors[] 驱动翅膀动画, 没有它翅膀不会显示!
         constructor = DecorationUnitEntity::create;
 
-        health = 64000f;  // ★ T6 重平衡: 略低于饱和火力 T6
+        health = 76000f;  // ★ 新基准: 原版 T5 (22k) 的 3.5 倍
         speed = 2.8f;
         accel = 0.07f;
         drag = 0.05f;
         hitSize = 96f;
-        armor = 26f;  // ★ T6 重平衡: 20f → 26f
+        armor = 32f;  // ★ 新基准: 原版 T5 (13) 的 2.5 倍
         engineOffset = 38f;
         engineSize = 4.75f;
         flying = true;
@@ -61,6 +61,9 @@ public class DeviationUnitType extends UnityUnitType{
                 range = 140f;  // ★ 攻击优化: 放电覆盖更符合 T6 定位
                 trailLength = 15;
                 trailColor = color = lightningColor = Pal.lancerLaser;
+                hitColor = Pal.lancerLaser;
+                shootEffect = zzw.content.units.effects.CombatFx.lightningShoot;  // ★ 特效美化: 电弧炮口 (原版为小橙闪)
+                hitEffect = zzw.content.units.effects.CombatFx.laserHit;          // ★ 特效美化: 蓝色电弧命中
                 lightningDamage = 160f;  // ★ 攻击优化: 120f → 160f
                 lightning = 10;
                 splashDamage = 26f;

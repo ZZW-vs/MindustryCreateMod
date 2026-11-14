@@ -843,11 +843,11 @@ public class Z_MonolithUnits{
             // PU132: Legsc 实体 (多足, 携带灵魂 -> SoulLegsUnit)
             constructor = SoulLegsUnit::create;
 
-            health = 72000f;  // ★ T6 重平衡: 略低于饱和火力 T6
+            health = 88000f;  // ★ 新基准: 原版 T5 (22k) 的 4 倍, 巨构重甲
             speed = 0.4f;
             rotateSpeed = 1.2f;
             hitSize = 64f;
-            armor = 60f;  // ★ T6 重平衡: 保留 Monolith 高护甲特色
+            armor = 66f;  // ★ 新基准: 保留巨构高护甲特色 (原版 T5 的 3.7 倍)
             // TODO: PU132 commandLimit = 8 — v155.4 无该字段
             maxSouls = 12;
 
@@ -886,9 +886,13 @@ public class Z_MonolithUnits{
                 shootSound = Sounds.beamMeltdown;
 
                 bullet = new LaserBulletType(2500f){{
+                    colors = new Color[]{UnityPal.monolith.cpy().a(0.4f), UnityPal.monolithLight, Color.white};
                     width = 45f;
                     length = 400f;
                     lifetime = 32f;
+                    hitColor = UnityPal.monolithLight;
+                    hitEffect = CombatFx.laserHit;      // ★ 特效美化: 碑石浅蓝命中 (原版为白爆)
+                    shootEffect = CombatFx.laserShoot;  // ★ 特效美化: 碑石浅蓝炮口
 
                     lightningSpacing = 35f;
                     lightningLength = 4;
@@ -906,11 +910,11 @@ public class Z_MonolithUnits{
             // PU132: Legsc 实体 (多足, 携带灵魂 -> SoulLegsUnit)
             constructor = SoulLegsUnit::create;
 
-            health = 200000f;  // ★ T7 重平衡: 明显高于饱和火力 T6
+            health = 300000f;  // ★ 新基准: 原版 T5 (22k) 的 13.6 倍, 巨构顶点
             speed = 0.4f;
             rotateSpeed = 1.2f;
             hitSize = 67f;
-            armor = 104f;  // ★ T7 重平衡: 保留巨构护甲特色
+            armor = 116f;  // ★ 新基准: 保留巨构高护甲特色 (原版 T5 的 6.4 倍)
             // TODO: PU132 commandLimit = 8 — v155.4 无该字段
             maxSouls = 15;
 
@@ -944,6 +948,7 @@ public class Z_MonolithUnits{
 
                 frontColor = UnityPal.monolithLight;
                 backColor = UnityPal.monolith;
+                hitColor = UnityPal.monolithLight;
                 trailColor = UnityPal.monolithDark;
                 shootEffect = CombatFx.laserShoot;
                 smokeEffect = CombatFx.laserHit;
@@ -1016,6 +1021,7 @@ public class Z_MonolithUnits{
 
                         frontColor = Color.white;
                         backColor = UnityPal.monolithLight;
+                        hitColor = UnityPal.monolithLight;
                         trailColor = UnityPal.monolith;
                         shootEffect = CombatFx.laserShoot;
                         smokeEffect = CombatFx.laserHit;

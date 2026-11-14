@@ -49,13 +49,13 @@ public class AnomalyUnitType extends UnityUnitType{
         // ★ 装饰实体: 持有 decors[] 驱动翅膀动画, 没有它翅膀不会显示!
         constructor = DecorationUnitEntity::create;
 
-        health = 165000f;  // ★ T7 重平衡: 明显高于饱和火力 T6
+        health = 235000f;  // ★ 新基准: 原版 T5 (22k) 的 10.7 倍
         speed = 2.1f;
         rotateSpeed = 1f;
         accel = 0.08f;
         drag = 0.07f;
         hitSize = 137.5f;
-        armor = 46f;  // ★ T7 重平衡: 26f → 46f
+        armor = 54f;  // ★ 新基准: 原版 T5 (13) 的 4.2 倍
         engineSize = -1f;
         flying = true;
         lowAltitude = true;
@@ -109,6 +109,7 @@ public class AnomalyUnitType extends UnityUnitType{
 
             bullet = new AnomalyLaserBulletType(1000f){{  // ★ T7 攻击强化: 800f → 1000f
                 lightningColor = Pal.lancerLaser;
+                hitColor = Pal.lancerLaser;   // ★ 特效美化: 命中特效使用激光蓝, 不再默认白色
             }};
 
             float rad = 70f; // 蓄力回能范围

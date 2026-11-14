@@ -433,12 +433,12 @@ public class Z_ScarUnits {
         excelsus = new UnityUnitType("excelsus"){{
             aiController = DistanceGroundAI::new;
             speed = 0.6f;
-            health = 68000;  // ★ T6 重平衡: 略低于饱和火力 T6
+            health = 82000;  // ★ 新基准: 原版 T5 (22k) 的 3.7 倍, T6 顶点
             hitSize = 66.5f;
             range = 370f;
             allowLegStep = true;
             rotateSpeed = 1.4f;
-            armor = 36f;  // ★ T6 重平衡: 32f → 36f
+            armor = 42f;  // ★ 新基准: 原版 T5 (18) 的 2.3 倍
             // ★ PU132: 后腿独立贴图翻转渲染 (boolean customBackLegs, 依赖
             //   UnityUnitType.drawLegs 覆盖 + leg-back/leg-base-back/foot-back 三张贴图,
             //   贴图 excelsus-leg-back 系列已就位)
@@ -512,6 +512,7 @@ public class Z_ScarUnits {
                     incendChance = 0f;
                     largeHit = false;
                     colors = new Color[]{UnityPal.scarColorAlpha, UnityPal.endColor, Color.white};
+                    shootEffect = zzw.content.units.effects.CombatFx.laserShoot;   // ★ 特效美化: 绯红炮口 (原版默认白色小闪光)
                     width = 4f;
                     hitColor = UnityPal.scarColor;
                     lightColor = UnityPal.scarColorAlpha;
@@ -535,6 +536,7 @@ public class Z_ScarUnits {
                     lifetime = 3f * 60f;
                     shake = 3f;
                     colors = new Color[]{UnityPal.scarColorAlpha, UnityPal.endColor, Color.white};
+                    shootEffect = zzw.content.units.effects.CombatFx.laserShoot;   // ★ 特效美化: 绯红炮口 (原版默认白色小闪光)
                     width = 8f;
                     hitColor = UnityPal.scarColor;
                     lightColor = UnityPal.scarColorAlpha;
@@ -587,6 +589,7 @@ public class Z_ScarUnits {
                     hitEffect = ScarFx.coloredHitSmall;
                     lightColor = hitColor = UnityPal.scarColorAlpha;
                     colors = new Color[]{UnityPal.scarColorAlpha, UnityPal.endColor, Color.white};
+                    shootEffect = zzw.content.units.effects.CombatFx.laserShoot;   // ★ 特效美化: 绯红炮口 (原版默认白色小闪光)
                     strokes = new float[]{1.5f, 1f, 0.3f};
                 }};
 
@@ -645,6 +648,7 @@ public class Z_ScarUnits {
                     hitEffect = ScarFx.coloredHitSmall;
                     lightColor = hitColor = UnityPal.scarColorAlpha;
                     colors = new Color[]{UnityPal.scarColorAlpha, UnityPal.endColor, Color.white};
+                    shootEffect = zzw.content.units.effects.CombatFx.laserShoot;   // ★ 特效美化: 绯红炮口 (原版默认白色小闪光)
                     strokes = new float[]{1.5f, 1f, 0.3f};
                     lenscales = new float[]{0.85f, 0.97f, 1f, 1.02f};
                 }};
@@ -703,6 +707,7 @@ public class Z_ScarUnits {
                     hitEffect = ScarFx.coloredHitSmall;
                     lightColor = hitColor = UnityPal.scarColorAlpha;
                     colors = new Color[]{UnityPal.scarColorAlpha, UnityPal.endColor, Color.white};
+                    shootEffect = zzw.content.units.effects.CombatFx.laserShoot;   // ★ 特效美化: 绯红炮口 (原版默认白色小闪光)
                     strokes = new float[]{1.5f, 1f, 0.3f};
                 }};
 
