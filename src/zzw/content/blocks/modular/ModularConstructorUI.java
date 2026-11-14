@@ -121,6 +121,7 @@ public class ModularConstructorUI extends Element{
         prevChecked = null;
         Table catTable = new Table();
         catTable.margin(12f).top().left();
+        ImageButton firstCat = null;
         for(var i : categories){
             // 跳过没有任何可放置零件的空分类 (PU132 原版 saw 分类即为空, 点击只会得到空白列表)
             boolean usable = false;
@@ -139,12 +140,19 @@ public class ModularConstructorUI extends Element{
                 if(prevChecked != null) prevChecked.setChecked(false);
                 prevChecked = catButt;
             });
-            catTable.add(catButt);
+            catTable.add(catButt).tooltip(Core.bundle.get("part.category." + i.name()));
+            if(firstCat == null){
+                firstCat = catButt;
+                currentCat = i;
+                catButt.setChecked(true);
+                prevChecked = catButt;
+            }
         }
         rebuildParts.run();
+        float editH = Math.max(220f, maxH * 32f + 24f);
         Table leftSide = new Table();
         leftSide.add(catTable).align(Align.left).row();
-        leftSide.add(pane).minWidth(200f).maxHeight(400f).align(Align.top).get().setScrollingDisabled(true, false);
+        leftSide.add(pane).minWidth(200f).maxHeight(editH).align(Align.top).get().setScrollingDisabled(true, false);
 
         Cons<Table> costCons = cstTable -> {
             cstTable.clearChildren();
@@ -159,9 +167,10 @@ public class ModularConstructorUI extends Element{
         };
         Table totals = new Table();
         Runnable rebuildTotals = () -> costCons.get(totals);
+        float editW = Math.max(220f, maxW * 32f + 24f);
         table.add(leftSide).minWidth(150f).align(Align.top);
-        table.add(modElement).size(750f, 400f);
-        table.add(totals).minWidth(100f).maxHeight(400f).align(Align.top);
+        table.add(modElement).size(editW, editH);
+        table.add(totals).minWidth(100f).maxHeight(editH).align(Align.top);
         modElement.onTileAction = () -> {
             rebuildParts.run();
             rebuildTotals.run();

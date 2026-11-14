@@ -466,7 +466,7 @@ public class ModularTurret extends Turret{
         @Override
         public void buildConfiguration(Table table){
             table.button(Tex.whiteui, Styles.clearNonei, 50f, () -> {
-                BaseDialog dialog = new BaseDialog(Core.bundle.get("bar.blueprint", "Edit Blueprint"));
+                BaseDialog dialog = new BaseDialog(Core.bundle.get("bar.blueprint.title", "Edit Blueprint"));
                 dialog.setFillParent(false);
                 ModularConstructorUI mtd = ModularConstructorUI.applyModularConstructorUI(dialog.cont, partsRegion, 8, 6,
                     getPartsConfig(), gridW, gridH, bluePrint, getPartsCategories(), partCostAccum
@@ -650,6 +650,8 @@ public class ModularTurret extends Turret{
             if(bluePrint.size > 0){
                 Draw.z(Layer.turret);
                 float rot = rotation - 90f;
+                // 蓝图网格远大于方块本体 (6x6/8x8 格), 必须整体缩放到方块尺寸后再绘制
+                float gridScale = size / (float)Math.max(gridW, gridH);
                 for(int index = 0; index < bluePrint.size; index++){
                     int value = bluePrint.get(index);
                     if(value == 0 || value > parts.size) continue;
@@ -658,12 +660,12 @@ public class ModularTurret extends Turret{
                     if(tex == null || !tex.found()) continue;
                     int gx = index / gridH, gy = index % gridH;
                     // 网格坐标 → 方块本地像素坐标 (网格中心对齐方块中心)
-                    float lx = (gx + part.tw * 0.5f - gridW * 0.5f) * 32f;
-                    float ly = (gy + part.th * 0.5f - gridH * 0.5f) * 32f;
+                    float lx = (gx + part.tw * 0.5f - gridW * 0.5f) * 32f * gridScale;
+                    float ly = (gy + part.th * 0.5f - gridH * 0.5f) * 32f * gridScale;
                     Tmp.v1.set(lx, ly).rotate(rot).add(x, y);
                     float alpha = getPaidRatio() < 1f ? 0.45f + 0.55f * aniProg : 1f;
                     // 零件图标按 26px/格 制作, 映射到地图上的 32px/格
-                    float scale = 32f / 26f;
+                    float scale = 32f / 26f * gridScale;
                     Draw.alpha(alpha);
                     Draw.rect(tex, Tmp.v1.x, Tmp.v1.y, tex.width * scale, tex.height * scale, rot);
                     Draw.alpha(1f);
