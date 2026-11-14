@@ -3,6 +3,7 @@ package zzw.content.blocks.modular;
 import arc.Core;
 import arc.graphics.Color;
 import arc.graphics.g2d.Draw;
+import arc.graphics.g2d.Fill;
 import arc.graphics.g2d.TextureRegion;
 import arc.math.Mathf;
 import arc.math.geom.Point2;
@@ -24,6 +25,7 @@ import mindustry.gen.Building;
 import mindustry.gen.Icon;
 import mindustry.gen.Sounds;
 import mindustry.gen.Tex;
+import mindustry.graphics.Drawf;
 import mindustry.graphics.Layer;
 import mindustry.graphics.Pal;
 import mindustry.type.Item;
@@ -58,7 +60,11 @@ public class ModularTurret extends Turret{
     /** 零件分类, 顺序对应 partscategory1..5 */
     final PartType[] categories = new PartType[]{PartType.base, PartType.breach, PartType.ammo, PartType.payload, PartType.misc};
     final TextureRegion[] regions = new TextureRegion[4];
+    /** 可旋转的炮塔头部 (含炮管), 建造完成后替代零件拼装体显示 */
+    TextureRegion headRegion;
     TextureRegion partsRegion, rootRegion, rootOutlineRegion;
+    /** peekAmmo 兜底弹种: 未装完蓝图时避免炮塔更新流程取到 null */
+    static final BulletType dummyBullet = new BasicBulletType(1f, 0f);
     float partCostAccum = 0.2f, autoBuildDelay = 10f;
     int gridW = 1, gridH = 1;
 
@@ -181,6 +187,7 @@ public class ModularTurret extends Turret{
         partsRegion = Core.atlas.find("create-partsicons");
         rootRegion = Core.atlas.find(name + "-root");
         rootOutlineRegion = Core.atlas.find(name + "-root-outline");
+        headRegion = Core.atlas.find(name + "-head");
         for(PartInfo part : parts){
             TextureRegion region = Core.atlas.find("create-part-" + part.icon);
             part.sprite = region;
@@ -240,7 +247,7 @@ public class ModularTurret extends Turret{
         final Seq<Item> ammoItems = new Seq<>();
         float turretRange, baseMaxHp,
             aniProg, aniTime,
-            reloadBonus, bulletDamage, bulletSpeed,
+            reloadMult, reloadBonus, bulletDamage, bulletSpeed,
             spreadSum, spreadStat;
         int totalItemCountCost, totalItemCountPaid,
             ammoCapacity, barrels, magazine, shotsTotal, spreadCount;
@@ -343,6 +350,7 @@ public class ModularTurret extends Turret{
             turretRange = range;
             ammoCapacity = 0;
             barrels = 1;
+            reloadMult = 0f;
             reloadBonus = 0f;
             bulletDamage = 15f;
             bulletSpeed = 5f;
@@ -374,7 +382,7 @@ public class ModularTurret extends Turret{
                     case baseSpeed -> bulletSpeed = Math.max(bulletSpeed, value.asFloat());
                     case reloadMultiplier -> {
                         float v = value.asFloat();
-                        if(v > 0f) reloadBonus = Math.min(reloadBonus == 0f ? Float.MAX_VALUE : reloadBonus, v);
+                        if(v > 0f) reloadMult = reloadMult <= 0f ? v : Math.min(reloadMult, v);
                     }
                     case spread -> {
                         spreadSum += value.asFloat();
@@ -407,12 +415,14 @@ public class ModularTurret extends Turret{
             float diff = newMax - maxHealth;
             maxHealth = newMax;
             if(diff > 0f) health = Math.min(maxHealth, health + diff);
+            else if(diff < 0f) health = Math.min(health, maxHealth);
 
             turretRange = range + currentStats.rangeInc;
             barrels = Math.max(1, shotsTotal);
             ammoCapacity = 15 + magazine * 4;
             spreadStat = spreadCount > 0 ? spreadSum / spreadCount : 6f;
-            reloadBonus = reloadBonus == 0f ? 0f : Mathf.clamp(1f / reloadBonus - 1f, -0.5f, 3f);
+            // 装填倍率取最快值换算成提速比例 (1.0 → 0, 0.8 → +25%)
+            reloadBonus = reloadMult > 0f ? Mathf.clamp(1f / reloadMult - 1f, -0.5f, 1.5f) : 0f;
 
             ammoItems.clear();
             if(normalAmmo || !explosiveAmmo && hasBreachPart){
@@ -535,20 +545,14 @@ public class ModularTurret extends Turret{
         @Override
         public void write(Writes write){
             super.write(write);
-            if(bluePrint.isEmpty()){
-                write.i(0);
-                return;
-            }
-            IntSeq packed = IntPacker.packArray(bluePrint).packed;
+            // ★ 读写必须严格对称: 空蓝图也要写出 0 长度段, 否则 read 会多读两个字节导致后续数据错位
+            IntSeq packed = bluePrint.isEmpty() ? new IntSeq() : IntPacker.packArray(bluePrint).packed;
             write.s(packed.size);
             for(int i = 0; i < packed.size; i++) write.i(packed.get(i));
-            if(blueprintRemainingCost.isEmpty()) write.s(0);
-            else{
-                write.s(blueprintRemainingCost.size);
-                for(var i : blueprintRemainingCost){
-                    write.s(i.key.id);
-                    write.s(i.value >>> 16);
-                }
+            write.s(blueprintRemainingCost.size);
+            for(var i : blueprintRemainingCost){
+                write.s(i.key.id);
+                write.s(i.value >>> 16);
             }
         }
 
@@ -592,12 +596,14 @@ public class ModularTurret extends Turret{
                     return turretBullet;
                 }
             }
-            return turretBullet;
+            // 没有实弹库存时不能凭空发射
+            return null;
         }
 
         @Override
         public BulletType peekAmmo(){
-            return turretBullet;
+            // 供 updateReload / ammoReloadMultiplier 调用, 任何时刻都不能为 null
+            return turretBullet != null ? turretBullet : dummyBullet;
         }
 
         @Override
@@ -616,12 +622,15 @@ public class ModularTurret extends Turret{
 
         @Override
         protected void shoot(BulletType ammo){
-            if(ammo == null) return;
+            // 自行覆写 shoot 时必须手动消耗弹药, 否则弹药无限
+            BulletType type = useAmmo();
+            if(type == null) return;
             int count = Math.max(1, barrels);
             for(int i = 0; i < count; i++){
                 float angleOffset = (i - (count - 1) * 0.5f) * spreadStat + Mathf.range(inaccuracy);
-                bullet(ammo, 0f, 0f, angleOffset, null);
+                bullet(type, 0f, 0f, angleOffset, null);
             }
+            shootSound.at(x, y, Mathf.random(0.9f, 1.1f));
         }
 
         @Override
@@ -657,38 +666,78 @@ public class ModularTurret extends Turret{
             drawTeamTop();
 
             Draw.z(Layer.turret);
-            // 顶部组装体 (转轴 + 蓝图零件) 绕方块中心按瞄准角旋转, 并带一点后坐力位移
+            // 顶部组装体绕方块中心按瞄准角旋转, 并带后坐力位移
             float rot = rotation - 90f;
-            float recoil = -curRecoil * 2f;
+            float recoil = -curRecoil * 2.5f;
             float ox = Mathf.cosDeg(rotation) * recoil;
             float oy = Mathf.sinDeg(rotation) * recoil;
-            float alpha = getPaidRatio() < 1f ? 0.45f + 0.55f * aniProg : 1f;
-            Draw.alpha(alpha);
+            float muzzleDist = size * tilesize * 0.42f;
+            float mx = x + Mathf.cosDeg(rotation) * muzzleDist + ox;
+            float my = y + Mathf.sinDeg(rotation) * muzzleDist + oy;
 
-            if(bluePrint.size > 0){
-                // 蓝图网格 (6x6/8x8) 按方块实际尺寸换算每格像素, 保证整体落在底座范围内
-                float cellX = size * tilesize / gridW;
-                float cellY = size * tilesize / gridH;
-                for(int index = 0; index < bluePrint.size; index++){
-                    int value = bluePrint.get(index);
-                    if(value == 0 || value > parts.size) continue;
-                    PartInfo part = parts.get(value - 1);
-                    TextureRegion tex = part.texRegion;
-                    if(tex == null || !tex.found()) continue;
-                    int gx = index / gridH, gy = index % gridH;
-                    // 网格坐标 → 方块本地像素坐标 (网格中心对齐方块中心)
-                    float lx = (gx + part.tw * 0.5f - gridW * 0.5f) * cellX;
-                    float ly = (gy + part.th * 0.5f - gridH * 0.5f) * cellY;
-                    Tmp.v1.set(lx, ly).rotate(rot).add(x + ox, y + oy);
-                    Draw.rect(tex, Tmp.v1.x, Tmp.v1.y, part.tw * cellX, part.th * cellY, rot);
+            if(validTurret && headRegion.found()){
+                // 建造完成: 显示真正的炮管头部, 不再画零件拼装体
+                Draw.rect(headRegion, x + ox, y + oy, rot);
+
+                if(heat > 0.02f){
+                    // 连续射击后的过热泛光
+                    Draw.color(heatColor, Mathf.clamp(heat * 0.55f));
+                    Draw.rect(headRegion, x + ox, y + oy, rot);
+                    Draw.color();
                 }
-            }
 
-            // 转轴 (根零件) 始终叠在最上层
-            if(rootRegion.found()){
-                Draw.rect(rootRegion, x + ox, y + oy, rot);
+                if(curRecoil > 0.08f){
+                    // 炮口火光
+                    float f = Mathf.clamp(curRecoil * 2f);
+                    Draw.color(heatColor);
+                    Draw.alpha(f * 0.8f);
+                    Fill.circle(mx, my, 2f + 4.5f * f);
+                    Draw.color(Color.white);
+                    Draw.alpha(f * 0.9f);
+                    Fill.circle(mx, my, 1.2f + 2f * f);
+                    Draw.color();
+                    Draw.alpha(1f);
+                    Drawf.light(mx, my, 26f * f, heatColor, 0.6f);
+                }
+            }else{
+                // 建造中: 半透明显示零件拼装体 + 炮管头部预览
+                float alpha = 0.35f + 0.45f * aniProg;
+                Draw.alpha(alpha);
+
+                if(bluePrint.size > 0){
+                    // 蓝图网格 (6x6/8x8) 按方块实际尺寸换算每格像素, 保证整体落在底座范围内
+                    float cellX = size * tilesize / gridW;
+                    float cellY = size * tilesize / gridH;
+                    for(int index = 0; index < bluePrint.size; index++){
+                        int value = bluePrint.get(index);
+                        if(value == 0 || value > parts.size) continue;
+                        PartInfo part = parts.get(value - 1);
+                        TextureRegion tex = part.texRegion;
+                        if(tex == null || !tex.found()) continue;
+                        int gx = index / gridH, gy = index % gridH;
+                        // 网格坐标 → 方块本地像素坐标 (网格中心对齐方块中心)
+                        float lx = (gx + part.tw * 0.5f - gridW * 0.5f) * cellX;
+                        float ly = (gy + part.th * 0.5f - gridH * 0.5f) * cellY;
+                        Tmp.v1.set(lx, ly).rotate(rot).add(x + ox, y + oy);
+                        Draw.rect(tex, Tmp.v1.x, Tmp.v1.y, part.tw * cellX, part.th * cellY, rot);
+                    }
+                }
+
+                // 转轴下方压一层暗色轮廓, 让拼装体在底座上更清晰
+                if(rootOutlineRegion.found()){
+                    Draw.color(0f, 0f, 0f, 0.5f);
+                    Draw.rect(rootOutlineRegion, x + ox, y + oy, rot);
+                    Draw.color();
+                }
+                if(rootRegion.found()){
+                    Draw.rect(rootRegion, x + ox, y + oy, rot);
+                }
+                if(headRegion.found()){
+                    Draw.alpha(0.2f + 0.4f * aniProg);
+                    Draw.rect(headRegion, x + ox, y + oy, rot);
+                }
+                Draw.alpha(1f);
             }
-            Draw.alpha(1f);
         }
     }
 }
