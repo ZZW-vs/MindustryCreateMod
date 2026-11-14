@@ -60,8 +60,25 @@ public class Z_VanillaAmmo{
         // 齐射: 石墨弹 ×1.35 → 钢制弹
         ammo(salvo, Z_Items.steel, mindustry.content.Items.graphite, 1.35f, 2);
 
-        // 波纹(火炮): 石墨弹 ×1.15 → 大口径石弹
-        ammo(ripple, Z_Items.stone, mindustry.content.Items.graphite, 1.15f, 3);
+        // 波纹(火炮): 石子弹 → 固定 55 伤害 + 4 颗 6 伤害分裂子弹
+        ammo(ripple, Z_Items.stone, mindustry.content.Items.graphite, 1f, 3, b -> {
+            b.damage = 55f;
+            b.fragBullets = 4;
+            b.fragSpread = 360f;
+            b.fragAngle = 0f;
+            b.fragVelocityMin = 0.45f;
+            b.fragVelocityMax = 1.1f;
+            b.fragLifeMin = 0.4f;
+            b.fragLifeMax = 0.75f;
+            b.fragBullet = new mindustry.entities.bullet.BasicBulletType(4.5f, 6f){{
+                width = 5f;
+                height = 6f;
+                shrinkY = 0f;
+                lifetime = 14f;
+                hitEffect = zzw.content.units.effects.CombatFx.bulletHit;
+                despawnEffect = mindustry.content.Fx.none;
+            }};
+        });
 
         // ===== 中档: 镍 / 感染原 =====
 

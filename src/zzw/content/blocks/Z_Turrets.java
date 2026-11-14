@@ -889,7 +889,12 @@ public class Z_Turrets {
                 hitSize = 15f;
                 hitEffect = HitEffect.protonHit;
                 hittable = false;
-                collides = false;
+                // ★ 修复"炮弹只能飞到射程最远处": 原 collides=false 使炮弹穿过沿途目标,
+                //   只有落点爆炸才能造成伤害。开启碰撞后沿弹道命中敌人/建筑,
+                //   scaleLife 仍保证没有碰撞时在瞄准点起爆。
+                collides = true;
+                collidesTiles = true;
+                collidesAir = false;
                 backColor = lightColor = hitColor = lightningColor = Pal.lancerLaser;
                 frontColor = Color.white;
                 lightning = 3;

@@ -118,9 +118,14 @@ public class Chopper extends GraphBlock{
         final OrderedMap<Item, Integer> blueprintRemainingCost = new OrderedMap<>(12);
         final IntSeq bluePrint = new IntSeq();
         final Seq<Segment> hitSegments = new Seq<>();
+        final Seq<mindustry.gen.Unit> nearbyUnits = new Seq<>();
+        final IntSet hitUnits = new IntSet();
         final FrameBuffer buffer = new FrameBuffer(tx, ty);
         final StatContainer currentStats = new StatContainer();
         final Rect detectRect = new Rect();
+        /** 上一帧的刀刃角度, 用于高速旋转时的扫掠补偿. */
+        float lastDamageRot;
+        boolean damageRotInit;
         float originalMaxHp,
             speedDmgMul,
             aniProg, aniSpeed, aniTime;
@@ -271,23 +276,48 @@ public class Chopper extends GraphBlock{
             }
         }
 
-        void damageChk(float rot){
-            float drx = Mathf.cosDeg(rot);
-            float dry = Mathf.sinDeg(rot);
+        /**
+         * 扫掠命中判定: 在上一帧角度与当前角度之间均匀采样多个子角度。
+         *
+         * <p>原先每帧只用最终角度判定一次, 转速越快、单帧扫过的角度越大,
+         * 刀刃在两个采样角之间的目标就会被漏切。这里按"每步不超过 10°"拆分,
+         * 并对同一帧内的建筑/单位去重, 避免一次扫掠重复结算伤害。</p>
+         */
+        void damageChk(float fromRot, float delta, int steps){
             collidedBlocks.clear();
-            world.raycastEachWorld(x, y, x + drx * bladeRadius, y + dry * bladeRadius, (cx, cy) -> {
-                onIntCollider(cx, cy, rot);
-                return false;
-            });
-            Units.nearbyEnemies(team, detectRect, unit -> {
-                if(!unit.checkTarget(false, true)) return;
-                float k = getHitDamage(unit.x - x, unit.y - y, rot);
-                if(k > 0f){
-                    unit.damage(k);
-                    unit.impulse(-dry * k * 10f, drx * k * 10f);
-                    knockbackTorque += k * knockbackMult;
+            hitUnits.clear();
+
+            // 建筑: 每个子角度沿刀刃做一次射线, collidedBlocks 负责帧内去重
+            for(int s = 1; s <= steps; s++){
+                float rot = fromRot + delta * s / steps;
+                float drx = Mathf.cosDeg(rot);
+                float dry = Mathf.sinDeg(rot);
+                world.raycastEachWorld(x, y, x + drx * bladeRadius, y + dry * bladeRadius, (cx, cy) -> {
+                    onIntCollider(cx, cy, rot);
+                    return false;
+                });
+            }
+
+            // 单位: 先收集一次, 再对每个单位逐个角度判定, 命中即停 (帧内只结算一次)
+            nearbyUnits.clear();
+            Units.nearbyEnemies(team, detectRect, nearbyUnits::add);
+            for(int i = 0; i < nearbyUnits.size; i++){
+                var unit = nearbyUnits.get(i);
+                if(!unit.checkTarget(false, true) || !hitUnits.add(unit.id)) continue;
+
+                for(int s = 1; s <= steps; s++){
+                    float rot = fromRot + delta * s / steps;
+                    float k = getHitDamage(unit.x - x, unit.y - y, rot);
+                    if(k > 0f){
+                        float drx = Mathf.cosDeg(rot);
+                        float dry = Mathf.sinDeg(rot);
+                        unit.damage(k);
+                        unit.impulse(-dry * k * 10f, drx * k * 10f);
+                        knockbackTorque += k * knockbackMult;
+                        break;
+                    }
                 }
-            });
+            }
         }
 
         void accumStats(PartInfo part, int x, int y, int[][] grid){
@@ -466,7 +496,18 @@ public class Chopper extends GraphBlock{
         public void updatePost(){
             // ★ 取负: arc 角度正方向在屏幕上为逆时针, 取负让刀刃默认顺时针旋转
             //   (命中判定与绘制用同一 rot, 翻转后判定几何仍与刀刃一致)
-            if(getPaidRatio() >= 1f && speedDmgMul > 0.8f) damageChk(-torque().getRotation());
+            float rot = -torque().getRotation();
+
+            if(getPaidRatio() >= 1f && speedDmgMul > 0.8f){
+                if(damageRotInit){
+                    // 最短有符号角差 (-180..180), 高速旋转跨圈时也能正确扫掠
+                    float delta = Mathf.mod(rot - lastDamageRot + 180f, 360f) - 180f;
+                    int steps = Mathf.clamp((int)Math.ceil(Math.abs(delta) / 10f), 1, 12);
+                    damageChk(lastDamageRot, delta, steps);
+                }
+                damageRotInit = true;
+            }
+            lastDamageRot = rot;
         }
 
         @Override

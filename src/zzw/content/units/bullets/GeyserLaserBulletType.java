@@ -57,8 +57,21 @@ public class GeyserLaserBulletType extends ExpLaserBulletType {
         // 保存液体引用 (super.init 会设置 b.fdata 但不覆盖 b.data)
         Liquid l = getLiquid(b);
 
-        // 调用 ExpLaserBulletType.init 使用动态长度 + 伤害增量
-        super.init(b);
+        // ★ 修复"射程限制等于没有": ExpLaserBulletType.init 会直接按 getLength(b)
+        //   调用 Damage.collideLaser, 完全不受炮台 range 约束; 转速/等级越高,
+        //   激光就越长, 显示圈外也能打到. 这里临时把动态长度压到炮台射程内,
+        //   让伤害判定与显示射程严格一致.
+        float maxLen = getLength(b);
+        if(b.owner instanceof mindustry.world.blocks.defense.turrets.Turret.TurretBuild turret){
+            maxLen = Math.min(maxLen, turret.range());
+        }
+        float oldLength = length;
+        length = Math.min(length, maxLen - lengthInc * getLevel(b));
+        try{
+            super.init(b);
+        }finally{
+            length = oldLength;
+        }
 
         // ★ 修复"激光只能射到射程最远处": 原先直接用 b.fdata 作为激光末端,
         //   但本类 pierceCap = -1, Damage.collideLaser 会把 fdata 设为完整激光长度,
@@ -70,15 +83,22 @@ public class GeyserLaserBulletType extends ExpLaserBulletType {
             destX = b.aimX;
             destY = b.aimY;
         } else {
-            float actualLength = b.fdata > 0 ? b.fdata : getLength(b);
+            float actualLength = b.fdata > 0 ? b.fdata : Math.min(getLength(b), maxLen);
             destX = b.x + arc.math.Angles.trnsx(b.rotation(), actualLength);
             destY = b.y + arc.math.Angles.trnsy(b.rotation(), actualLength);
         }
 
-        // 让激光朝向并延伸到目标点 (长度不超过最大长度)
+        // 瞄准点若因 stale targetPos 落到射程外, 沿射线夹回射程边缘
+        float aimDst = b.dst(destX, destY);
+        if (aimDst > maxLen && aimDst > 0.001f) {
+            destX = b.x + (destX - b.x) / aimDst * maxLen;
+            destY = b.y + (destY - b.y) / aimDst * maxLen;
+        }
+
+        // 让激光朝向并延伸到目标点 (长度不超过炮台射程)
         if (destX != b.x || destY != b.y) {
             b.rotation(b.angleTo(destX, destY));
-            b.fdata = Math.min(b.dst(destX, destY), getLength(b));
+            b.fdata = Math.min(b.dst(destX, destY), maxLen);
         }
 
         // 在目标点生成 geyser 子弹 (传入液体作为 Bullet.data)

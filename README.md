@@ -317,6 +317,11 @@
 - 合并时有烟雾效果和延迟检查
 
 ## 更新日志
+- **炮台射程统一后的命中/范围问题修复 + ripple / chopper 调整**
+  - **弹体只飞最远点、沿途打不到**：根因是 proton 炮弹 `collides = false`，完全跳过命中判定，只在寿命结束的落点起爆；统一 lifetime 后它稳定飞到射程末端，问题被放大。现已开启 `collides / collidesTiles`（保留 `scaleLife` 落点起爆），沿途敌人与建筑可正常命中
+  - **kelvin-laser-turret 射程限制失效**：`ExpLaserBulletType.init` 直接按 `getLength()` 调用 `Damage.collideLaser`，不受炮台 range 约束；`GeyserLaserBulletType` 现将动态长度临时压到 `TurretBuild.range()`，瞄准点也沿射线夹回射程内，伤害与喷泉位置均与显示圈一致
+  - **ripple**：石子弹药固定 55 伤害，新增 4 颗分裂子弹（每颗 6 伤害、14 tick 寿命）
+  - **create-chopper 高速漏切**：命中判定由单帧角度改为按上一帧→当前帧角差做 10° 步进扫掠（最多 12 步），建筑用 `collidedBlocks`、单位用 `hitUnits` 做帧内去重，转速提升后不再漏切
 - **炮台射程口径统一 + 整体上调 10% / 特效补齐 / wavefront 打击感重做**
   - **根因**：显示圈与索敌使用 `Turret.range`，实际命中距离由 `speed × lifetime` 或激光 `length / maxLength` 决定；此前除 banshee 外都没有调用原版 `limitRange`，手写值长期脱钩（如 gluon 显示 480 实际仅约 208、wavefront 显示 420 实际 700、tenmeikiri 900/1200、orb 145/298、recluse 110/216）
   - **统一校准**：新增 `TurretRangeUtil`，在全部炮台注册完成后把每门炮台的弹药 lifetime / drag、激光 length·maxLength 同步到 `range`；弹药 `rangeChange` 继续保留（banshee 终末弹总射程 648）
