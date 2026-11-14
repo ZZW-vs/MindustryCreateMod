@@ -648,6 +648,7 @@
 - 新增螺旋石油钻井（oil-derrick）：扭矩驱动的石油抽取器（`SolidPump`，`result=Liquids.oil`、`attribute=Attribute.oil`，需建在油层上），绘制为螺旋钻杆样式（类 `zzw.content.mechanics.torque.blocks.production.OilDerrick`）
 
 ## 更新日志
+- **endgame 终局炮台记忆电力节点**：每帧同步当前 `power.links` 到记忆表；被抹掉/重建（防作弊写回）后第一帧逐个校验并重连 —— 目标必须仍然存在、仍是本队电力节点、已连接则跳过、通过原版 `PowerNode.linkValid`（同队/有电/双向 laserRange）与 `maxNodes` 连接数上限校验，最后按原版 `PowerNode.config(Integer)` 的方式双向写入 links 并合并电力图；校验失败直接跳过，不会连出本该断开的线。读档时原版 `PowerModule` 已自带 links 恢复，记忆表会同步为读档后的真实连接
 - **tenmeikiri 终结炮台小幅加强**（用户指定）：血量 43000 → 104000（先提到 52000，再按需求翻倍）；单次受到的伤害上限 500 → 2500（新增 `maxDamagePerHit` 字段，单帧异常掉血阈值复用同一字段，保证判罚逻辑与上限一致）；输出伤害 123456 → 12345678
 - **endgame 终局炮台重做（bug 修复 + 不可摧毁 + 全面强化）**：
   - **修复"炮台一直刷新自身状态 → 电力节点连上后很快断开、交互失效"**：根因是 v160 的 `Building.add()` 只把建筑登记到 `Groups.build`（不再进 `Groups.all`），而建筑防作弊守卫沿用 `Groups.all` 判定，必然认定"已被抹掉"，于是**每 15 帧对炮台重跑一次 `tile.setBlock()`**；该调用走 `init()` → `power.init = false` + `new PowerGraph().add(this)`，炮台被摘进一个全新电力图，电力节点一侧的图不再包含它（链路永久断开），同时整座建筑状态被重置。现改为按"地块上是否仍是本建筑"判定，只在真被抹掉/被覆盖/被拆除时写回；并删除建筑侧每帧强制 `update()`（v160 建筑本就由 `Groups.logic` 逐帧更新，重复调用会让 `updateTile` 一帧跑两遍）

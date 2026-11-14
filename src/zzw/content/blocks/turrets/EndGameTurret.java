@@ -8,6 +8,7 @@ import arc.graphics.g2d.TextureRegion;
 import arc.math.Mathf;
 import arc.math.geom.Position;
 import arc.math.geom.Vec2;
+import arc.struct.IntSeq;
 import arc.struct.Seq;
 import arc.util.Time;
 import arc.util.Tmp;
@@ -26,6 +27,7 @@ import mindustry.gen.Unit;
 import mindustry.entities.units.UnitController;
 import mindustry.graphics.Drawf;
 import mindustry.world.blocks.defense.turrets.PowerTurret;
+import mindustry.world.blocks.power.PowerNode;
 import mindustry.world.meta.Stat;
 import zzw.content.Z_Sounds;
 
@@ -367,6 +369,9 @@ public class EndGameTurret extends PowerTurret {
             // ★ 登记进建筑防作弊守卫: 地块被外部模组抹掉 / 被拆除时写回
             //   (见 AntiCheat)。登记按建筑 id 幂等, 重复 add() 不会重复登记。
             AntiCheatBuildings.add(this);
+
+            // ★ 复活/重建: 若死亡前记下了电力节点, 下一帧逐个校验并重连
+            pendingPowerRestore = rememberedPowerLinks.size > 0;
         }
 
         @Override
@@ -377,10 +382,89 @@ public class EndGameTurret extends PowerTurret {
             super.onRemoved();
         }
 
+        // ================= 电力连接记忆 (死亡前记住节点, 复活后重连) =================
+
+        /** 死亡前记住的电力节点连接点 (packed 地块坐标)。 */
+        protected final IntSeq rememberedPowerLinks = new IntSeq();
+
+        /** 重建/复活后的第一帧需要尝试恢复电力连接。 */
+        protected boolean pendingPowerRestore = false;
+
+        /**
+         * 同步 "当前电力连接点" 到记忆表。
+         *
+         * <p>每帧只做几个 int 的拷贝, 开销可忽略; 好处是记忆始终等于最后一帧的
+         * 真实连接 —— 玩家手动断开的线不会被记住, 死亡时留下的就是死亡前的状态。</p>
+         */
+        protected void snapshotPowerLinks(){
+            rememberedPowerLinks.clear();
+            if(power == null) return;
+
+            for(int i = 0; i < power.links.size; i++){
+                rememberedPowerLinks.add(power.links.get(i));
+            }
+        }
+
+        /**
+         * ★ 逐个校验并重连死亡前记住的电力节点。
+         *
+         * <p>记录的是<b>具体节点</b>而不是整张电网, 因此每一个都要现场校验:</p>
+         * <ol>
+         *   <li>该地块上是否仍然存在建筑 (读档、地图变动、方块被替换都可能改变它);</li>
+         *   <li>是否仍然是<b>本队</b>的<b>电力节点</b> (被换成别的方块就不再重连);</li>
+         *   <li>是否已经连上 (原版读档会自行恢复 links, 此时跳过, 不重复添加);</li>
+         *   <li>沿用原版 {@link PowerNode#linkValid(Building, Building)} 判定
+         *       (同队 / 有电力 / 双方 laserRange 覆盖), 并额外按原版
+         *       {@code maxNodes} 规则限制节点剩余可连数量;</li>
+         *   <li>建立方式与 {@code PowerNode.config(Integer)} 完全一致: 双向写入
+         *       {@code power.links} 后合并电力图。</li>
+         * </ol>
+         *
+         * <p>任何一项不满足就跳过该节点, 因此不会连出本该断开的线。</p>
+         */
+        protected void restorePowerLinks(){
+            if(power == null || rememberedPowerLinks.size == 0) return;
+
+            for(int i = 0; i < rememberedPowerLinks.size; i++){
+                int nodePos = rememberedPowerLinks.get(i);
+                Building other = Vars.world.build(nodePos);
+
+                // 1) 目标不存在 / 已不是电力建筑 / 不是本队 → 不重连
+                if(other == null || other == this || other.power == null) continue;
+                if(other.team != team || !other.block.hasPower || !other.block.connectedPower) continue;
+
+                // 2) 只重连电力节点 (原版只有节点会保存 "节点↔建筑" 的连接)
+                if(!(other.block instanceof PowerNode)) continue;
+
+                // 3) 已经连上 → 跳过
+                if(power.links.contains(other.pos())) continue;
+
+                PowerNode node = (PowerNode)other.block;
+
+                // 4) 原版距离 / 同队 / 有电校验
+                if(!node.linkValid(other, this)) continue;
+
+                // 5) 原版节点连接数量上限 (maxNodes)
+                if(other.power.links.size >= node.maxNodes && !other.power.links.contains(pos())) continue;
+
+                // 6) 与原版 PowerNode.config(Integer) 相同的建立方式
+                power.links.addUnique(other.pos());
+                other.power.links.addUnique(pos());
+                power.graph.addGraph(other.power.graph);
+            }
+        }
+
         // ================= 主更新 =================
 
         @Override
         public void updateTile() {
+            // ★ 复活/重建后的第一帧: 先按记忆恢复电力连接, 再刷新记忆
+            if(pendingPowerRestore){
+                restorePowerLinks();
+                pendingPowerRestore = false;
+            }
+            snapshotPowerLinks();
+
             updateEyes();
 
             float trueEff = trueEfficiency();
