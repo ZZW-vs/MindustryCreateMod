@@ -137,9 +137,15 @@ public class Z_Turrets {
         }) {
             TurretRangeUtil.scale(turret, 1.1f);
         }
-        for (ItemTurret turret : new ItemTurret[]{apparition, ghost, banshee, electrobomb}) {
+        for (ItemTurret turret : new ItemTurret[]{electrobomb}) {
             TurretRangeUtil.scale(turret, 1.1f);
         }
+        // ★ 用户指定: apparition / ghost / banshee 三台炮台射程固定 (格 × 8), 不参与 ×1.1 缩放。
+        //   统一走 TurretRangeUtil.set —— 同一条数据同时决定显示圈、索敌与弹药实际弹程,
+        //   banshee 的终末物质弹药额外 +30 格由该弹的 rangeChange 提供 (TurretBuild.range() 自动叠加)。
+        TurretRangeUtil.set(apparition, 42f * tilesize);
+        TurretRangeUtil.set(ghost, 52f * tilesize);
+        TurretRangeUtil.set(banshee, 62f * tilesize);
 
         // 缓速/蓄力类特殊弹按原机制保留
         TurretRangeUtil.scale(ephemeron, 1.1f);   // scaleLife 由炮台按目标距离自动缩放
@@ -230,7 +236,7 @@ public class Z_Turrets {
             requirements(Category.turret, ItemStack.with(Items.copper, 350, Items.graphite, 380, Items.silicon, 360, Items.plastanium, 200, Items.thorium, 220, Z_Items.umbrium, 370, Items.surgeAlloy, 290));
             size = 5;
             health = 3975;
-            range = 355f;  // ★ 用户调整: 范围 +15 格 (原 235f)
+            range = 42f * tilesize;  // ★ 用户指定: 固定 42 格 (applyRanges 精确校准)
             // ★ PU132 原版: reloadTime=6 + alternate=true + shots=2 + spread=12
             //   → 每次只发 1 颗, 左右炮管交替 (v158 用 ShootAlternate + shots=1 复刻)
             reload = 5.4f;  // ★ 用户调整: 射速小幅提升 (原 6f)
@@ -347,7 +353,7 @@ public class Z_Turrets {
         ghost = new BarrelsItemTurret("ghost") {{
             size = 8;
             health = 9750;
-            range = 365f;  // ★ 用户调整: 范围 +4 格 (原 290f) → 档位重排再抬到 365, 保证 8 格炮台射程高于 5 格的 apparition (355)
+            range = 52f * tilesize;  // ★ 用户指定: 固定 52 格
             reload = 8.5f;  // ★ 用户调整: 射速微加 (原 9f)
             coolantMultiplier = 0.5f;
             inaccuracy = 3f;
@@ -465,7 +471,7 @@ public class Z_Turrets {
             //   的射程延伸改用原版 {@code BulletType.rangeChange} 机制 (+224f → 594f),
             //   索敌/放置预览/子弹存活时间全套跟随原版 {@code TurretBuild.range()} 与
             //   {@code limitRange()} 自动换算 (见块尾 limitRange 调用)
-            range = 385f;  // ★ 档位重排: 原 370, 抬到 385 保持 12 格炮台 > ghost (365)
+            range = 62f * tilesize;  // ★ 用户指定: 固定 62 格 (终末物质弹药再 +30 格)
             reload = 12f;
             coolantMultiplier = 0.5f;
             inaccuracy = 3f;
@@ -575,8 +581,8 @@ public class Z_Turrets {
                 // ★ 射程延伸改用原版机制: {@code rangeChange} —— 索敌射程 ({@code TurretBuild.range()})
                 //   / 放置预览圈 / limitRange 存活时间换算全部自动跟随, 无需手调寿命
                 //   (原手调 lifetime=75f 只延长弹程, 索敌仍锁在炮台 range 上, 两套数值互相打架)
-                // ★ 用户调整: 射程加成 12 格 → 28 格 (28 × 8 = 224f)
-                rangeChange = 224f;  // 基础 370f + 224f = 594f (+28 格)
+                // ★ 用户指定: 射程加成 30 格 (30 × 8 = 240f), 即 62 + 30 = 92 格
+                rangeChange = 30f * tilesize;  // 由 TurretBuild.range() 自动叠加到显示圈/索敌
                 width = 18f;
                 height = 27f;
                 hitSize = 6f;

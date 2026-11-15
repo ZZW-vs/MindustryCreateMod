@@ -369,6 +369,7 @@
   - **blue**：射程最远的主炮伤害翻倍 2100 → 4200
   - **fin**：导弹与主炮伤害约 ×3.1（DPS 1228 → 约 3800）
   - **devourer-of-eldrich-gods-segment**：身段再生间隔 6 秒 → 45 秒一节
+- **apparition / ghost / banshee 射程固定**（用户指定）：apparition 42 格、ghost 52 格、banshee 62 格；banshee 使用终末物质（terminum）弹药时额外 +30 格（92 格）。三者不再参与全局 ×1.1 射程缩放，统一由 `TurretRangeUtil.set` 写入，同一条数值同时决定显示圈、索敌范围与弹药实际弹程；banshee 的 30 格加成沿用原版 `BulletType.rangeChange`（240f），`TurretBuild.range()` 自动叠加
 - **炮台第三轮修复：electrobomb 锁敌/落点、singularity·higgs·proton 加强、黑洞/漩涡对特殊目标生效、wavefront 3D 裁剪**
   - **electrobomb 锁敌与攻击**：弹体原先固定 `lifetime = 70f`（约 490 世界单位），射程统一后又被同步到显示圈末端（≈572），开火后无论目标在哪都飞满寿命才引爆，表现为"不锁敌、只打最远处"。现补 `scaleLife = true`，炮台按 `targetPos` 实际距离缩放寿命，炮弹正好在目标点引爆；配合 `collides / collidesTiles`，沿途命中也在命中点结算
   - **伤害加强**：proton 直击 65 → 90、溅射 92 → 125、闪电 18 → 25；higgs-boson 光束 120 → 165；singularity 能量球 500 → 700、黑洞 500 → 700、建筑伤害 150 → 200、黑洞中心单位伤害 120 → 160
