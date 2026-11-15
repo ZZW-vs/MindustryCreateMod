@@ -68,12 +68,8 @@ public class ModularTurret extends Turret implements GraphBlockBase{
     public final Seq<PartInfo> parts = new Seq<>();
     /** 零件分类, 顺序对应 partscategory1..5 */
     final PartType[] categories = new PartType[]{PartType.base, PartType.breach, PartType.ammo, PartType.payload, PartType.misc};
-    /** 可旋转的炮塔头部 (含炮管) */
+    /** 可旋转的炮塔头部 (基础炮台本体) */
     TextureRegion headRegion;
-    /** 从头部贴图裁出的炮管段与炮口块, 用于按炮闩数量延长炮管 */
-    TextureRegion barrelStrip, muzzleBlock;
-    /** 外挂设备 (装在车体下方、只露出边缘) */
-    TextureRegion iconAmmo, iconArmor, iconRad, iconRadar;
     TextureRegion partsRegion, rootRegion, rootOutlineRegion;
     /** peekAmmo 兜底弹种: 未装完蓝图时避免炮塔更新流程取到 null */
     static final BulletType dummyBullet = new BasicBulletType(1f, 0f);
@@ -206,16 +202,6 @@ public class ModularTurret extends Turret implements GraphBlockBase{
         rootRegion = Core.atlas.find(name + "-root");
         rootOutlineRegion = Core.atlas.find(name + "-root-outline");
         headRegion = Core.atlas.find(name + "-head");
-        if(headRegion.found()){
-            // 从头部贴图直接裁出炮管中段与炮口块 (不新增美术资源)
-            int w = headRegion.width, h = headRegion.height;
-            barrelStrip = new TextureRegion(headRegion, (int)(w * 0.52f), (int)(h * 0.40f), (int)(w * 0.42f), (int)(h * 0.20f));
-            muzzleBlock = new TextureRegion(headRegion, (int)(w * 0.80f), (int)(h * 0.34f), (int)(w * 0.18f), (int)(h * 0.32f));
-        }
-        iconAmmo = Core.atlas.find("create-part-apacker");
-        iconArmor = Core.atlas.find("create-part-aplate");
-        iconRad = Core.atlas.find("create-part-rad");
-        iconRadar = Core.atlas.find("create-part-rfinder");
         for(PartInfo part : parts){
             TextureRegion region = Core.atlas.find("create-part-" + part.icon);
             part.sprite = region;
@@ -749,123 +735,28 @@ public class ModularTurret extends Turret implements GraphBlockBase{
             boolean built = validTurret && headRegion.found();
             Draw.alpha(built ? 1f : 0.25f + 0.5f * aniProg);
 
-            // ===== 按蓝图合成外观: 统计实际装上的零件 =====
-            int baseCount = 0, breaches = 0, heavies = 0, ammoBoxes = 0, armors = 0, rads = 0, radars = 0;
-            boolean rotary = false, twin = false, fireMod = false, homingMod = false;
-            drawVisited.clear();
-            for(int i = 0; i < bluePrint.size; i++){
-                if(drawVisited.contains(i)) continue;
-                int value = bluePrint.get(i);
-                if(value <= 0 || value > parts.size) continue;
-                PartInfo p = parts.get(value - 1);
-                // 多格零件的其它格一并标记, 避免重复统计
-                int gx = i / gridH, gy = i % gridH;
-                for(int dx = 0; dx < p.tw; dx++){
-                    for(int dy = 0; dy < p.th; dy++){
-                        int idx = (gx + dx) * gridH + (gy + dy);
-                        if(idx >= 0 && idx < bluePrint.size) drawVisited.add(idx);
-                    }
-                }
-
-                switch(p.icon == null ? "" : p.icon){
-                    case "rgbase" -> { baseCount++; rotary = true; }
-                    case "small-adapter" -> baseCount++;
-                    case "gbase" -> baseCount++;
-                    case "gbreach" -> breaches++;
-                    case "cbreach" -> { breaches++; heavies++; }
-                    case "grbreach" -> { breaches++; heavies++; }
-                    case "clbreach" -> { breaches++; twin = true; }
-                    case "apacker" -> ammoBoxes++;
-                    case "aplate" -> armors++;
-                    case "rad" -> rads++;
-                    case "rfinder" -> radars++;
-                    case "firemod" -> fireMod = true;
-                    case "homingmod" -> homingMod = true;
-                    default -> { }
-                }
-            }
-
-            float hw = headRegion.found() ? headRegion.width : size * tilesize;
-            float hh = headRegion.found() ? headRegion.height : size * tilesize;
-            // 底座零件越多, 车体越壮
-            float bodyScale = 1f + 0.06f * Math.max(0, baseCount - 1);
-
-            // ① 外挂设备: 画在车体下面, 只从边缘露出来, 像是装在炮塔内部
-            drawGadget(iconAmmo, ammoBoxes > 0, -0.30f * hw, 0.17f * hh, rot, cx, cy);
-            drawGadget(iconArmor, armors > 0, -0.30f * hw, -0.17f * hh, rot, cx, cy);
-            drawGadget(iconRad, rads > 0, 0f, 0.33f * hh, rot, cx, cy);
-            drawGadget(iconRadar, radars > 0, 0f, -0.33f * hh, rot, cx, cy);
-
-            // ② 车体 + 基本炮管
+            // ① 基础炮台本体: 主体, 随瞄准角旋转
             if(headRegion.found()){
-                Draw.rect(headRegion, cx, cy, hw * bodyScale, hh * bodyScale, rot);
+                Draw.rect(headRegion, cx, cy, rot);
 
                 if(built && heat > 0.02f){
                     // 连续射击后的过热泛光
                     Draw.color(heatColor, Mathf.clamp(heat * 0.55f));
-                    Draw.rect(headRegion, cx, cy, hw * bodyScale, hh * bodyScale, rot);
+                    Draw.rect(headRegion, cx, cy, rot);
                     Draw.color();
                 }
-            }
-
-            // ③ 炮管延伸段 + 炮口: 炮闩越多越长, 重型/双管各自变形
-            float barrelEnd = 0.42f * hw;
-            if(breaches > 0 && barrelStrip != null && barrelStrip.found()){
-                float thick = 1f + 0.22f * heavies;
-                int barrels = twin ? 2 : 1;
-                float extra = Math.min(2.4f, 0.55f + 0.4f * breaches) * size * tilesize * 0.42f;
-                float start = 0.30f * hw;
-                barrelEnd = start + extra;
-                for(int b = 0; b < barrels; b++){
-                    // 双管时两根炮管并排, 间距按车体尺寸缩放
-                    float perp = (b - (barrels - 1) * 0.5f) * hw * 0.20f * thick;
-                    Tmp.v1.set(start + extra * 0.5f, perp).rotate(rot).add(cx, cy);
-                    Draw.rect(barrelStrip, Tmp.v1.x, Tmp.v1.y, extra, barrelStrip.height * thick, rot);
-                    if(muzzleBlock != null && muzzleBlock.found()){
-                        Tmp.v1.set(start + extra, perp).rotate(rot).add(cx, cy);
-                        Draw.rect(muzzleBlock, Tmp.v1.x, Tmp.v1.y, muzzleBlock.width * 1.05f, muzzleBlock.height * thick * 1.15f, rot);
-                    }
-                }
-            }
-
-            // ④ 旋转底座: 座圈加宽, 让"旋转炮塔"的结构更明确
-            if(rotary && rootRegion.found()){
-                Draw.rect(rootRegion, cx, cy, rootRegion.width * 0.85f, rootRegion.height * 0.85f, rot);
-            }
-
-            // ⑤ 改造件: 在炮口附近发光, 一眼看出装了哪种改造
-            if(fireMod || homingMod){
-                float gx = barrelEnd + 2f;
-                Tmp.v1.set(gx, homingMod ? -3f : 0f).rotate(rot).add(cx, cy);
-                Draw.color(fireMod ? Pal.lightOrange : Pal.accent);
-                Draw.alpha(0.55f + 0.45f * Mathf.absin(Time.time * 3f, 1f));
-                Fill.circle(Tmp.v1.x, Tmp.v1.y, 1.8f);
-                Draw.color();
-                Draw.alpha(1f);
-            }
-
-            // ⑥ 未建完时露出转轴 (建完后被车体遮住)
-            if(!built && rootRegion.found()){
-                if(rootOutlineRegion.found()){
-                    Draw.color(0f, 0f, 0f, 0.5f);
-                    Draw.rect(rootOutlineRegion, cx, cy, rootRegion.width, rootRegion.height, rot);
-                    Draw.color();
-                }
+            }else if(rootRegion.found()){
                 Draw.rect(rootRegion, cx, cy, rot);
             }
 
-            // ⑦ 炮口火光
+            // ② 零件叠加层: 严格按蓝图格位叠在本体上, 随瞄准一起转
+            drawParts(rot, cx, cy);
+
+            // ③ 炮口火光
             if(built && curRecoil > 0.08f){
-                float mx, my;
-                if(barrelEnd > 0.42f * hw){
-                    Tmp.v1.set(barrelEnd, 0f).rotate(rot).add(cx, cy);
-                    mx = Tmp.v1.x;
-                    my = Tmp.v1.y;
-                }else{
-                    float d = size * tilesize * 0.42f;
-                    mx = x + Mathf.cosDeg(rotation) * d + ox;
-                    my = y + Mathf.sinDeg(rotation) * d + oy;
-                }
+                float d = size * tilesize * 0.40f;
+                float mx = x + Mathf.cosDeg(rotation) * d + ox;
+                float my = y + Mathf.sinDeg(rotation) * d + oy;
                 float f = Mathf.clamp(curRecoil * 2f);
                 Draw.color(heatColor);
                 Draw.alpha(f * 0.8f);
@@ -880,11 +771,41 @@ public class ModularTurret extends Turret implements GraphBlockBase{
             Draw.alpha(1f);
         }
 
-        /** 在车体下方绘制外挂零件, 只露出边缘 (看起来像装在炮塔内部)。 */
-        protected void drawGadget(TextureRegion icon, boolean present, float lx, float ly, float rot, float cx, float cy){
-            if(!present || icon == null || !icon.found()) return;
-            Tmp.v1.set(lx, ly).rotate(rot).add(cx, cy);
-            Draw.rect(icon, Tmp.v1.x, Tmp.v1.y, icon.width * 0.55f, icon.height * 0.55f, rot);
+        /**
+         * 绘制零件叠加层: 严格按蓝图格位换算到方块内, 与蓝图一一对应。
+         *
+         * <p>每格像素 = 方块边长 / 网格数, 整张网格正好铺满方块, 不会溢出;
+         * 多格零件只在锚点格绘制一次。所有零件随瞄准角一起旋转。</p>
+         */
+        protected void drawParts(float rot, float cx, float cy){
+            if(bluePrint.size == 0) return;
+            int gridN = Math.max(gridW, gridH);
+            float cell = size * tilesize / gridN;
+
+            drawVisited.clear();
+            for(int i = 0; i < bluePrint.size; i++){
+                if(drawVisited.contains(i)) continue;
+                int value = bluePrint.get(i);
+                if(value <= 0 || value > parts.size) continue;
+                PartInfo p = parts.get(value - 1);
+                int gx = i / gridH, gy = i % gridH;
+
+                // 多格零件: 标记所占的其它格, 避免重复绘制
+                for(int dx = 0; dx < p.tw; dx++){
+                    for(int dy = 0; dy < p.th; dy++){
+                        int idx = (gx + dx) * gridH + (gy + dy);
+                        if(idx >= 0 && idx < bluePrint.size) drawVisited.add(idx);
+                    }
+                }
+
+                TextureRegion tex = p.texRegion;
+                if(tex == null || !tex.found()) continue;
+                // 网格坐标 → 方块本地像素 (网格中心与方块中心重合)
+                float lx = (gx + p.tw * 0.5f - gridW * 0.5f) * cell;
+                float ly = (gy + p.th * 0.5f - gridH * 0.5f) * cell;
+                Tmp.v1.set(lx, ly).rotate(rot).add(cx, cy);
+                Draw.rect(tex, Tmp.v1.x, Tmp.v1.y, p.tw * cell, p.th * cell, rot);
+            }
         }
     }
 }
