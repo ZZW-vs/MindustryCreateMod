@@ -481,19 +481,21 @@ public class Z_Units {
         // ★ key 用 type.name (v154.3 mod 单位的 name 带 mod 前缀, 如 "create-toxobyte")
         // PU132: segmentLength=25, segmentOffset=16.25f
         // PU132: regenTime=15*60f (15秒长一节), maxSegments 默认上限 25
-        // ★ splittable=false: 段身不再独立承伤/死亡分裂
-        //   PU132 原版为 true, 但段身只有 400 血且受击伤害 ×3, 高额外部伤害
-        //   会先打死中间某节 → onSegmentDied 把后半段拆成新虫子, 表现为"整条断开成几截"。
-        //   关闭后段身伤害全部转给头部, 存活判定只看头部, 保证整体行动、整体承伤。
+        // ★ splittable=true + preventSplit=true:
+        //   段身有独立血量, 高额伤害可以把中间某一节直接打没 (允许留下缺口),
+        //   但 onSegmentDied 只做索引重排与链条衔接, 不再把后半段转成新头部,
+        //   剩余段身始终跟随同一个头部, 不会拆成两个互相独立控制的个体。
         // ★ chainable=true (用户要求实现链式合并, 两条虫子靠近时合并)
         // ★ angleLimit=30f (龙的感觉: 更大的弯曲角度)
-        // ★ segmentDamageScl=3f (仅 splittable=true 时生效, 保留原值不影响当前行为)
+        // ★ segmentDamageScl=3f (段身受击时血量×3倍掉, 高伤更容易打掉一节)
         // anglePhysicsSmooth=0.5f (更平滑的转向)
         // segmentCast=8, jointStrength=0.5f (增大传播范围, 减小关节强度防止脱臼)
         // ★ regenTime 改为6秒: 每6秒生长一节
         SegmentWormEntity.configs.put(toxobyte.name,
-            new SegmentWormEntity.SegmentConfig(toxobyteSegment, 25, 16.25f, 6f * 60f, 25, false, false, true,
+            new SegmentWormEntity.SegmentConfig(toxobyteSegment, 25, 16.25f, 6f * 60f, 25, false, true, true,
                 30f, 3f, 0.1f, 0.5f, 8, 0.5f, false, 0f));
+        // ★ 禁止段身死亡后分裂出新个体: 打掉的节只从链上摘除, 整条虫仍是一体
+        SegmentWormEntity.configs.get(toxobyte.name).preventSplit = true;
         // toxobyte: 每秒回15血
         SegmentWormEntity.configs.get(toxobyte.name).healPerSecond = 15f;
 
