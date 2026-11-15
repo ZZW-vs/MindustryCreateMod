@@ -10,6 +10,7 @@ import arc.math.Mathf;
 import arc.math.geom.Point2;
 import arc.scene.ui.layout.Table;
 import arc.struct.IntSeq;
+import arc.struct.IntSet;
 import arc.struct.OrderedMap;
 import arc.struct.Seq;
 import arc.util.Time;
@@ -67,8 +68,12 @@ public class ModularTurret extends Turret implements GraphBlockBase{
     public final Seq<PartInfo> parts = new Seq<>();
     /** 零件分类, 顺序对应 partscategory1..5 */
     final PartType[] categories = new PartType[]{PartType.base, PartType.breach, PartType.ammo, PartType.payload, PartType.misc};
-    /** 可旋转的炮塔头部 (含炮管), 建造完成后替代零件拼装体显示 */
+    /** 可旋转的炮塔头部 (含炮管) */
     TextureRegion headRegion;
+    /** 从头部贴图裁出的炮管段与炮口块, 用于按炮闩数量延长炮管 */
+    TextureRegion barrelStrip, muzzleBlock;
+    /** 外挂设备 (装在车体下方、只露出边缘) */
+    TextureRegion iconAmmo, iconArmor, iconRad, iconRadar;
     TextureRegion partsRegion, rootRegion, rootOutlineRegion;
     /** peekAmmo 兜底弹种: 未装完蓝图时避免炮塔更新流程取到 null */
     static final BulletType dummyBullet = new BasicBulletType(1f, 0f);
@@ -201,6 +206,16 @@ public class ModularTurret extends Turret implements GraphBlockBase{
         rootRegion = Core.atlas.find(name + "-root");
         rootOutlineRegion = Core.atlas.find(name + "-root-outline");
         headRegion = Core.atlas.find(name + "-head");
+        if(headRegion.found()){
+            // 从头部贴图直接裁出炮管中段与炮口块 (不新增美术资源)
+            int w = headRegion.width, h = headRegion.height;
+            barrelStrip = new TextureRegion(headRegion, (int)(w * 0.52f), (int)(h * 0.40f), (int)(w * 0.42f), (int)(h * 0.20f));
+            muzzleBlock = new TextureRegion(headRegion, (int)(w * 0.80f), (int)(h * 0.34f), (int)(w * 0.18f), (int)(h * 0.32f));
+        }
+        iconAmmo = Core.atlas.find("create-part-apacker");
+        iconArmor = Core.atlas.find("create-part-aplate");
+        iconRad = Core.atlas.find("create-part-rad");
+        iconRadar = Core.atlas.find("create-part-rfinder");
         for(PartInfo part : parts){
             TextureRegion region = Core.atlas.find("create-part-" + part.icon);
             part.sprite = region;
@@ -245,6 +260,8 @@ public class ModularTurret extends Turret implements GraphBlockBase{
     public class ModularTurretBuild extends TurretBuild implements GraphBlockBase.GraphBuildBase{
         /** 扭矩网络模块 (接入传动系统后由网络提供装填加成) */
         protected GraphModules gms;
+        /** 绘制时用于去重多格零件的临时集合 */
+        final IntSet drawVisited = new IntSet();
         final OrderedMap<Item, Integer> blueprintRemainingCost = new OrderedMap<>(12);
         final IntSeq bluePrint = new IntSeq();
         final StatContainer currentStats = new StatContainer();
@@ -723,68 +740,132 @@ public class ModularTurret extends Turret implements GraphBlockBase{
 
             Draw.z(Layer.turret);
 
-            // 旋转层: 绕方块中心按瞄准角旋转, 并带后坐力位移
+            // 旋转层: 整体绕方块中心按瞄准角旋转, 并带后坐力位移
             float rot = rotation - 90f;
             float recoil = -curRecoil * 2.5f;
             float ox = Mathf.cosDeg(rotation) * recoil;
             float oy = Mathf.sinDeg(rotation) * recoil;
-            float muzzleDist = size * tilesize * 0.42f;
-            float mx = x + Mathf.cosDeg(rotation) * muzzleDist + ox;
-            float my = y + Mathf.sinDeg(rotation) * muzzleDist + oy;
+            float cx = x + ox, cy = y + oy;
             boolean built = validTurret && headRegion.found();
+            Draw.alpha(built ? 1f : 0.25f + 0.5f * aniProg);
 
-            // 1) 炮管头部 (未建完时以半透明虚影预览建造进度)
+            // ===== 按蓝图合成外观: 统计实际装上的零件 =====
+            int baseCount = 0, breaches = 0, heavies = 0, ammoBoxes = 0, armors = 0, rads = 0, radars = 0;
+            boolean rotary = false, twin = false, fireMod = false, homingMod = false;
+            drawVisited.clear();
+            for(int i = 0; i < bluePrint.size; i++){
+                if(drawVisited.contains(i)) continue;
+                int value = bluePrint.get(i);
+                if(value <= 0 || value > parts.size) continue;
+                PartInfo p = parts.get(value - 1);
+                // 多格零件的其它格一并标记, 避免重复统计
+                int gx = i / gridH, gy = i % gridH;
+                for(int dx = 0; dx < p.tw; dx++){
+                    for(int dy = 0; dy < p.th; dy++){
+                        int idx = (gx + dx) * gridH + (gy + dy);
+                        if(idx >= 0 && idx < bluePrint.size) drawVisited.add(idx);
+                    }
+                }
+
+                switch(p.icon == null ? "" : p.icon){
+                    case "rgbase" -> { baseCount++; rotary = true; }
+                    case "small-adapter" -> baseCount++;
+                    case "gbase" -> baseCount++;
+                    case "gbreach" -> breaches++;
+                    case "cbreach" -> { breaches++; heavies++; }
+                    case "grbreach" -> { breaches++; heavies++; }
+                    case "clbreach" -> { breaches++; twin = true; }
+                    case "apacker" -> ammoBoxes++;
+                    case "aplate" -> armors++;
+                    case "rad" -> rads++;
+                    case "rfinder" -> radars++;
+                    case "firemod" -> fireMod = true;
+                    case "homingmod" -> homingMod = true;
+                    default -> { }
+                }
+            }
+
+            float hw = headRegion.found() ? headRegion.width : size * tilesize;
+            float hh = headRegion.found() ? headRegion.height : size * tilesize;
+            // 底座零件越多, 车体越壮
+            float bodyScale = 1f + 0.06f * Math.max(0, baseCount - 1);
+
+            // ① 外挂设备: 画在车体下面, 只从边缘露出来, 像是装在炮塔内部
+            drawGadget(iconAmmo, ammoBoxes > 0, -0.30f * hw, 0.17f * hh, rot, cx, cy);
+            drawGadget(iconArmor, armors > 0, -0.30f * hw, -0.17f * hh, rot, cx, cy);
+            drawGadget(iconRad, rads > 0, 0f, 0.33f * hh, rot, cx, cy);
+            drawGadget(iconRadar, radars > 0, 0f, -0.33f * hh, rot, cx, cy);
+
+            // ② 车体 + 基本炮管
             if(headRegion.found()){
-                Draw.alpha(built ? 1f : 0.22f + 0.4f * aniProg);
-                Draw.rect(headRegion, x + ox, y + oy, rot);
-                Draw.alpha(1f);
+                Draw.rect(headRegion, cx, cy, hw * bodyScale, hh * bodyScale, rot);
 
                 if(built && heat > 0.02f){
                     // 连续射击后的过热泛光
                     Draw.color(heatColor, Mathf.clamp(heat * 0.55f));
-                    Draw.rect(headRegion, x + ox, y + oy, rot);
+                    Draw.rect(headRegion, cx, cy, hw * bodyScale, hh * bodyScale, rot);
                     Draw.color();
                 }
             }
 
-            // 2) 蓝图零件: 严格按蓝图格位摆放并随瞄准一起旋转, 叠在头部之上,
-            //    这样一眼就能看出装了什么零件、装在哪个格位
-            if(bluePrint.size > 0){
-                float cellX = size * tilesize / gridW;
-                float cellY = size * tilesize / gridH;
-                Draw.alpha(built ? 1f : 0.45f + 0.5f * aniProg);
-                for(int index = 0; index < bluePrint.size; index++){
-                    int value = bluePrint.get(index);
-                    if(value == 0 || value > parts.size) continue;
-                    PartInfo part = parts.get(value - 1);
-                    TextureRegion tex = part.texRegion;
-                    if(tex == null || !tex.found()) continue;
-                    int gx = index / gridH, gy = index % gridH;
-                    // 网格坐标 → 方块本地像素坐标 (网格中心对齐方块中心)
-                    float lx = (gx + part.tw * 0.5f - gridW * 0.5f) * cellX;
-                    float ly = (gy + part.th * 0.5f - gridH * 0.5f) * cellY;
-                    Tmp.v1.set(lx, ly).rotate(rot).add(x + ox, y + oy);
-                    // 深色底板, 让零件在炮管上也能看清
-                    Draw.color(0f, 0f, 0f, 0.42f);
-                    Draw.rect(Core.atlas.white(), Tmp.v1.x, Tmp.v1.y, part.tw * cellX + 1.5f, part.th * cellY + 1.5f, rot);
-                    Draw.color();
-                    Draw.rect(tex, Tmp.v1.x, Tmp.v1.y, part.tw * cellX, part.th * cellY, rot);
+            // ③ 炮管延伸段 + 炮口: 炮闩越多越长, 重型/双管各自变形
+            float barrelEnd = 0.42f * hw;
+            if(breaches > 0 && barrelStrip != null && barrelStrip.found()){
+                float thick = 1f + 0.22f * heavies;
+                int barrels = twin ? 2 : 1;
+                float extra = Math.min(2.4f, 0.55f + 0.4f * breaches) * size * tilesize * 0.42f;
+                float start = 0.30f * hw;
+                barrelEnd = start + extra;
+                for(int b = 0; b < barrels; b++){
+                    // 双管时两根炮管并排, 间距按车体尺寸缩放
+                    float perp = (b - (barrels - 1) * 0.5f) * hw * 0.20f * thick;
+                    Tmp.v1.set(start + extra * 0.5f, perp).rotate(rot).add(cx, cy);
+                    Draw.rect(barrelStrip, Tmp.v1.x, Tmp.v1.y, extra, barrelStrip.height * thick, rot);
+                    if(muzzleBlock != null && muzzleBlock.found()){
+                        Tmp.v1.set(start + extra, perp).rotate(rot).add(cx, cy);
+                        Draw.rect(muzzleBlock, Tmp.v1.x, Tmp.v1.y, muzzleBlock.width * 1.05f, muzzleBlock.height * thick * 1.15f, rot);
+                    }
                 }
+            }
+
+            // ④ 旋转底座: 座圈加宽, 让"旋转炮塔"的结构更明确
+            if(rotary && rootRegion.found()){
+                Draw.rect(rootRegion, cx, cy, rootRegion.width * 0.85f, rootRegion.height * 0.85f, rot);
+            }
+
+            // ⑤ 改造件: 在炮口附近发光, 一眼看出装了哪种改造
+            if(fireMod || homingMod){
+                float gx = barrelEnd + 2f;
+                Tmp.v1.set(gx, homingMod ? -3f : 0f).rotate(rot).add(cx, cy);
+                Draw.color(fireMod ? Pal.lightOrange : Pal.accent);
+                Draw.alpha(0.55f + 0.45f * Mathf.absin(Time.time * 3f, 1f));
+                Fill.circle(Tmp.v1.x, Tmp.v1.y, 1.8f);
+                Draw.color();
                 Draw.alpha(1f);
             }
 
-            // 3) 未建完时露出转轴 (建完后被头部遮住)
+            // ⑥ 未建完时露出转轴 (建完后被车体遮住)
             if(!built && rootRegion.found()){
                 if(rootOutlineRegion.found()){
                     Draw.color(0f, 0f, 0f, 0.5f);
-                    Draw.rect(rootOutlineRegion, x + ox, y + oy, rot);
+                    Draw.rect(rootOutlineRegion, cx, cy, rootRegion.width, rootRegion.height, rot);
                     Draw.color();
                 }
-                Draw.rect(rootRegion, x + ox, y + oy, rot);
+                Draw.rect(rootRegion, cx, cy, rot);
             }
 
-            // 4) 炮口火光
+            // ⑦ 炮口火光
             if(built && curRecoil > 0.08f){
+                float mx, my;
+                if(barrelEnd > 0.42f * hw){
+                    Tmp.v1.set(barrelEnd, 0f).rotate(rot).add(cx, cy);
+                    mx = Tmp.v1.x;
+                    my = Tmp.v1.y;
+                }else{
+                    float d = size * tilesize * 0.42f;
+                    mx = x + Mathf.cosDeg(rotation) * d + ox;
+                    my = y + Mathf.sinDeg(rotation) * d + oy;
+                }
                 float f = Mathf.clamp(curRecoil * 2f);
                 Draw.color(heatColor);
                 Draw.alpha(f * 0.8f);
@@ -796,6 +877,14 @@ public class ModularTurret extends Turret implements GraphBlockBase{
                 Draw.alpha(1f);
                 Drawf.light(mx, my, 26f * f, heatColor, 0.6f);
             }
+            Draw.alpha(1f);
+        }
+
+        /** 在车体下方绘制外挂零件, 只露出边缘 (看起来像装在炮塔内部)。 */
+        protected void drawGadget(TextureRegion icon, boolean present, float lx, float ly, float rot, float cx, float cy){
+            if(!present || icon == null || !icon.found()) return;
+            Tmp.v1.set(lx, ly).rotate(rot).add(cx, cy);
+            Draw.rect(icon, Tmp.v1.x, Tmp.v1.y, icon.width * 0.55f, icon.height * 0.55f, rot);
         }
     }
 }
