@@ -1025,6 +1025,8 @@ public class SegmentWormEntity extends UnitEntity implements zzw.content.Faction
      *  ★ preventSplit=true: 不分裂, 中间段死亡后把死段从链条里摘掉, 后续段重新衔接,
      *    再由 regenTime 每 6 秒补回一节 (用户需求: 只再生不分裂, 避免复制 BOSS) */
     public void onSegmentDied(SegmentUnitEntity seg) {
+        // 头部已死亡时不再分裂/重组, 避免死亡瞬间拆出独立小虫
+        if (dead || !isAdded()) return;
         int deadIdx = -1;
         for (int i = 0; i < segments.length; i++) {
             if (segments[i] == seg) { deadIdx = i; break; }

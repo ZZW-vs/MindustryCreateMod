@@ -226,6 +226,20 @@ public class SegmentUnitEntity extends UnitEntity {
         }
     }
 
+    /**
+     * ★ 穿透伤害 (damagePierce / damageArmorMult) 不走 damage(float), 而是直接调用 rawDamage。
+     *   若不拦截, 高额穿透伤害仍能单独打死某一节, 表现为整条虫断开。
+     *   非分裂模式下统一转给头部, 保证只有头部一个存活判定。
+     */
+    @Override
+    public void rawDamage(float amount) {
+        if (head != null && head.isAdded() && !head.splittable) {
+            head.damage(amount);
+            return;
+        }
+        super.rawDamage(amount);
+    }
+
     @Override
     public void kill() {
         if (dead) return;
