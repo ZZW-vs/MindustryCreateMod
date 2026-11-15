@@ -34,9 +34,13 @@ public class KoruhConveyor extends Conveyor {
         @Override
         public void draw() {
             // draw 时临时放大 speed 影响动画, 实际运输速度不变
+            // try/finally: super.draw() 抛异常时也必须还原, 否则实际运输速度被永久改写
             speed = realSpeed * drawMultiplier;
-            super.draw();
-            speed = realSpeed;
+            try {
+                super.draw();
+            } finally {
+                speed = realSpeed;
+            }
         }
     }
 }

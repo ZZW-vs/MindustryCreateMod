@@ -365,11 +365,8 @@ public class Z_Units {
         } catch (Throwable t) {
             try { arc.util.Log.err("set shootSound failed", t); } catch (Throwable ignored) {}
         }
-        // PU132: visualElevation=0.8f (v154.3 已移除该字段, 静默忽略)
-        try {
-            java.lang.reflect.Field ve = arcnelidia.getClass().getSuperclass().getField("visualElevation");
-            ve.setFloat(arcnelidia, 0.8f);
-        } catch (Throwable ignored) {}
+        // PU132: visualElevation=0.8f; v160 已移除该字段, 对应的视觉抬升字段为 shadowElevation
+        arcnelidia.shadowElevation = 0.8f;
 
         // ═══════════════════════════════════════════════════════════
         //  Toxobyte (PU132 瘟疫虫)
@@ -1297,43 +1294,13 @@ public class Z_Units {
         // WormDecal 有延迟加载机制: 第一次 draw 时检查 loaded 标志, 未加载则调用 load()
         SegmentWormEntity.wormDecals.put(oppression.name, decal);
 
-        // 用反射设置 toxobyte 武器音效 (v154.3 编译期可能找不到字段)
-        try {
-            Class<?> soundsClass = Class.forName("mindustry.gen.Sounds");
-            // 头部 Sap 武器音效
-            try {
-                java.lang.reflect.Field f = soundsClass.getField("shootSap");
-                arc.audio.Sound snd = (arc.audio.Sound) f.get(null);
-                toxobyte.weapons.first().shootSound = snd;
-            } catch (Throwable ignored) {}
-            // 段身榴弹音效
-            try {
-                java.lang.reflect.Field f = soundsClass.getField("shootArtillery");
-                arc.audio.Sound snd = (arc.audio.Sound) f.get(null);
-                toxobyteSegment.weapons.first().shootSound = snd;
-            } catch (Throwable ignored) {}
-            // arcnelidia 段身炸弹音效
-            try {
-                java.lang.reflect.Field f = soundsClass.getField("shootBomb");
-                arc.audio.Sound snd = (arc.audio.Sound) f.get(null);
-                arcnelidiaSegment.weapons.first().shootSound = snd;
-            } catch (Throwable ignored) {}
-            // catenapede 头部吸血激光音效 (PU132: Sounds.respawning)
-            try {
-                java.lang.reflect.Field f = soundsClass.getField("respawning");
-                arc.audio.Sound snd = (arc.audio.Sound) f.get(null);
-                catenapede.weapons.first().shootSound = snd;
-            } catch (Throwable ignored) {}
-            // catenapede 段身导弹音效 (PU132: Sounds.missile)
-            try {
-                java.lang.reflect.Field f = soundsClass.getField("missile");
-                arc.audio.Sound snd = (arc.audio.Sound) f.get(null);
-                for (mindustry.type.Weapon w : catenapedeSegment.weapons) {
-                    w.shootSound = snd;
-                }
-            } catch (Throwable ignored) {}
-        } catch (Throwable t) {
-            try { arc.util.Log.err("set toxobyte sounds failed", t); } catch (Throwable ignored) {}
+        // toxobyte 系列武器音效 (v160 Sounds 字段已固定, 直接引用; 旧反射名不存在)
+        toxobyte.weapons.first().shootSound = Sounds.shootSap;                 // 头部 Sap
+        toxobyteSegment.weapons.first().shootSound = Sounds.shootArtillery;    // 段身榴弹
+        arcnelidiaSegment.weapons.first().shootSound = Sounds.shootArtillery;  // 段身炸弹 (无 shootBomb, 取炮击音)
+        catenapede.weapons.first().shootSound = Sounds.shootLaser;             // 头部吸血激光 (无 respawning)
+        for (mindustry.type.Weapon w : catenapedeSegment.weapons) {
+            w.shootSound = Sounds.shootMissile;                                // 段身导弹
         }
 
         // ═══════════════════════════════════════════════════════════
@@ -5455,50 +5422,15 @@ public class Z_Units {
             });
         }};
 
-        // ★ 用反射设置新单位的音效 (v158 字段名可能与 PU_V8 不同) ★
-        try {
-            Class<?> soundsClass = Class.forName("mindustry.gen.Sounds");
-            // citadel: 磁轨炮音效
-            try {
-                java.lang.reflect.Field f = soundsClass.getField("railgun");
-                arc.audio.Sound snd = (arc.audio.Sound) f.get(null);
-                citadel.weapons.first().shootSound = snd;
-            } catch (Throwable ignored) {}
-            // citadel/empire: 火焰喷射音效
-            try {
-                java.lang.reflect.Field f = soundsClass.getField("flame");
-                arc.audio.Sound snd = (arc.audio.Sound) f.get(null);
-                for (int i = 1; i < citadel.weapons.size; i++) citadel.weapons.get(i).shootSound = snd;
-                empire.weapons.first().shootSound = snd;
-            } catch (Throwable ignored) {}
-            // empire: 导弹音效
-            try {
-                java.lang.reflect.Field f = soundsClass.getField("shootSnap");
-                arc.audio.Sound snd = (arc.audio.Sound) f.get(null);
-                empire.weapons.get(1).shootSound = snd;
-            } catch (Throwable ignored) {}
-            // empire: 炮弹音效
-            try {
-                java.lang.reflect.Field f = soundsClass.getField("artillery");
-                arc.audio.Sound snd = (arc.audio.Sound) f.get(null);
-                empire.weapons.get(2).shootSound = snd;
-            } catch (Throwable ignored) {}
-            // cygnus/mantodea: 激光音效
-            try {
-                java.lang.reflect.Field f = soundsClass.getField("laser");
-                arc.audio.Sound snd = (arc.audio.Sound) f.get(null);
-                cygnus.weapons.first().shootSound = snd;
-            } catch (Throwable ignored) {}
-            // caelifera/schistocerca/anthophila: 基础枪械音效
-            try {
-                java.lang.reflect.Field f = soundsClass.getField("pew");
-                arc.audio.Sound snd = (arc.audio.Sound) f.get(null);
-                caelifera.weapons.first().shootSound = snd;
-                schistocerca.weapons.first().shootSound = snd;
-            } catch (Throwable ignored) {}
-        } catch (Throwable t) {
-            try { arc.util.Log.err("set PU_V8 unit sounds failed", t); } catch (Throwable ignored) {}
-        }
+        // 新单位音效 (v160 Sounds 字段已固定, 直接引用; 旧反射名不存在)
+        citadel.weapons.first().shootSound = Sounds.shootLancer;      // 磁轨炮 (无 railgun)
+        for (int i = 1; i < citadel.weapons.size; i++) citadel.weapons.get(i).shootSound = Sounds.shootFlame;  // 火焰喷射
+        empire.weapons.first().shootSound = Sounds.shootFlame;
+        empire.weapons.get(1).shootSound = Sounds.shootMissile;       // 导弹 (无 shootSnap)
+        empire.weapons.get(2).shootSound = Sounds.shootArtillery;     // 炮弹 (无 artillery)
+        cygnus.weapons.first().shootSound = Sounds.shootLaser;        // 激光 (无 laser)
+        caelifera.weapons.first().shootSound = Sounds.shoot;          // 基础枪械 (无 pew)
+        schistocerca.weapons.first().shootSound = Sounds.shoot;
 
         // ═══════════════════════════════════════════════════════════
         //  Terra (PU132 世界单位, 携带子世界的移动堡垒)
