@@ -26,6 +26,7 @@ import mindustry.entities.bullet.ContinuousLaserBulletType;
 import mindustry.entities.bullet.LaserBulletType;
 import mindustry.entities.bullet.MissileBulletType;
 import mindustry.entities.bullet.ShrapnelBulletType;
+import mindustry.game.Team;
 import mindustry.gen.Bullet;
 import mindustry.gen.Healthc;
 import mindustry.gen.Hitboxc;
@@ -979,14 +980,16 @@ public class Z_Bullets {
                     Units.nearbyEnemies(b.team, b.x - radius, b.y - radius, 2 * radius, 2 * radius, u -> {
                         if (u != null && Mathf.within(b.x, b.y, u.x, u.y, radius)) {
                             data.units.add(u);
-                            // 中心瞬间伤害
+                            // 中心瞬间伤害 (★ 用户调整: 120 → 160, 配合 singularity 伤害加强)
                             if (Mathf.within(b.x, b.y, u.x, u.y, (interp * size * 3.9f) + u.hitSize / 2f)) {
-                                u.damage(120f);
+                                u.damage(160f);
                             }
                         }
                     });
                     // 范围伤害
                     Damage.damage(b.team, b.x, b.y, hitSize, damage);
+                    // ★ 特殊目标(targetable/hittable=false 的支援单位)不会被 Damage.damage 结算, 单独补一次
+                    damageSpecialUnits(b.team, b.x, b.y, hitSize, damage);
                 }
                 // 每帧吸引 (收集到的单位列表)
                 data.units.each(u -> {
@@ -1108,6 +1111,41 @@ public class Z_Bullets {
         public Seq<Unit> units = new Seq<>();
     }
 
+    /** 特殊目标检测/伤害的临时单位缓存 (单线程逻辑, 每次调用前清空) */
+    private static final Seq<Unit> specialTargetBuffer = new Seq<>();
+
+    /**
+     * 半径内是否存在敌方单位。
+     *
+     * <p>★ 不用 {@code Units.closestTarget}/{@code closestEnemy}: 它们内部会过滤
+     * {@code targetable=false} 的"特殊单位"(如 incite/emanate 这类支援单位),
+     * 导致黑洞/漩涡的引爆判定永远看不到它们, 弹体直接穿过去。</p>
+     */
+    public static boolean anyEnemyWithin(Team team, float x, float y, float radius){
+        specialTargetBuffer.clear();
+        Units.nearbyEnemies(team, x - radius, y - radius, radius * 2f, radius * 2f, u -> {
+            if(u != null && !u.dead && u.team != team && Mathf.within(x, y, u.x, u.y, radius + u.hitSize / 2f)){
+                specialTargetBuffer.add(u);
+            }
+        });
+        return specialTargetBuffer.size > 0;
+    }
+
+    /**
+     * 给 {@code hittable=false} 的特殊单位补一次范围伤害。
+     *
+     * <p>★ 引擎的 {@link Damage#damage} 会用 {@code unit.hittable()} 过滤,
+     * 所以支援类单位完全不吃黑洞/漩涡的范围伤害。这里单独补一遍直接
+     * {@code unit.damage()}(不经 hittable 判定), 让特殊目标也能正常受伤。</p>
+     */
+    public static void damageSpecialUnits(Team team, float x, float y, float radius, float damage){
+        Units.nearbyEnemies(team, x - radius, y - radius, radius * 2f, radius * 2f, u -> {
+            if(u != null && !u.dead && u.team != team && !u.hittable() && Mathf.within(x, y, u.x, u.y, radius + u.hitSize / 2f)){
+                u.damage(damage);
+            }
+        });
+    }
+
     /** ===== GluonWhirlBulletType (PU132 gluon 能量球消散后的漩涡) =====
      * ★完整移植 PU132 GluonWhirlBulletType:
      *  - 小漩涡: 持续吸引半径内敌方单位 (force + scaledForce)
@@ -1148,6 +1186,8 @@ public class Z_Bullets {
                     }
                 });
                 Damage.damage(b.team, b.x, b.y, hitSize, damage);
+                // ★ 同上: 漩涡也要能伤到 hittable=false 的特殊目标
+                damageSpecialUnits(b.team, b.x, b.y, hitSize, damage);
             }
 
             data.units.each(u -> {

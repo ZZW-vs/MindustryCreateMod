@@ -364,6 +364,11 @@
   - **blue**：射程最远的主炮伤害翻倍 2100 → 4200
   - **fin**：导弹与主炮伤害约 ×3.1（DPS 1228 → 约 3800）
   - **devourer-of-eldrich-gods-segment**：身段再生间隔 6 秒 → 45 秒一节
+- **炮台第三轮修复：electrobomb 锁敌/落点、singularity·higgs·proton 加强、黑洞/漩涡对特殊目标生效、wavefront 3D 裁剪**
+  - **electrobomb 锁敌与攻击**：弹体原先固定 `lifetime = 70f`（约 490 世界单位），射程统一后又被同步到显示圈末端（≈572），开火后无论目标在哪都飞满寿命才引爆，表现为"不锁敌、只打最远处"。现补 `scaleLife = true`，炮台按 `targetPos` 实际距离缩放寿命，炮弹正好在目标点引爆；配合 `collides / collidesTiles`，沿途命中也在命中点结算
+  - **伤害加强**：proton 直击 65 → 90、溅射 92 → 125、闪电 18 → 25；higgs-boson 光束 120 → 165；singularity 能量球 500 → 700、黑洞 500 → 700、建筑伤害 150 → 200、黑洞中心单位伤害 120 → 160
+  - **特殊目标不生成黑洞/漩涡**：`targetable=false` / `hittable=false` 的支援单位会被 `Units.closestTarget`（索敌）与 `Damage.collideLine`（碰撞）过滤，singularity / gluon 的能量球从它们身上直接穿过，黑洞/漩涡不生成、范围伤害也不结算。现改用 `Units.nearbyEnemies` 做"半径内任意敌方单位"引爆判定（`anyEnemyWithin`），并对 `hittable=false` 单位补一条直接伤害通道（`damageSpecialUnits`），特殊目标也能正常触发黑洞/漩涡并受伤
+  - **wavefront 3D 透视异常**：模型此前未开启背面剔除，斜视时会从左右两片壳体之间的空隙看到远侧壳体的内壁背面（截面错乱）。现开启精确透视剔除 `cullBackfaces`（与 prism/飞轮等模型一致），只提交朝向相机的面
 - **炮台射程统一后的命中/范围问题修复 + ripple / chopper 调整**
   - **弹体只飞最远点、沿途打不到**：根因是 proton 炮弹 `collides = false`，完全跳过命中判定，只在寿命结束的落点起爆；统一 lifetime 后它稳定飞到射程末端，问题被放大。现已开启 `collides / collidesTiles`（保留 `scaleLife` 落点起爆），沿途敌人与建筑可正常命中
   - **kelvin-laser-turret 射程限制失效**：`ExpLaserBulletType.init` 直接按 `getLength()` 调用 `Damage.collideLaser`，不受炮台 range 约束；`GeyserLaserBulletType` 现将动态长度临时压到 `TurretBuild.range()`，瞄准点也沿射线夹回射程内，伤害与喷泉位置均与显示圈一致

@@ -62,6 +62,11 @@ public class ZObjs {
         wavefront.lightColor = Color.white;
         wavefront.shadeColor = Color.valueOf("9e9f9f");
         wavefront.drawLayer = Layer.turret;
+        // ★ 修复"特定角度透视异常/能看到不该露的面": 之前没有开启背面剔除,
+        //   该模型是左右两片镜像壳体, 斜视时会从两片之间的空隙看到远侧壳体的内壁背面,
+        //   表现为截面错乱/露出不该看到的面。改用精确透视剔除 (facingCamera),
+        //   与 prism/飞轮/水车等模型保持一致 (只提交朝向相机的面)。
+        wavefront.cullBackfaces = true;
         
         // ★ 让 wavefront 炮台"躺下"（波浪沿地面延伸）
         wavefront.extraRotX = -90f;

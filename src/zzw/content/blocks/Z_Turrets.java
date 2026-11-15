@@ -999,6 +999,17 @@ public class Z_Turrets {
             }
 
             @Override
+            public void update(mindustry.gen.Bullet b) {
+                super.update(b);
+                // ★ 特殊目标(targetable/hittable=false 的支援单位)不会触发引擎碰撞判定,
+                //   能量球会直接穿过它们; 这里补一次"任意敌方单位"接近判定,
+                //   让漩涡在特殊目标处也能正常生成 (remove → despawned → 生成漩涡)
+                if (b.isAdded() && Z_Bullets.anyEnemyWithin(b.team, b.x, b.y, 20f)) {
+                    b.remove();
+                }
+            }
+
+            @Override
             public void despawned(mindustry.gen.Bullet b) {
                 super.despawned(b);
                 Z_Bullets.gluonWhirl.create(b, b.x, b.y, 0f);
@@ -1180,7 +1191,9 @@ public class Z_Turrets {
                 public void update(mindustry.gen.Bullet b) {
                     super.update(b);
                     // 接近敌人时移除, 触发 despawned() 创建黑洞
-                    if (mindustry.entities.Units.closestTarget(b.team, b.x, b.y, 20f) != null) {
+                    // ★ 特殊目标(targetable/hittable=false 的支援单位)不会被碰撞判定和 closestTarget 看到,
+                    //   改用"半径内任意敌方单位"判定, 保证黑洞在特殊目标处也能正常生成
+                    if (Z_Bullets.anyEnemyWithin(b.team, b.x, b.y, 20f)) {
                         b.remove();
                     }
                     // PU132: 每 2~3.5tick 撒六边形光尾 (半径随速度)
