@@ -1,11 +1,9 @@
 package zzw.content.units.bullets;
 
-import arc.graphics.Color;
 import arc.graphics.g2d.Draw;
 import arc.graphics.g2d.Fill;
 import arc.math.Mathf;
 import arc.math.geom.Vec2;
-import arc.util.Time;
 import arc.util.Tmp;
 import mindustry.content.Fx;
 import mindustry.content.StatusEffects;
@@ -18,27 +16,28 @@ import mindustry.type.StatusEffect;
 import zzw.content.units.util.UnityUtils;
 
 /**
- * 治疗核弹 (PU_V8 HealingNukeBulletType 移植版, v160 修正为"发射型").
+ * 治疗核弹 (PU_V8 HealingNukeBulletType 移植版).
  *
- * <p>★ 修复: 原实现 speed=0, 在炮口位置立即结算, 核弹永远在单位自己脚下炸开,
- * 与"治疗核弹在关键位置炸开"的定位不符。现在核弹会以可见速度飞向 AI 锁定的
- * 伤员位置, 到达目标点 (或飞行超时) 后再引爆:</p>
+ * <p>★ 行为: 与 PU_V8 原版一致 —— speed=0, 在炮口/单位自身位置立即结算,
+ * 是"自身范围修复", 不再作为飞行弹体飞向伤员。</p>
  * <ul>
  *   <li>引爆瞬间: 圆形范围友军治疗+allyStatus, 敌军伤害+status, absorbLasers 建筑遮挡;</li>
- *   <li>引爆后弹体保留 24 帧用于绘制绿色治疗范围, 随后消失;</li>
- *   <li>飞行途中绘制绿色光球, 让玩家能看清核弹的落点。</li>
+ *   <li>弹体保留约 30 帧用于绘制绿色治疗范围, 随后消失;</li>
+ *   <li>治疗量 = max(最低治疗量, healPercent% × 最大生命)。</li>
  * </ul>
  */
 public class HealingNukeBulletType extends BulletType {
     public float radius = 650f;
     public int rays = 180;
+    /** 单次治疗的最低值 (与百分比取较大者), 用于避免对低血量目标治疗量过低 */
+    public float minHeal = 0f;
     public StatusEffect allyStatus = StatusEffects.none;
     public float allyStatusDuration = 2f * 60f;
 
     public HealingNukeBulletType() {
-        // ★ 作为可见的发射型核弹: 飞行速度 7, 最长 140 帧 (覆盖 650 射程)
-        super(7f, 600f);
-        lifetime = 140f;
+        // ★ 与原版一致: 不飞行, 在生成位置立即引爆
+        super(0f, 600f);
+        lifetime = 30f;
         hitEffect = Fx.none;
         despawnEffect = Fx.none;
         shootEffect = Fx.none;
@@ -62,20 +61,9 @@ public class HealingNukeBulletType extends BulletType {
 
     @Override
     public void init(Bullet b) {
-        b.data = null;   // null = 尚未引爆
-    }
-
-    @Override
-    public void update(Bullet b) {
-        if (b.data instanceof float[]) return;   // 已引爆, 保留绘制直至消失
-
-        // 抵达 AI 锁定的落点 (或飞行超时) 时引爆
-        boolean reached = Mathf.dst(b.x, b.y, b.aimX, b.aimY) <= Math.max(speed * 2f, 14f);
-        if (reached || b.time >= b.lifetime - 1f) {
-            b.data = detonate(b);
-            b.vel.setZero();
-            b.lifetime = b.time + 24f;   // 保留 24 帧绘制治疗范围
-        }
+        // ★ 原版行为: 生成即引爆, 不发射弹体
+        b.data = detonate(b);
+        b.vel.setZero();
     }
 
     /** 在弹体当前位置结算一次圆形治疗/伤害, 返回各角度的可达距离用于绘制 */
@@ -89,7 +77,7 @@ public class HealingNukeBulletType extends BulletType {
                 Fx.healBlockFull.at(building.x, building.y, building.block.size, Pal.heal, building.block);
                 // ★ v158 修复: BuildingComp.heal(amount) 只调用 healthChanged(), 不修改 health 字段!
                 //   直接修改 health 字段, 然后调用 healthChanged() 通知显示更新
-                float healAmount = (healPercent / 100f) * building.maxHealth;
+                float healAmount = Math.max(minHeal, (healPercent / 100f) * building.maxHealth);
                 building.health = Math.min(building.maxHealth, building.health + healAmount);
                 building.healthChanged();
             } else {
@@ -106,7 +94,7 @@ public class HealingNukeBulletType extends BulletType {
 
             if (b.within(u, radius + (u.hitSize / 2f)) && dst <= d * d) {
                 if (u.team == b.team) {
-                    u.heal((healPercent / 100f) * u.maxHealth);
+                    u.heal(Math.max(minHeal, (healPercent / 100f) * u.maxHealth));
                     u.apply(allyStatus, allyStatusDuration);
                 } else {
                     u.damage(damage * b.damageMultiplier());
@@ -133,13 +121,6 @@ public class HealingNukeBulletType extends BulletType {
 
                 Fill.tri(b.x, b.y, v1.x, v1.y, v2.x, v2.y);
             }
-            Draw.reset();
-        } else {
-            // 飞行途中: 绿色光球
-            Draw.color(Pal.heal);
-            Fill.circle(b.x, b.y, 6f + Mathf.absin(Time.time, 4f, 2f));
-            Draw.color(Color.white);
-            Fill.circle(b.x, b.y, 3f);
             Draw.reset();
         }
     }

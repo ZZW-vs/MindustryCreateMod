@@ -38,6 +38,8 @@ public class HealingConeBulletType extends BulletType {
     public int scanAccuracy = 30;
     public StatusEffect allyStatus = StatusEffects.none;
     public float allyStatusDuration = 0f;
+    /** 每种治疗 tick(30f) 的最低治疗量; 与百分比治疗取较大者 */
+    public float minHeal = 0f;
     public arc.graphics.Color color = Pal.heal;
 
     private int idx = 0;
@@ -122,7 +124,7 @@ public class HealingConeBulletType extends BulletType {
                             unit.damage(b.damage);
                             unit.apply(status, statusDuration);
                         } else {
-                            unit.heal((unit.maxHealth / 100f) * healPercent);
+                            unit.heal(Math.max(minHeal, (unit.maxHealth / 100f) * healPercent));
                             unit.apply(allyStatus, allyStatusDuration);
                         }
                     }
@@ -137,7 +139,7 @@ public class HealingConeBulletType extends BulletType {
                         if (building.damaged()) {
                             // ★ v158 修复: BuildingComp.heal(amount) 只调用 healthChanged(), 不修改 health 字段!
                             //   直接修改 health 字段, 然后调用 healthChanged() 通知显示更新
-                            float healAmount = building.maxHealth / 100f * healPercent;
+                            float healAmount = Math.max(minHeal, building.maxHealth / 100f * healPercent);
                             building.health = Math.min(building.maxHealth, building.health + healAmount);
                             building.healthChanged();
                             Fx.healBlockFull.at(building.x, building.y, building.block.size, Pal.heal, building.block);

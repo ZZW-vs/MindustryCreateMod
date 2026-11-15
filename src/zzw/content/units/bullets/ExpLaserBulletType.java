@@ -32,6 +32,8 @@ import zzw.content.exp.UnityPal;
  * - draw() 仍使用 LaserBulletType 原生渲染 (基于 b.fdata 长度)
  */
 public class ExpLaserBulletType extends LaserBulletType {
+    /** 升级收益系数: 让 exp 系列每级成长更明显 (长度/伤害共用) */
+    public static final float UPGRADE_GAIN = 1.6f;
     /** Length increase per owner level */
     public float lengthInc = 0f;
     /** Damage increase per owner level */
@@ -78,7 +80,7 @@ public class ExpLaserBulletType extends LaserBulletType {
 
     /** Dynamic length based on owner's level */
     public float getLength(Bullet b){
-        return length + lengthInc * getLevel(b);
+        return length + lengthInc * UPGRADE_GAIN * getLevel(b);
     }
 
     /** Color based on owner's level (returns Tmp.c2, do not store) */
@@ -102,7 +104,7 @@ public class ExpLaserBulletType extends LaserBulletType {
     public void init(Bullet b){
         // Apply damage increase based on level (PU_V8 setDamage)
         if(damageInc != 0f){
-            b.damage += damageInc * getLevel(b) * b.damageMultiplier();
+            b.damage += damageInc * UPGRADE_GAIN * getLevel(b) * b.damageMultiplier();
         }
 
         // Use dynamic length for collision (PU_V8 getLength)

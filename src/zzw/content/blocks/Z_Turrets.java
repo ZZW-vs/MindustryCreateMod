@@ -252,7 +252,7 @@ public class Z_Turrets {
             // ★ 已恢复 PU 原版伤害 (去掉之前额外加的 +10 偏移)
             ammo(Items.graphite, new BasicBulletType(7.5f * 1.1f, 50f * 1.4f * 1.25f) {{
                 // standardDenseLarge (石墨弹)  ★ 用户调整: 全弹药伤害 ×1.25
-                lifetime = 40f;
+                lifetime = 32f;   // ★ 档位射程差异: 最低档 (≈264px)
                 width = 15f * 1.12f;
                 height = 21f * 1.12f;
                 hitSize = 4.8f;
@@ -268,7 +268,7 @@ public class Z_Turrets {
                 frontColor = Pal.graphiteAmmoFront;
             }}, Items.silicon, new BasicBulletType(7.5f * 1.1f, 50f * 1.23f * 1.25f) {{
                 // standardHomingLarge (硅弹, 追踪型)  ★ 用户调整: 全弹药伤害 ×1.25
-                lifetime = 40f;
+                lifetime = 35f;   // ★ 档位射程差异: 第二档 (≈289px)
                 width = 15f * 1.12f;
                 height = 21f * 1.12f;
                 hitSize = 4.8f;
@@ -285,7 +285,7 @@ public class Z_Turrets {
                 frontColor = Pal.graphiteAmmoFront;
             }}, Items.pyratite, new BasicBulletType(7f * 1.1f, 70f * 1.4f * 1.25f) {{
                 // standardIncendiaryLarge (火成岩弹, 燃烧型)  ★ 用户调整: 全弹药伤害 ×1.25
-                lifetime = 40f;
+                lifetime = 38f;   // ★ 档位射程差异: 第三档 (≈293px)
                 width = 16f * 1.12f;
                 height = 21f * 1.12f;
                 hitSize = 5f;
@@ -306,7 +306,7 @@ public class Z_Turrets {
                 splashDamageRadius = 25f;
             }}, Items.thorium, new BasicBulletType(8f * 1.1f, 80f * 1.4f * 1.25f) {{
                 // standardThoriumLarge (钍弹, 穿透型)
-                lifetime = 40f;
+                lifetime = 41f;   // ★ 档位射程差异: 第四档 (≈361px)
                 width = 16f * 1.12f;
                 height = 23f * 1.12f;
                 hitSize = 5f;
@@ -321,7 +321,7 @@ public class Z_Turrets {
                 frontColor = Pal.thoriumAmmoFront;
             }}, Z_Items.dirium, new BasicBulletType(8f * 1.1f, 189f) {{
                 // ★ create-dirium 顶档 (显式): 钍弹模板 ×1.35, 无追踪/无射速削减, dirium 本色
-                lifetime = 40f;
+                lifetime = 44f;   // ★ 档位射程差异: 顶档 (≈387px)
                 width = 16f * 1.12f;
                 height = 23f * 1.12f;
                 hitSize = 5f;
@@ -878,10 +878,10 @@ public class Z_Turrets {
             consumePower(4.9f);
             targetAir = false;
             shootEffect = ShootEffect.blueTriangleShoot;
-            shootType = new ArtilleryBulletType(8f, 65f) {{
+            shootType = new ArtilleryBulletType(8f, 90f) {{
                 lifetime = 35f;
                 width = 18f;
-                splashDamage = 92f;
+                splashDamage = 125f;
                 splashDamageRadius = 45f;
                 height = 27f;
                 shrinkX = 0f;
@@ -898,7 +898,7 @@ public class Z_Turrets {
                 backColor = lightColor = hitColor = lightningColor = Pal.lancerLaser;
                 frontColor = Color.white;
                 lightning = 3;
-                lightningDamage = 18f;
+                lightningDamage = 25f;
                 lightningLength = 10;
                 lightningLengthRand = 6;
             }
@@ -1133,7 +1133,7 @@ public class Z_Turrets {
             coolant = consume(new ConsumeLiquidFilter(l -> l == mindustry.content.Liquids.water || l == mindustry.content.Liquids.cryofluid, 1f));
             coolantBoost.put(mindustry.content.Liquids.water, 0.35f);      // 135%
             coolantBoost.put(mindustry.content.Liquids.cryofluid, 0.85f);  // 185%
-            shootType = new RoundLaserBulletType(120f) {{
+            shootType = new RoundLaserBulletType(165f) {{  // ★ 用户调整: 伤害 120 → 165 (加强)
                 length = 270f;
                 width = 5.8f;
                 hitSize = 13f;
@@ -1165,7 +1165,7 @@ public class Z_Turrets {
             recoil = 6f;
             consumePower(39.3f);
             shootSound = Z_Sounds.singularityShoot;
-            shootType = new BasicBulletType(6.6f, 500f) {  // ★ 修复: BasicBulletType(speed, damage), 原写作 (500f, 7f) 把速度当伤害; 现恢复 PU 原版速度 6.6 并把伤害设为 500
+            shootType = new BasicBulletType(6.6f, 700f) {  // ★ 用户调整: 伤害 500 → 700 (加强); 速度保持 PU 原版 6.6
                 {
                     lifetime = 110f;
                     drag = 0.018f;
@@ -1193,11 +1193,11 @@ public class Z_Turrets {
                 public void despawned(mindustry.gen.Bullet b) {
                     super.despawned(b);
                     // 创建黑洞子弹 (原版: singularityBlackHole.create(b, b.x, b.y, 0f))
-                    SingularityBulletType blackHole = new SingularityBulletType(500f);  // 使用500伤害
+                    SingularityBulletType blackHole = new SingularityBulletType(700f);  // ★ 用户调整: 伤害 500 → 700 (加强)
                     blackHole.lifetime = 3.5f * 60f;
                     blackHole.hitSize = 19f;
                     blackHole.radius = 230f;  // 黑洞影响范围
-                    blackHole.tileDamage = 150f;  // 建筑伤害
+                    blackHole.tileDamage = 200f;  // ★ 用户调整: 建筑伤害 150 → 200
                     blackHole.force = 8f;  // 吸引力
                     blackHole.scaledForce = 5f;  // 飞行单位额外吸引力
                     blackHole.create(b, b.x, b.y, 0f);
@@ -1586,6 +1586,11 @@ public class Z_Turrets {
                 //   不再因擦身而过飞到射程极限 (490px) 才引爆
                 hitSize = 16f;
                 keepVelocity = false;
+                // ★ 修复"锁不到敌人/只打到最远处": scaleLife=true 后, 炮台在发射时按
+                //   到目标点的实际距离缩放 lifetime (Turret.shoot → lifeScl), 炮弹正好在
+                //   目标位置耗尽寿命并引爆, 而不是固定飞满 70 tick (≈射程末端) 才炸.
+                //   配合下方碰撞判定, 沿途擦到目标也会立即引爆, 伤害结算在命中点.
+                scaleLife = true;
                 // ★ 修复"炮弹只能射到射程最远处": 原先 collides=false 使炮弹不与任何目标碰撞,
                 //   只能飞到寿命尽头 (≈射程最远处) 才引爆, 射程内的单位/建筑全部穿过不受伤.
                 //   改为允许碰撞: 与地面单位/建筑碰撞即在命中点爆炸.

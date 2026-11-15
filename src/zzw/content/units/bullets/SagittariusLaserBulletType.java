@@ -62,7 +62,8 @@ public class SagittariusLaserBulletType extends BulletType {
             float fin = b.time < 200 ? b.time / 200f : 1f;
             float sfn = (b.time < 60f ? b.time / 60f : 1f);
             float fn = sfn + (fin / 15f);
-            float w = (width * sfn) / 3f;
+            // ★ 伤害判定加强: 碰撞宽度从 width/3 提高到 width/2
+            float w = (width * sfn) / 2f;
 
             // 给 owner 反作用力
             if (b.owner instanceof mindustry.gen.Physicsc) {

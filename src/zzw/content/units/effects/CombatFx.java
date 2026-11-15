@@ -55,7 +55,7 @@ public class CombatFx{
         Drawf.tri(e.x, e.y, 9f * e.fout(), 28f * e.fout(), e.rotation);
         Drawf.tri(e.x, e.y, 7f * e.fout(), 16f * e.fout(), e.rotation + 180f);
 
-        color(Color.white);
+        color(e.color, Color.white, 0.45f);
         circle(e.x, e.y, 3f * e.fout());
 
         randLenVectors(e.id, 6, e.finpow() * 16f, e.rotation, 55f, (x, y) -> {
@@ -75,7 +75,7 @@ public class CombatFx{
     muzzleFlashSmoke = new Effect(26f, 110f, e -> {
         color(e.color, Color.white, e.fout());
         Drawf.tri(e.x, e.y, 8f * e.fout(), 24f * e.fout(), e.rotation);
-        color(Color.white);
+        color(e.color, Color.white, 0.45f);
         circle(e.x, e.y, 2.5f * e.fout());
 
         randLenVectors(e.id, 8, e.finpow() * 20f, e.rotation, 40f, (x, y) -> {
@@ -100,7 +100,7 @@ public class CombatFx{
         Drawf.tri(e.x, e.y, 12f * e.fout(), 36f * e.fout(), e.rotation);
         Drawf.tri(e.x, e.y, 9f * e.fout(), 22f * e.fout(), e.rotation + 180f);
 
-        color(Color.white);
+        color(e.color, Color.white, 0.45f);
         circle(e.x, e.y, 3.5f * e.fout());
 
         stroke(e.fout() * 2.2f + 0.3f);
@@ -129,7 +129,8 @@ public class CombatFx{
         for(int i = 0; i < 4; i++){
             Drawf.tri(e.x, e.y, 4f * e.fout(), 29f, e.rotation + 90f * i + e.finpow() * 112f);
         }
-        color(Color.white);
+        // ★ 白芯按弹体颜色着色 (原纯白圆心过于"白板")
+        color(e.color, Color.white, 0.45f);
         circle(e.x, e.y, e.fout() * 5f);
     }),
 
@@ -153,6 +154,62 @@ public class CombatFx{
             Drawf.tri(e.x, e.y, Math.max(13f * e.fout() - 4f, 0f), 76f, e.rotation + 90f * sign);
         }
         Drawf.light(e.x, e.y, e.finpow() * 40f, e.color, 0.7f);
+    }),
+
+    /**
+     * 磁轨炮口 (无白圈版, 26f) —— {@link #railShoot} 去掉白色扩散圆环。
+     *
+     * <p>仅保留双侧对开三角 (弹色 + 白芯) 与光源, 避免开火时出现醒目的白色光圈。</p>
+     */
+    railShootClean = new Effect(26f, 160f, e -> {
+        for(int i = 0; i < 2; i++){
+            int sign = Mathf.signs[i];
+            color(e.color);
+            Drawf.tri(e.x, e.y, 13f * e.fout(), 80f, e.rotation + 90f * sign);
+            color(Color.white);
+            Drawf.tri(e.x, e.y, Math.max(13f * e.fout() - 4f, 0f), 76f, e.rotation + 90f * sign);
+        }
+        Drawf.light(e.x, e.y, e.finpow() * 40f, e.color, 0.7f);
+    }),
+
+    /**
+     * 橙黄色小星星爆炸 (26f) —— 帝国炮弹落地用。
+     *
+     * <p>不再绘制白色六边形冲击波: 暖色闪光 + 橙色火球 + 四向小星屑 + 光源。</p>
+     */
+    starBlast = new Effect(26f, 120f, e -> {
+        e.scaled(10f, s -> {
+            color(Pal.lightOrange, Color.white, s.fout());
+            circle(s.x, s.y, 3f + s.fout() * 10f);
+        });
+
+        color(Pal.lightOrange);
+        circle(e.x, e.y, e.foutpowdown() * 12f);
+
+        randLenVectors(e.id, 8, e.finpow() * 26f, (x, y) -> {
+            float a = Mathf.angle(x, y);
+            color(Pal.lightOrange, Pal.bulletYellow, e.fin());
+            float len = 7f * e.fout();
+            Drawf.tri(e.x + x, e.y + y, 2.2f * e.fout(), len, a);
+            Drawf.tri(e.x + x, e.y + y, 2.2f * e.fout(), len, a + 180f);
+            Drawf.tri(e.x + x, e.y + y, 2.2f * e.fout(), len, a + 90f);
+            Drawf.tri(e.x + x, e.y + y, 2.2f * e.fout(), len, a - 90f);
+        });
+
+        Drawf.light(e.x, e.y, e.finpow() * 36f, Pal.lightOrange, 0.7f);
+    }),
+
+    /**
+     * 纯灰色炮口硝烟 (26f) —— 无白色闪光, 供伪 3D 炮塔使用。
+     */
+    grayMuzzleSmoke = new Effect(26f, 120f, e -> {
+        randLenVectors(e.id, 10, e.finpow() * 26f, e.rotation, 30f, (x, y) -> {
+            color(Color.gray);
+            circle(e.x + x, e.y + y, (1.5f + e.fout() * 3.2f) * Mathf.curve(e.fin(), 0.2f) + 0.4f);
+        });
+
+        color(Color.lightGray);
+        circle(e.x, e.y, 2.5f * e.fout());
     }),
 
     /**

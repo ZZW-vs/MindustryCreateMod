@@ -231,7 +231,7 @@ public class Z_Exp {
             expFields = new EField[]{
                     // ★ 护盾范围: 基础 40 -> 56 (+2 格); 满级 47.5 -> 87.5 (+5 格)
                     //   即 scale = (87.5 - 56) / maxLevel = 2.1
-                    new ELinear(v -> radius = v, 56f, 2.1f, mindustry.world.meta.Stat.range, v -> arc.util.Strings.autoFixed(v / tilesize, 2) + " " + mindustry.world.meta.StatUnit.blocks.localized()),
+                    new ELinear(v -> radius = v, 56f, 3.2f, mindustry.world.meta.Stat.range, v -> arc.util.Strings.autoFixed(v / tilesize, 2) + " " + mindustry.world.meta.StatUnit.blocks.localized()),
                     new ELinear(v -> shieldHealth = v, 500f, 25f, mindustry.world.meta.Stat.shieldHealth)
             };
             fromColor = toColor = Pal.lancerLaser;
@@ -256,7 +256,7 @@ public class Z_Exp {
             expFields = new EField[]{
                     // ★ 护盾范围: 基础 60 -> 92 (+4 格); 满级 82.5 -> 162.5 (+10 格)
                     //   即 scale = (162.5 - 92) / maxLevel = 2.35
-                    new ELinear(v -> radius = v, 92f, 2.35f, mindustry.world.meta.Stat.range, v -> arc.util.Strings.autoFixed(v / tilesize, 2) + " " + mindustry.world.meta.StatUnit.blocks.localized()),
+                    new ELinear(v -> radius = v, 92f, 3.4f, mindustry.world.meta.Stat.range, v -> arc.util.Strings.autoFixed(v / tilesize, 2) + " " + mindustry.world.meta.StatUnit.blocks.localized()),
                     new ELinear(v -> shieldHealth = v, 820f, 35f, mindustry.world.meta.Stat.shieldHealth),
                     new ELinear(v -> deflectChance = v, 0f, 0.1f, mindustry.world.meta.Stat.baseDeflectChance, v -> arc.util.Strings.autoFixed(v * 100, 1) + "%")
             };
@@ -398,7 +398,7 @@ public class Z_Exp {
             maxLevel = 10;
             expFields = new EField[]{
                 new LinearReloadTime(v -> reload = v, 45f, -2f),
-                new ELinear(v -> range = v, 120f, 2f, mindustry.world.meta.Stat.shootRange, v -> arc.util.Strings.autoFixed(v / tilesize, 2) + " " + mindustry.world.meta.StatUnit.blocks.localized()),
+                new ELinear(v -> range = v, 120f, 3.5f, mindustry.world.meta.Stat.shootRange, v -> arc.util.Strings.autoFixed(v / tilesize, 2) + " " + mindustry.world.meta.StatUnit.blocks.localized()),
                 new EBool(v -> targetAir = v, false, 5, mindustry.world.meta.Stat.targetsAir)
             };
         }};
@@ -448,7 +448,7 @@ public class Z_Exp {
             maxLevel = 30;
             expFields = new EField[]{
                 new LinearReloadTime(v -> reload = v, 60f, -1f),
-                new ELinear(v -> range = v, 140f, 1.3f, mindustry.world.meta.Stat.shootRange, v -> arc.util.Strings.autoFixed(v / tilesize, 2) + " " + mindustry.world.meta.StatUnit.blocks.localized())
+                new ELinear(v -> range = v, 140f, 2.2f, mindustry.world.meta.Stat.shootRange, v -> arc.util.Strings.autoFixed(v / tilesize, 2) + " " + mindustry.world.meta.StatUnit.blocks.localized())
             };
             pregrade = laserTurret;
             effectColors = new arc.graphics.Color[]{Pal.lancerLaser, zzw.content.exp.UnityPal.lancerSap1, zzw.content.exp.UnityPal.lancerSap2, zzw.content.exp.UnityPal.lancerSap3, zzw.content.exp.UnityPal.lancerSap4, zzw.content.exp.UnityPal.lancerSap5, Pal.sapBullet};
@@ -562,7 +562,7 @@ public class Z_Exp {
             maxLevel = 30;
             expFields = new EField[]{
                 new LinearReloadTime(v -> reload = v, Z_Exp.distField.lifetime / 3f, -2f),
-                new ELinear(v -> range = v, 140f, 0.25f * tilesize, mindustry.world.meta.Stat.shootRange, v -> arc.util.Strings.autoFixed(v / tilesize, 2) + " " + mindustry.world.meta.StatUnit.blocks.localized())
+                new ELinear(v -> range = v, 140f, 0.45f * tilesize, mindustry.world.meta.Stat.shootRange, v -> arc.util.Strings.autoFixed(v / tilesize, 2) + " " + mindustry.world.meta.StatUnit.blocks.localized())
             };
 
             pregrade = chargeLaserTurret;
@@ -633,7 +633,7 @@ public class Z_Exp {
                     new ELinearCap(v -> shots = (int)v, 2, 0.35f, 15, mindustry.world.meta.Stat.shots),
                     new ELinearCap(v -> inaccuracy = v, 1f, 0.25f, 10, mindustry.world.meta.Stat.inaccuracy, v -> arc.util.Strings.autoFixed(v, 1) + " degrees"),
                     new ELinear(v -> burstSpacing = v, 20f, -0.5f, null),
-                    new ELinear(v -> range = v, 150f, 2f, mindustry.world.meta.Stat.shootRange, v -> arc.util.Strings.autoFixed(v / tilesize, 2) + " " + mindustry.world.meta.StatUnit.blocks.localized())
+                    new ELinear(v -> range = v, 150f, 3.5f, mindustry.world.meta.Stat.shootRange, v -> arc.util.Strings.autoFixed(v / tilesize, 2) + " " + mindustry.world.meta.StatUnit.blocks.localized())
             };
             pregrade = chargeLaserTurret;
             pregradeLevel = 15;
@@ -723,7 +723,7 @@ public class Z_Exp {
             maxLevel = 20;
             expFields = new EField[]{
                 new LinearReloadTime(v -> reload = v, 90f, -3f),
-                new ELinear(v -> range = v, 160f, 1f, mindustry.world.meta.Stat.shootRange, v -> arc.util.Strings.autoFixed(v / tilesize, 2) + " " + mindustry.world.meta.StatUnit.blocks.localized())
+                new ELinear(v -> range = v, 160f, 2f, mindustry.world.meta.Stat.shootRange, v -> arc.util.Strings.autoFixed(v / tilesize, 2) + " " + mindustry.world.meta.StatUnit.blocks.localized())
             };
             effectColors = new arc.graphics.Color[]{mindustry.graphics.Pal.lancerLaser, UnityPal.exp};
         }};

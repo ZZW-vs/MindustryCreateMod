@@ -2919,7 +2919,7 @@ public class Z_Units {
                 y = -6.25f;
                 shootY = 30.25f;
                 reload = 13f;   // ★ 射速 +180% (36f ÷ 2.8 ≈ 13f)
-                recoil = 7f;
+                recoil = 5f;    // ★ 开火后坐稍微改小 (7f → 5f)
                 shake = 3f;
                 ejectEffect = mindustry.content.Fx.casing4;
                 shootSound = mindustry.gen.Sounds.shootForeshadow;
@@ -2931,7 +2931,7 @@ public class Z_Units {
                     splashDamage = 85f;   // ★ 伤害略降: 250/95 → 225/85
                     splashDamageRadius = 50f;
                     hitEffect = zzw.content.units.effects.CombatFx.bulletHitBig;
-                    shootEffect = zzw.content.units.effects.CombatFx.railShoot;
+                    shootEffect = zzw.content.units.effects.CombatFx.railShootClean;   // ★ 去掉开火白色光圈
                     trailEffect = zzw.content.units.effects.TrailFx.coloredRailgunSmallTrail;   // PU_V8 TrailFx.coloredRailgunSmallTrail
                     width = 9f;
                     height = 17f;
@@ -3089,9 +3089,9 @@ public class Z_Units {
                 mirror = true;
                 shootSound = Sounds.shootArtillery;
                 bullet = new ArtilleryBulletType(3f, 38f) {{
-                    hitEffect = CombatFx.blastExplosion;  // ★ 特效美化: 弹色爆炸, 与黄色炮弹一致
+                    hitEffect = CombatFx.starBlast;  // ★ 落地白色多边形 → 橙黄色小星星
                     hitColor = mindustry.graphics.Pal.bulletYellow;
-                    shootEffect = CombatFx.muzzleFlashSmokeBig;
+                    shootEffect = CombatFx.muzzleFlashSmoke;  // ★ 去掉开火白色光圈 (改用无环版)
                     knockback = 0.8f;
                     lifetime = 150f;  // ★ 加强 (原 125f): 射程加远 (3f × 150 = 450px)
                     width = 14f;
@@ -3143,7 +3143,11 @@ public class Z_Units {
                 // ★ 大激光伤害提高 (原 500f → 800f → 1200f)
                 bullet = new ReflectingLaserBulletType(1200f) {{
                     lifetime = 65f;
-                    shootEffect = zzw.content.units.effects.ChargeFx.greenLaserChargeParent;
+                    length = 900f;   // ★ 激光长度 ×1.8 (500 → 900)
+                    // ★ 蓄力动画改由 chargeEffect 在 firstShotDelay 期间播放,
+                    //   激光本体在蓄力结束后才出现 (原来 shootEffect 会和激光同帧播放)
+                    chargeEffect = zzw.content.units.effects.ChargeFx.greenLaserChargeParent;
+                    shootEffect = Fx.none;
                     healPercent = 6f;
                     splashDamage = 70f;
                     splashDamageRadius = 30f;
@@ -3237,8 +3241,8 @@ public class Z_Units {
                 // PU_V8: 射击期间施加蓄力疲劳 (移速10%/生命60%)
                 shootStatus = sagittariusFatigue;
                 shootStatusDuration = 10f * 60f + zzw.content.units.effects.ChargeFx.sagittariusCharge.lifetime;
-                // ★ 大激光加强 (原 35f → 50f)
-                bullet = new SagittariusLaserBulletType(50f) {{
+                // ★ 大激光加强: 伤害 50f → 65f, 碰撞宽度也加宽 (见 SagittariusLaserBulletType)
+                bullet = new SagittariusLaserBulletType(65f) {{
                     shootEffect = zzw.content.units.effects.ChargeFx.sagittariusCharge;
                     lifetime = 10f * 60f;
                     collidesTeam = true;
@@ -3640,7 +3644,7 @@ public class Z_Units {
                 shootStatus = mindustry.content.StatusEffects.slow;
                 shootStatusDuration = 180f;
                 bullet = new AcceleratingLaserBulletType(230f) {{
-                    lifetime = 180f;
+                    lifetime = 330f;   // ★ 激光持续时间 +2.5 秒 (180 → 330)
                     maxLength = 380f;
                     maxRange = 330f;
                     oscOffset = 0.1f;
@@ -3764,7 +3768,7 @@ public class Z_Units {
                 recoil = 0f;
                 cooldownTime = 6f * 60f;
                 bullet = new AcceleratingLaserBulletType(320f) {{
-                    lifetime = 4f * 60f;
+                    lifetime = 5f * 60f;   // ★ 激光持续时间 +1 秒
                     maxLength = 430f;
                     maxRange = 400f;
                     oscOffset = 0.2f;
@@ -3784,9 +3788,9 @@ public class Z_Units {
                     hitColor = mindustry.graphics.Pal.meltdownHit;
                     shootEffect = CombatFx.laserShoot;   // ★ 特效美化: 熔毁橙炮口
                 }};
-                // PU_V8: 射击期间自身减速, 持续整个激光生存期 (4*60 tick)
+                // PU_V8: 射击期间自身减速, 持续整个激光生存期 (5*60 tick)
                 shootStatus = mindustry.content.StatusEffects.slow;
-                shootStatusDuration = 4f * 60f;
+                shootStatusDuration = 5f * 60f;
             }});
 
             // 武器2: 黄色闪电炮弹 (PU_V8 原版: scepter bullet + lightning=3 + lightningType, 黄色)
@@ -3836,7 +3840,9 @@ public class Z_Units {
             // ★ 加强: 原版 8000 护盾/360 每秒与 180 平铺/2s 的修复场在 T6 血量下几乎不可见
             abilities.add(
                 new mindustry.entities.abilities.ForceFieldAbility(190f, 40f, 30000f, 60f * 8),
-                new mindustry.entities.abilities.RepairFieldAbility(600f, 60f, 220f){{ healPercent = 2f; }}
+                new mindustry.entities.abilities.RepairFieldAbility(600f, 60f, 220f){{ healPercent = 2f; }},
+                // ★ 新增: 自身每秒 250 点回血 (range 1 只作用于自身)
+                new mindustry.entities.abilities.RepairFieldAbility(250f, 60f, 1f)
             );
 
             // PU_V8: weapons.add(new Weapon(name + "-laser"){{ bottomWeapons.add(this); ... }})
@@ -3892,8 +3898,12 @@ public class Z_Units {
             // PU_V8: UnityUnitType 构造器 outlines = false
             outlines = false;
 
+            // ★ 自身每秒 500 点回血 (range 1 只作用于自身; 修复场包含自身)
+            abilities.add(new mindustry.entities.abilities.RepairFieldAbility(500f, 60f, 1f));
+
             // PU_V8: weapons.add(heal-mount, energy-charge-nuke)
-            // 武器1: 治疗锥 (cone=15°, scanAccuracy=25, healPercent=3)
+            // 武器1: 治疗锥 (cone=15°, scanAccuracy=25)
+            // ★ 激光修复: 每 30f 结算一次, 5%/tick = 每秒 10% 最大生命, 最低 25/tick (50/s)
             weapons.add(new Weapon("create-trigintaduo-heal-mount") {{
                 x = 33.5f;
                 y = -7.75f;
@@ -3908,7 +3918,8 @@ public class Z_Units {
                 // mirror 默认 true (v158 Weapon.mirror 默认值), PU_V8 未显式设置
 
                 bullet = new HealingConeBulletType(3f) {{
-                    healPercent = 4f;   // ★ 加强: 3% → 4% 最大生命/次
+                    healPercent = 5f;   // ★ 每秒 10%: 每 30f 结算 5%
+                    minHeal = 25f;      // ★ 最低 50/s
                     cone = 15f;
                     scanAccuracy = 25;
                     allyStatus = mindustry.content.StatusEffects.overclock;
@@ -3944,7 +3955,9 @@ public class Z_Units {
                     allyStatusDuration = 15f * 60f;
                     status = Z_StatusEffects.disabled;  // PU_V8 UnityStatusEffects.disabled (移速/装填归零+缴械)
                     statusDuration = 120f;
-                    healPercent = 35f;  // ★ 加强: 30% → 35%, 强化"治疗核弹"定位
+                    // ★ 大范围修复: 改为原版自身范围立即引爆 (不再发射弹体)
+                    healPercent = 25f;  // ★ 每次恢复 25% 最大生命
+                    minHeal = 1000f;    // ★ 最低 1000
                 }};
             }});
         }};
@@ -4518,7 +4531,7 @@ public class Z_Units {
                 rotate = false;
                 x = 14.25f;
                 y = 26.5f;
-                range = 160f;   // ★ 攻击范围 +15 格 (40f → 160f)
+                range = 240f;   // ★ 攻击范围再 +10 格 (160f → 240f)
                 recoil = 2.5f;
                 shootY = 10f;
                 shootSound = Sounds.shoot;
@@ -4536,7 +4549,7 @@ public class Z_Units {
                 rotate = false;
                 x = 26.25f;
                 y = 19.5f;
-                range = 160f;   // ★ 攻击范围 +15 格 (40f → 160f)
+                range = 240f;   // ★ 攻击范围再 +10 格 (160f → 240f)
                 recoil = 2.5f;
                 shootY = 10f;
                 shootSound = Sounds.shoot;
@@ -4673,7 +4686,7 @@ public class Z_Units {
                     trailWidth = 7f;
                     trailColor = mindustry.graphics.Pal.bulletYellowBack;
                     hitColor = mindustry.graphics.Pal.bulletYellow;
-                    shootEffect = CombatFx.muzzleFlashSmokeBig;   // ★ 特效美化: 迫击炮大口径炮口烟
+                    shootEffect = CombatFx.grayMuzzleSmoke;   // ★ 伪 3D 炮塔: 白色特效 → 灰色烟雾
                     hitEffect = zzw.content.units.effects.HitEffect.hitExplosionMassive;  // ★ 还原原版: PU132 fin mortar 用 HitFx.hitExplosionMassive
                     lifetime = 65f;
                     fragBullet = new mindustry.entities.bullet.ArtilleryBulletType(3f, 62f) {{   // ★ DPS 1228 → 约 3800
@@ -5266,10 +5279,10 @@ public class Z_Units {
             // 实现逆时针一个一个开炮: 0→2→4→6→8→9→7→5→3→1→0 (循环)
             // v158 Weapon 原生支持 otherSide 字段 + update() 中的翻转逻辑, 直接使用
             // 共享弹药
-            BulletType empSmall = new zzw.content.units.bullets.EmpBasicBulletType(5.7f, 33f) {{   // ★ T5 伤害 +30%: 25f → 33f
+            BulletType empSmall = new zzw.content.units.bullets.EmpBasicBulletType(5.7f, 30f) {{   // ★ 伤害稍微下调: 33f → 30f
                 lifetime = 40f;
                 splashDamageRadius = 15f;
-                splashDamage = 6.5f;   // ★ T5 伤害 +30%
+                splashDamage = 6f;     // ★ 伤害稍微下调: 6.5f → 6f
                 shrinkY = 0f;
                 height = 14f;
                 width = 10f;
@@ -5377,11 +5390,11 @@ public class Z_Units {
                 reload = 4f * 60f;
                 shootCone = 30f;
                 shootSound = Z_Sounds.zbosonShoot;
-                bullet = new zzw.content.units.bullets.EmpBasicBulletType(6.8f, 12f) {{   // ★ T5 伤害 +30%: 9f → 12f
+                bullet = new zzw.content.units.bullets.EmpBasicBulletType(6.8f, 11f) {{   // ★ 伤害稍微下调: 12f → 11f
                     lifetime = 42f;
                     hitSize = 6f;
                     splashDamageRadius = 45f;
-                    splashDamage = 30f;   // ★ T5 伤害 +30%
+                    splashDamage = 27f;   // ★ 伤害稍微下调: 30f → 27f
                     shrinkY = 0f;
                     height = 19f;
                     width = 14.5f;
