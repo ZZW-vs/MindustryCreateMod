@@ -32,10 +32,13 @@ public enum PartStatType{
 
     public static final PartStatType[] all = values();
 
-    /** 属性文案键 */
+    /** 属性完整文案键 */
     public final String name;
+    /** 属性短文案键 (属性面板紧凑排布用), 与枚举常量一一对应 */
+    public final String shortName;
 
     PartStatType(String name){
         this.name = name;
+        this.shortName = "stat.unity.s." + name();
     }
 }

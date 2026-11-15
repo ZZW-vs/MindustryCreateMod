@@ -28,6 +28,7 @@ import arc.util.Align;
 import mindustry.gen.Icon;
 import mindustry.gen.Tex;
 import mindustry.type.Item;
+import mindustry.type.ItemStack;
 import mindustry.ui.Styles;
 import mindustry.ui.dialogs.BaseDialog;
 import zzw.content.graphics.UnityPal;
@@ -104,23 +105,16 @@ public class ModularConstructorUI extends Element{
                 if(pinfo.cannotPlace || pinfo.category != currentCat) continue;
                 scrollTable.row();
                 addConsButton(scrollTable, butt -> {
-                    butt.top().left().margin(12f).defaults().left().top();
-                    butt.add(pinfo.name).size(170f, 45f).row();
+                    butt.top().left().margin(10f).defaults().left().top();
+                    butt.add(pinfo.name).width(170f).left().padBottom(2f).row();
                     butt.table(topTable -> {
-                        topTable.add(new BorderImage(pinfo.texRegion, 2f)).size(36f).padTop(-4f).padLeft(-4f).padRight(4f);
+                        topTable.add(new BorderImage(pinfo.texRegion, 2f)).size(36f).padRight(4f);
                         topTable.button(Tex.whiteui, Styles.clearNonei, 50f, () -> {
                             displayPartInfo(pinfo);
                         }).size(50f).get().getStyle().imageUp = Icon.infoSmall;
-                    }).marginLeft(4f).row();
-                    butt.add("[accent]Cost").padBottom(4f).row();
-                    butt.table(botTable -> {
-                        int i = 0;
-                        for(var cst : pinfo.cost){
-                            botTable.image(cst.item.uiIcon).size(iconSmall).left();
-                            botTable.add("[gray]" + Mathf.floor(cst.amount * costInc)).padLeft(2f).left().padRight(4f);
-                            if(i++ % 2 == 1) botTable.row();
-                        }
-                    });
+                    }).left().padBottom(4f).row();
+                    butt.add("[accent]" + Core.bundle.get("bar.blueprint.cost", "Cost")).left().padBottom(2f).row();
+                    butt.table(botTable -> addCostGrid(botTable, pinfo.cost, costInc, 2)).left();
                 }, Styles.defaultb, () -> modElement.partsSelect = pinfo).minWidth(150f).padBottom(8f);
             }
         };
@@ -149,7 +143,7 @@ public class ModularConstructorUI extends Element{
                 if(prevChecked != null) prevChecked.setChecked(false);
                 prevChecked = catButt;
             });
-            catTable.add(catButt).tooltip(Core.bundle.get("part.category." + i.name()));
+            catTable.add(catButt).tooltip(PartInfo.text("part.category." + i.name(), i.name()));
             if(firstCat == null){
                 firstCat = catButt;
                 currentCat = i;
@@ -164,14 +158,20 @@ public class ModularConstructorUI extends Element{
 
         Cons<Table> costCons = cstTable -> {
             cstTable.clearChildren();
-            cstTable.add("[accent]Total Cost").padBottom(4).row();
+            cstTable.add("[accent]" + Core.bundle.get("bar.blueprint.totalcost", "Total Cost")).padBottom(3f).left().row();
             cstTable.table(botTable -> {
                 OrderedMap<Item, Integer> csTot = modElement.getTotalCost();
+                int i = 0;
                 for(var cost : csTot){
-                    botTable.image(cost.key.uiIcon).size(iconSmall).left();
-                    botTable.add("[gray]" + cost.value).padLeft(2f).left().padRight(4f).row();
+                    if(i % 2 == 0) botTable.row();
+                    botTable.table(cell -> {
+                        cell.left();
+                        cell.image(cost.key.uiIcon).size(iconSmall).padRight(3f);
+                        cell.add("[gray]" + cost.value).minWidth(26f).left();
+                    }).width(70f).left();
+                    i++;
                 }
-            });
+            }).left();
         };
         Table totals = new Table();
         Runnable rebuildTotals = () -> costCons.get(totals);
@@ -186,6 +186,20 @@ public class ModularConstructorUI extends Element{
         return modElement;
     }
 
+    /** 配方网格: 图标 + 数量按固定列宽对齐, 超过 columns 个自动换行。 */
+    static void addCostGrid(Table table, ItemStack[] costs, float costInc, int columns){
+        int i = 0;
+        for(var cst : costs){
+            if(i % columns == 0) table.row();
+            table.table(cell -> {
+                cell.left();
+                cell.image(cst.item.uiIcon).size(iconSmall).padRight(3f);
+                cell.add("[gray]" + Mathf.floor(cst.amount * costInc)).minWidth(26f).left();
+            }).width(70f).left();
+            i++;
+        }
+    }
+
     static Cell<Button> addConsButton(Table table, Cons<Button> consFunc, ButtonStyle style, Runnable runnable){
         Button button = new Button(style);
         button.clearChildren();
@@ -195,20 +209,22 @@ public class ModularConstructorUI extends Element{
     }
 
     static void displayPartInfo(PartInfo part){
-        BaseDialog dialog = new BaseDialog("Part:" + part.name);
+        BaseDialog dialog = new BaseDialog(part.name);
         dialog.setFillParent(false);
         Table cont = dialog.cont;
-        cont.add("[lightgray]Name:[white]" + part.name).left().row();
-        cont.add("[lightgray]Description:").left().row();
-        cont.add("[white]" + part.desc).wrap().fillX().left().width(500f).maxWidth(500f).get().setWrap(true);
-        cont.row();
-        cont.add("[accent] Stats");
-        for(var stat : part.stats){
-            cont.row();
-            cont.add("[lightgray]" + Core.bundle.get(stat.key.name) + ": [white]" + stat.value.value.toString()).left();
-        }
+        cont.margin(12f).top().left();
+        cont.add(part.name).left().padBottom(3f).row();
+        cont.add("[lightgray]" + part.desc).width(480f).wrap().left().padBottom(8f).row();
+        cont.add("[accent]" + Core.bundle.get("bar.blueprint.partstats", "属性")).left().padBottom(3f).row();
+        // 名称定宽 + 数值左对齐, 保证多行属性整齐
+        cont.table(t -> {
+            for(var stat : part.stats){
+                t.row();
+                t.add("[lightgray]" + PartInfo.text(stat.key.name, stat.key.name())).width(120f).left();
+                t.add("[white]" + PartInfo.valueText(stat.value.value)).left();
+            }
+        }).left();
         dialog.buttons.button("@ok", dialog::hide).size(130f, 60f);
-        dialog.update(() -> {});
         dialog.show();
     }
 

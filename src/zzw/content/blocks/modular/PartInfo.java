@@ -2,6 +2,7 @@ package zzw.content.blocks.modular;
 
 import arc.Core;
 import arc.graphics.g2d.TextureRegion;
+import arc.math.Mathf;
 import arc.math.geom.Point2;
 import arc.scene.ui.layout.Table;
 import arc.struct.OrderedMap;
@@ -73,63 +74,91 @@ public class PartInfo{
     static final PartStatType[] shownStats = {
         PartStatType.hp, PartStatType.baseDmg, PartStatType.baseSpeed, PartStatType.magazine,
         PartStatType.shots, PartStatType.spread, PartStatType.reloadMultiplier, PartStatType.rangeinc,
-        PartStatType.heat, PartStatType.support, PartStatType.mass, PartStatType.shaftSpd,
+        PartStatType.heat, PartStatType.radiate, PartStatType.support, PartStatType.mass, PartStatType.shaftSpd,
         PartStatType.damage, PartStatType.ammoType, PartStatType.mod
     };
 
     /**
+     * 安全取文案: 缺 key 时回退到给定文本。
+     *
+     * <p>Mindustry 对缺失的本地化 key 会渲染成 {@code ???key???},
+     * 零件分类/属性名这类动态拼接的 key 一旦漏配就会在界面上露出来, 所以统一走这里兜底。</p>
+     */
+    public static String text(String key, String fallback){
+        String s = Core.bundle.getOrNull(key);
+        return s == null || s.isEmpty() ? fallback : s;
+    }
+
+    /**
      * 生成紧凑的零件属性表 (按分类分组、双列排布), 用于方块信息面板。
      *
-     * <p>原版逐条平铺会让面板超出一屏, 这里每个零件压成一行、每行两个零件,
-     * 且只显示参与实际运算的关键属性。</p>
+     * <p>排布约定: 每个分类一行标题 (图标 + 名称), 分类内每个零件一行,
+     * 图标 / 名称 / 数值三列定宽对齐, 两列并排以控制面板高度。</p>
      */
     public static void addStatsTable(Table table, PartType[] categories, Iterable<PartInfo> parts){
         table.left().defaults().left();
+        boolean firstCat = true;
         for(PartType cat : categories){
-            boolean has = false;
-            for(PartInfo p : parts) if(p.category == cat) has = true;
-            if(!has) continue;
+            Seq<PartInfo> list = new Seq<>();
+            for(PartInfo p : parts) if(p.category == cat) list.add(p);
+            if(list.isEmpty()) continue;
 
+            // 分组标题
             table.row();
             table.table(head -> {
                 head.left();
-                if(cat.region != null && cat.region.found()) head.image(cat.region).size(20f).padRight(4f);
-                head.add("[accent]" + Core.bundle.get("part.category." + cat.name())).left();
-            }).left().padBottom(1f).row();
+                if(cat.region != null && cat.region.found()) head.image(cat.region).size(20f).padRight(5f);
+                head.add("[accent]" + text("part.category." + cat.name(), cat.name())).left();
+            }).left().padTop(firstCat ? 0f : 6f).padBottom(2f);
 
-            int n = 0;
-            Table row = null;
-            for(PartInfo p : parts){
-                if(p.category != cat) continue;
-                if(n % 2 == 0){
-                    table.row();
-                    row = new Table();
-                    table.add(row).left().padBottom(1f);
-                }
-                row.table(cell -> {
-                    cell.left();
-                    if(p.texRegion != null && p.texRegion.found()) cell.image(p.texRegion).size(18f).padRight(3f);
-                    cell.add(p.name + "  [lightgray]" + summary(p)).left().padRight(16f);
-                }).left();
-                n++;
+            // 分类内零件: 两列, 每列 图标 | 名称(定宽) | 数值
+            for(int i = 0; i < list.size; i += 2){
+                final int start = i;
+                table.row();
+                table.table(row -> {
+                    row.left();
+                    for(int k = start; k < Math.min(start + 2, list.size); k++){
+                        PartInfo p = list.get(k);
+                        row.table(cell -> {
+                            cell.left();
+                            if(p.texRegion != null && p.texRegion.found()) cell.image(p.texRegion).size(18f).padRight(3f);
+                            cell.add(p.name).width(74f).left().padRight(4f);
+                            cell.add("[lightgray]" + summary(p)).left();
+                        }).left().padRight(14f);
+                    }
+                }).left().padBottom(1f);
             }
+            firstCat = false;
         }
     }
 
-    /** 单个零件的关键属性摘要, 例如 "生命+40 支撑1 质量3"。 */
+    /** 单个零件的关键属性摘要, 例如 "生命40 支撑1 质量3"。 */
     static String summary(PartInfo p){
         StringBuilder sb = new StringBuilder();
+        int shown = 0;
         for(PartStatType type : shownStats){
             PartStat s = p.stats.get(type);
             if(s == null) continue;
+            // 每个零件最多 4 项, 保证一行放得下
+            if(shown == 4) break;
             if(sb.length() > 0) sb.append(' ');
-            sb.append(Core.bundle.get("stat.unity.s." + type.name()));
-            Object v = s.value;
-            if(v instanceof Float f) sb.append(Strings.fixed(f, 1));
-            else if(v instanceof Boolean b) sb.append(b ? "√" : "×");
-            else sb.append(v);
+            sb.append(text(type.shortName, type.name()));
+            sb.append(valueText(s.value));
+            shown++;
         }
         return sb.toString();
+    }
+
+    /** 属性值转文本: 整数不带小数点, 字符串值 (弹种/改造) 走本地化, 不暴露内部枚举名。 */
+    public static String valueText(Object v){
+        if(v instanceof Float f){
+            if(Mathf.within(f, Math.round(f), 0.05f)) return Integer.toString(Math.round(f));
+            return Strings.fixed(f, f < 1f ? 2 : 1);
+        }
+        if(v instanceof Integer i) return Integer.toString(i);
+        if(v instanceof Boolean b) return b ? "是" : "否";
+        String s = String.valueOf(v);
+        return text("stat.unity.value." + s, s);
     }
 
     /** 从零件图集中切出每个零件对应的贴图区域。 */
