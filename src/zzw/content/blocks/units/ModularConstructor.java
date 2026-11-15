@@ -155,40 +155,44 @@ public class ModularConstructor extends Block{
         }
         
         stats.add(Stat.productionTime, table -> {
+            boolean firstTier = true;
             for(int i = 0; i < tierPlans.size; i++){
                 Seq<ModularConstructorPlan> tierPlanList = tierPlans.get(i);
                 if(tierPlanList.size == 0) continue;
-                
+
+                // 分级标题
                 table.row();
-                table.add("[accent]T" + (i + 1) + " 级生产 (" + tierPlanList.size + " 个单位):").left().padTop(8f);
-                table.row();
-                
+                table.add("[accent]T" + (i + 1) + " 级生产 (" + tierPlanList.size + " 个单位):")
+                    .left().padTop(firstTier ? 2f : 8f);
+                firstTier = false;
+
                 for(ModularConstructorPlan plan : tierPlanList){
-                    if(plan.unit.unlockedNow()){
-                        Table planTable = new Table();
-                        planTable.left();
-                        
-                        // 单位图标
-                        planTable.image(plan.unit.uiIcon).size(32f).padRight(8f).scaling(arc.util.Scaling.fit);
-                        // 单位名称
-                        planTable.add(plan.unit.localizedName).color(Color.yellow.cpy().mul(0.8f)).left().padLeft(4f).fontScale(1.1f);
-                        // 生产时间
-                        planTable.add("[" + formatTime(plan.time) + "]").color(Color.lightGray).right().padLeft(8f);
-                        
-                        table.add(planTable).padLeft(12f).padBottom(4f).row();
-                        
-                        // 材料消耗
-                        Table materialsTable = new Table();
-                        materialsTable.left();
-                        materialsTable.add("[lightgray]材料: ").left().padLeft(20f);
-                        
+                    if(!plan.unit.unlockedNow()) continue;
+
+                    // 单位行: 图标 + 名称 + 生产时间 (名称定宽, 时间纵向对齐)
+                    table.row();
+                    table.table(row -> {
+                        row.left();
+                        row.image(plan.unit.uiIcon).size(24f).padRight(6f).scaling(Scaling.fit);
+                        row.add(plan.unit.localizedName).color(Color.yellow.cpy().mul(0.8f)).width(150f).left();
+                        row.add("[" + formatTime(plan.time) + "]").color(Color.lightGray).left();
+                    }).padLeft(12f).padBottom(1f);
+
+                    // 材料: 两列固定单元网格 (图标 18 + 数量定宽 34), 超长自动换行
+                    table.row();
+                    table.table(grid -> {
+                        grid.left();
+                        int n = 0;
                         for(ItemStack stack : plan.requirements){
-                            materialsTable.image(stack.item.uiIcon).size(20f).padRight(4f).scaling(arc.util.Scaling.fit);
-                            materialsTable.add(stack.amount + "x").color(Color.lightGray).left().padRight(8f);
+                            if(n % 2 == 0) grid.row();
+                            grid.table(cell -> {
+                                cell.left();
+                                cell.image(stack.item.uiIcon).size(18f).padRight(3f).scaling(Scaling.fit);
+                                cell.add("[lightgray]" + stack.amount).minWidth(34f).left();
+                            }).width(80f).left().padBottom(1f);
+                            n++;
                         }
-                        
-                        table.add(materialsTable).padLeft(12f).padBottom(6f).row();
-                    }
+                    }).padLeft(34f).padBottom(6f);
                 }
             }
         });
