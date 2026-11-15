@@ -108,11 +108,15 @@ public class LonginusSpearBulletType extends BulletType {
         try {
             Pixmap pix = new Pixmap(data);
 
-            // ★ 先量出真实枪身的范围, 再 bleed。
-            //   bleed 只是给透明像素补 RGB, 不会透明/不透明, 所以先后顺序不影响测量结果。
             imageWidth = pix.width;
             imageHeight = pix.height;
             measureVisibleBounds(pix);
+
+            // ★ 关键: 把不透明像素的 alpha 全部压成 255 (alpha 二值化)。
+            //   原图边缘带一圈抗锯齿的半透明像素, 缩小绘制时线性过滤会把整条细枪身
+            //   稀释成半透明 —— 也就是玩家看到的"飞出去偏透明"。
+            //   这里在加载期直接改贴图数据 (不改文件), 保证枪身任何位置都是实心像素。
+            makeOpaque(pix);
 
             // 线性过滤下给透明边缘补色, 避免枪身边缘发黑
             Pixmaps.bleed(pix, 2);
@@ -130,6 +134,27 @@ public class LonginusSpearBulletType extends BulletType {
         }
 
         return null;
+    }
+
+    /**
+     * alpha 二值化: 凡是"算得上枪身"的像素一律改成完全不透明。
+     *
+     * <p>阈值取 8 (与包围盒测量用的一致, 低于它的视为完全透明/噪声), 高于阈值的像素 alpha 直接置 255。</p>
+     *
+     * <p>为什么必须这么做: 枪身在贴图里只有 8~14 像素宽, 画到世界里要缩小约 4 倍,
+     * 线性过滤会把这圈半透明边缘与内部像素混合, 整条细枪身都会变成半透明;
+     * 二值化后边缘最差也是 0/1 的硬边, 不会再出现"整条看穿"的效果。</p>
+     */
+    private static void makeOpaque(Pixmap pix) {
+        for (int y = 0; y < pix.height; y++) {
+            for (int x = 0; x < pix.width; x++) {
+                int c = pix.get(x, y);
+                if ((c & 0xff) > 8) {
+                    // RGBA8888: 保留 RGB, 把最低字节 (alpha) 置为 255
+                    pix.set(x, y, (c & 0xffffff00) | 0xff);
+                }
+            }
+        }
     }
 
     /**
@@ -276,6 +301,9 @@ public class LonginusSpearBulletType extends BulletType {
 
         // 只在手动命中时才用得上, 不代表枪身粗细
         hitSize = 32f;
+
+        // ★ 飞行中不带任何额外光效: 关掉子弹自带的动态光源
+        lightOpacity = 0f;
 
         // 命中表现全部自定义
         hitEffect = Fx.none;
@@ -488,16 +516,15 @@ public class LonginusSpearBulletType extends BulletType {
             return;
         }
 
-        // ★ 先把绘制状态清干净: 炮台/空枪座会临时打开 additive、调 alpha 与 mixcol,
-        //   不清掉会让刚出膛的枪看起来半透明。这里显式恢复不透明普通混合。
+        // ★ 绘制前把状态彻底复位: 混合模式 / alpha / mixcol 一个都不留。
+        //   之前炮台会临时打开 additive 并改 alpha, 残留会让刚出膛的枪发虚。
         Draw.reset();
         Draw.blend(Blending.normal);
+        Draw.mixcol();
         Draw.z(Layer.bullet);
         Draw.color(Color.white);
         Draw.alpha(1f);
-        // ★ 连画两遍: 枪身只有几像素宽, 单遍在缩小绘制时边缘像素的 alpha 会被插值稀释,
-        //   看起来发虚/半透明; 叠一遍能把整杆枪压成实心 (不透明部分颜色不变)。
-        drawSpear(region, drawLength, 1f, b.x, b.y, b.rotation());
+        // 只画一遍, 与炮台上的枪完全一致 (同一贴图 / 同一长度 / 同一朝向)
         drawSpear(region, drawLength, 1f, b.x, b.y, b.rotation());
         Draw.reset();
     }
