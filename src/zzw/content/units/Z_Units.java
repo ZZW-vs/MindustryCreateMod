@@ -158,6 +158,8 @@ public class Z_Units {
         cherub,                // T1 天使 (小型治疗机)
         malakhim,               // T2 大天使 (大型治疗机)
         seraphim,               // T3 炽天使 (6臂盘旋治疗机)
+        erelim,                 // T4 勇天使 (6臂中远程维修机, 贴图此前未实现)
+        ophanim,                // T5 座天使 (8臂维修平台, 贴图此前未实现)
         // —— PU_V8 海军系列 ——
         fin,                   // 鳍级战列舰 (海军, 导弹+迫击炮)
         blue,                  // 蓝鲸级旗舰 (海军, 主炮+导弹井+点防+电磁炮)
@@ -4058,6 +4060,133 @@ public class Z_Units {
                     maxRange = 240f;
                 }};
             }});
+        }};
+
+        // ===== erelim (勇天使级治疗机, T4, 6 臂中远程维修) =====
+        erelim = new UnitType("erelim") {{
+            flying = true;
+            lowAltitude = true;
+            health = 3200f;
+            speed = 1.8f;
+            accel = 0.09f;
+            drag = 0.09f;
+            hitSize = 50f;
+            armor = 26f;
+            engineOffset = 22f;
+            engineSize = 5f;
+            circleTarget = true;          // NewHealerAI 绕目标盘旋治疗
+            outlineColor = Color.valueOf("2e3142");
+            constructor = mindustry.gen.UnitEntity::create;
+            aiController = () -> new zzw.content.units.ai.NewHealerAI();
+            range = 300f;
+
+            // 3 个维修臂 (mirror=true = 6 条光束), 与机体六臂造型对应
+            weapons.add(new MultiTargetRepairBeamWeapon("repair-beam-weapon") {{
+                x = 12f; y = 12.5f;
+                shootY = 6f;
+                beamWidth = 0.95f;
+                mirror = true;
+                repairSpeed = 0.9f;
+                fractionRepairSpeed = 2.5f;   // 每束 2.5%/s 最大生命
+                targetBuildings = true;
+                bullet = new mindustry.entities.bullet.BulletType(1f, 0f) {{
+                    maxRange = 300f;
+                }};
+            }},
+            new MultiTargetRepairBeamWeapon("repair-beam-weapon") {{
+                x = 21f; y = -4.5f;
+                shootY = 6f;
+                beamWidth = 0.95f;
+                mirror = true;
+                repairSpeed = 0.9f;
+                fractionRepairSpeed = 2.5f;
+                targetBuildings = true;
+                bullet = new mindustry.entities.bullet.BulletType(1f, 0f) {{
+                    maxRange = 300f;
+                }};
+            }},
+            new MultiTargetRepairBeamWeapon("repair-beam-weapon") {{
+                x = 17.5f; y = -18f;
+                shootY = 6f;
+                beamWidth = 0.95f;
+                mirror = true;
+                repairSpeed = 0.9f;
+                fractionRepairSpeed = 2.5f;
+                targetBuildings = true;
+                bullet = new mindustry.entities.bullet.BulletType(1f, 0f) {{
+                    maxRange = 300f;
+                }};
+            }});
+        }};
+
+        // ===== ophanim (座天使级治疗平台, T5, 8 臂远程维修) =====
+        ophanim = new UnitType("ophanim") {{
+            flying = true;
+            lowAltitude = true;
+            health = 9000f;
+            speed = 1.4f;
+            accel = 0.085f;
+            drag = 0.09f;
+            hitSize = 64f;
+            armor = 38f;
+            engineOffset = 30f;
+            engineSize = 6.5f;
+            circleTarget = true;
+            outlineColor = Color.valueOf("2e3142");
+            constructor = mindustry.gen.UnitEntity::create;
+            aiController = () -> new zzw.content.units.ai.NewHealerAI();
+            range = 360f;
+
+            // 4 个维修臂 (mirror=true = 8 条光束), 与机体八臂轮形对应
+            weapons.add(new MultiTargetRepairBeamWeapon("repair-beam-weapon") {{
+                x = 16f; y = 16f;
+                shootY = 7f;
+                beamWidth = 1f;
+                mirror = true;
+                repairSpeed = 1.2f;
+                fractionRepairSpeed = 3f;   // 每束 3%/s 最大生命
+                targetBuildings = true;
+                bullet = new mindustry.entities.bullet.BulletType(1f, 0f) {{
+                    maxRange = 360f;
+                }};
+            }},
+            new MultiTargetRepairBeamWeapon("repair-beam-weapon") {{
+                x = 27f; y = -4f;
+                shootY = 7f;
+                beamWidth = 1f;
+                mirror = true;
+                repairSpeed = 1.2f;
+                fractionRepairSpeed = 3f;
+                targetBuildings = true;
+                bullet = new mindustry.entities.bullet.BulletType(1f, 0f) {{
+                    maxRange = 360f;
+                }};
+            }},
+            new MultiTargetRepairBeamWeapon("repair-beam-weapon") {{
+                x = 22f; y = -22f;
+                shootY = 7f;
+                beamWidth = 1f;
+                mirror = true;
+                repairSpeed = 1.2f;
+                fractionRepairSpeed = 3f;
+                targetBuildings = true;
+                bullet = new mindustry.entities.bullet.BulletType(1f, 0f) {{
+                    maxRange = 360f;
+                }};
+            }},
+            new MultiTargetRepairBeamWeapon("repair-beam-weapon") {{
+                x = 9f; y = -30f;
+                shootY = 7f;
+                beamWidth = 1f;
+                mirror = true;
+                repairSpeed = 1.2f;
+                fractionRepairSpeed = 3f;
+                targetBuildings = true;
+                bullet = new mindustry.entities.bullet.BulletType(1f, 0f) {{
+                    maxRange = 360f;
+                }};
+            }});
+        }};
 
         // ═══════════════════════════════════════════════════════════
         //  PU_V8 mantodea 直升机系列 (T1-T6, 简化为普通飞行单位, 无旋翼)
@@ -4554,7 +4683,6 @@ public class Z_Units {
                 shadeSpeed = 5f;
                 bladeFade = 0.8f;
             }});
-        }};
         }};
 
         // ═══════════════════════════════════════════════════════════
