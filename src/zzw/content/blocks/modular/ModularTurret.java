@@ -4,6 +4,7 @@ import arc.Core;
 import arc.graphics.Color;
 import arc.graphics.g2d.Draw;
 import arc.graphics.g2d.Fill;
+import arc.graphics.g2d.Lines;
 import arc.graphics.g2d.TextureRegion;
 import arc.math.Mathf;
 import arc.math.geom.Point2;
@@ -66,7 +67,6 @@ public class ModularTurret extends Turret implements GraphBlockBase{
     public final Seq<PartInfo> parts = new Seq<>();
     /** 零件分类, 顺序对应 partscategory1..5 */
     final PartType[] categories = new PartType[]{PartType.base, PartType.breach, PartType.ammo, PartType.payload, PartType.misc};
-    final TextureRegion[] regions = new TextureRegion[4];
     /** 可旋转的炮塔头部 (含炮管), 建造完成后替代零件拼装体显示 */
     TextureRegion headRegion;
     TextureRegion partsRegion, rootRegion, rootOutlineRegion;
@@ -197,7 +197,6 @@ public class ModularTurret extends Turret implements GraphBlockBase{
     @Override
     public void load(){
         super.load();
-        for(int i = 0; i < regions.length; i++) regions[i] = Core.atlas.find(name + (i + 1));
         partsRegion = Core.atlas.find("create-partsicons");
         rootRegion = Core.atlas.find(name + "-root");
         rootOutlineRegion = Core.atlas.find(name + "-root-outline");
@@ -217,11 +216,13 @@ public class ModularTurret extends Turret implements GraphBlockBase{
         for(int i = 0; i < config.length; i++) config[i].id = i;
         PartInfo.preCalcConnection(config);
 
-        // 接入扭矩网络: 每边 size 个端口, 四边全开。
+        // 接入扭矩网络: 只有本地 -x 面 (炮管背面, side = 2) 能接扭矩。
+        // accept[i] 是网络槽位号, 0 表示该端口不参与传动网络。
         // ★ accept 必须在注册时就填好 —— GraphModule.onCreate() 会直接读 graph.accept.length,
         //   留空会让炮塔在建造完成/读档/复制时抛 NPE。
         int[] ports = new int[size * 4];
-        for(int i = 0; i < ports.length; i++) ports[i] = 1;
+        int backSide = 2; // side 2 = Geometry.d4(2) = (-1, 0)
+        for(int i = backSide * size; i < (backSide + 1) * size; i++) ports[i] = 1;
         addGraph(new GraphTorque(0.1f, 10f).setAccept(ports));
     }
 
@@ -707,14 +708,22 @@ public class ModularTurret extends Turret implements GraphBlockBase{
 
         @Override
         public void draw(){
-            // 底座固定不动: 只受放置朝向影响, 绝不跟随瞄准角旋转
-            int placeDir = ((Building)this).rotation & 3;
-            TextureRegion base = regions[placeDir];
-            Draw.rect(base != null && base.found() ? base : region, x, y);
+            // ★ 底座: 只用固定贴图, 不取任何朝向变体 —— 无论瞄准角、放置朝向如何都绝不旋转
+            Draw.rect(region, x, y);
             drawTeamTop();
 
+            // 回转环 (固定, 不随瞄准转动), 让底座与旋转体有层次
+            Draw.color(Color.black, 0.35f);
+            Lines.stroke(1.4f);
+            Lines.circle(x, y, size * tilesize * 0.23f);
+            Draw.color(Pal.accent, 0.25f);
+            Lines.stroke(1f);
+            Lines.circle(x, y, size * tilesize * 0.23f + 1.4f);
+            Draw.color();
+
             Draw.z(Layer.turret);
-            // 顶部组装体绕方块中心按瞄准角旋转, 并带后坐力位移
+
+            // 旋转层: 绕方块中心按瞄准角旋转, 并带后坐力位移
             float rot = rotation - 90f;
             float recoil = -curRecoil * 2.5f;
             float ox = Mathf.cosDeg(rotation) * recoil;
@@ -722,65 +731,70 @@ public class ModularTurret extends Turret implements GraphBlockBase{
             float muzzleDist = size * tilesize * 0.42f;
             float mx = x + Mathf.cosDeg(rotation) * muzzleDist + ox;
             float my = y + Mathf.sinDeg(rotation) * muzzleDist + oy;
+            boolean built = validTurret && headRegion.found();
 
-            if(validTurret && headRegion.found()){
-                // 建造完成: 显示真正的炮管头部, 不再画零件拼装体
+            // 1) 炮管头部 (未建完时以半透明虚影预览建造进度)
+            if(headRegion.found()){
+                Draw.alpha(built ? 1f : 0.22f + 0.4f * aniProg);
                 Draw.rect(headRegion, x + ox, y + oy, rot);
+                Draw.alpha(1f);
 
-                if(heat > 0.02f){
+                if(built && heat > 0.02f){
                     // 连续射击后的过热泛光
                     Draw.color(heatColor, Mathf.clamp(heat * 0.55f));
                     Draw.rect(headRegion, x + ox, y + oy, rot);
                     Draw.color();
                 }
+            }
 
-                if(curRecoil > 0.08f){
-                    // 炮口火光
-                    float f = Mathf.clamp(curRecoil * 2f);
-                    Draw.color(heatColor);
-                    Draw.alpha(f * 0.8f);
-                    Fill.circle(mx, my, 2f + 4.5f * f);
-                    Draw.color(Color.white);
-                    Draw.alpha(f * 0.9f);
-                    Fill.circle(mx, my, 1.2f + 2f * f);
+            // 2) 蓝图零件: 严格按蓝图格位摆放并随瞄准一起旋转, 叠在头部之上,
+            //    这样一眼就能看出装了什么零件、装在哪个格位
+            if(bluePrint.size > 0){
+                float cellX = size * tilesize / gridW;
+                float cellY = size * tilesize / gridH;
+                Draw.alpha(built ? 1f : 0.45f + 0.5f * aniProg);
+                for(int index = 0; index < bluePrint.size; index++){
+                    int value = bluePrint.get(index);
+                    if(value == 0 || value > parts.size) continue;
+                    PartInfo part = parts.get(value - 1);
+                    TextureRegion tex = part.texRegion;
+                    if(tex == null || !tex.found()) continue;
+                    int gx = index / gridH, gy = index % gridH;
+                    // 网格坐标 → 方块本地像素坐标 (网格中心对齐方块中心)
+                    float lx = (gx + part.tw * 0.5f - gridW * 0.5f) * cellX;
+                    float ly = (gy + part.th * 0.5f - gridH * 0.5f) * cellY;
+                    Tmp.v1.set(lx, ly).rotate(rot).add(x + ox, y + oy);
+                    // 深色底板, 让零件在炮管上也能看清
+                    Draw.color(0f, 0f, 0f, 0.42f);
+                    Draw.rect(Core.atlas.white(), Tmp.v1.x, Tmp.v1.y, part.tw * cellX + 1.5f, part.th * cellY + 1.5f, rot);
                     Draw.color();
-                    Draw.alpha(1f);
-                    Drawf.light(mx, my, 26f * f, heatColor, 0.6f);
+                    Draw.rect(tex, Tmp.v1.x, Tmp.v1.y, part.tw * cellX, part.th * cellY, rot);
                 }
-            }else{
-                // 建造中: 半透明显示零件拼装体 + 炮管头部预览
-                float alpha = 0.35f + 0.45f * aniProg;
-                Draw.alpha(alpha);
+                Draw.alpha(1f);
+            }
 
-                if(bluePrint.size > 0){
-                    // 蓝图网格 (6x6/8x8) 按方块实际尺寸换算每格像素, 保证整体落在底座范围内
-                    float cellX = size * tilesize / gridW;
-                    float cellY = size * tilesize / gridH;
-                    for(int index = 0; index < bluePrint.size; index++){
-                        int value = bluePrint.get(index);
-                        if(value == 0 || value > parts.size) continue;
-                        PartInfo part = parts.get(value - 1);
-                        TextureRegion tex = part.texRegion;
-                        if(tex == null || !tex.found()) continue;
-                        int gx = index / gridH, gy = index % gridH;
-                        // 网格坐标 → 方块本地像素坐标 (网格中心对齐方块中心)
-                        float lx = (gx + part.tw * 0.5f - gridW * 0.5f) * cellX;
-                        float ly = (gy + part.th * 0.5f - gridH * 0.5f) * cellY;
-                        Tmp.v1.set(lx, ly).rotate(rot).add(x + ox, y + oy);
-                        Draw.rect(tex, Tmp.v1.x, Tmp.v1.y, part.tw * cellX, part.th * cellY, rot);
-                    }
-                }
-
-                // 转轴下方压一层暗色轮廓, 让拼装体在底座上更清晰
+            // 3) 未建完时露出转轴 (建完后被头部遮住)
+            if(!built && rootRegion.found()){
                 if(rootOutlineRegion.found()){
                     Draw.color(0f, 0f, 0f, 0.5f);
                     Draw.rect(rootOutlineRegion, x + ox, y + oy, rot);
                     Draw.color();
                 }
-                if(rootRegion.found()){
-                    Draw.rect(rootRegion, x + ox, y + oy, rot);
-                }
+                Draw.rect(rootRegion, x + ox, y + oy, rot);
+            }
+
+            // 4) 炮口火光
+            if(built && curRecoil > 0.08f){
+                float f = Mathf.clamp(curRecoil * 2f);
+                Draw.color(heatColor);
+                Draw.alpha(f * 0.8f);
+                Fill.circle(mx, my, 2f + 4.5f * f);
+                Draw.color(Color.white);
+                Draw.alpha(f * 0.9f);
+                Fill.circle(mx, my, 1.2f + 2f * f);
+                Draw.color();
                 Draw.alpha(1f);
+                Drawf.light(mx, my, 26f * f, heatColor, 0.6f);
             }
         }
     }
