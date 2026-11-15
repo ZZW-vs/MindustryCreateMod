@@ -229,7 +229,9 @@ public class Z_Exp {
 
             maxLevel = 15;
             expFields = new EField[]{
-                    new ELinear(v -> radius = v, 40f, 0.5f, mindustry.world.meta.Stat.range, v -> arc.util.Strings.autoFixed(v / tilesize, 2) + " " + mindustry.world.meta.StatUnit.blocks.localized()),
+                    // ★ 护盾范围: 基础 40 -> 56 (+2 格); 满级 47.5 -> 87.5 (+5 格)
+                    //   即 scale = (87.5 - 56) / maxLevel = 2.1
+                    new ELinear(v -> radius = v, 56f, 2.1f, mindustry.world.meta.Stat.range, v -> arc.util.Strings.autoFixed(v / tilesize, 2) + " " + mindustry.world.meta.StatUnit.blocks.localized()),
                     new ELinear(v -> shieldHealth = v, 500f, 25f, mindustry.world.meta.Stat.shieldHealth)
             };
             fromColor = toColor = Pal.lancerLaser;
@@ -252,7 +254,9 @@ public class Z_Exp {
             toColor = zzw.content.graphics.UnityPal.diriumLight;
             maxLevel = 30;
             expFields = new EField[]{
-                    new ELinear(v -> radius = v, 60f, 0.75f, mindustry.world.meta.Stat.range, v -> arc.util.Strings.autoFixed(v / tilesize, 2) + " " + mindustry.world.meta.StatUnit.blocks.localized()),
+                    // ★ 护盾范围: 基础 60 -> 92 (+4 格); 满级 82.5 -> 162.5 (+10 格)
+                    //   即 scale = (162.5 - 92) / maxLevel = 2.35
+                    new ELinear(v -> radius = v, 92f, 2.35f, mindustry.world.meta.Stat.range, v -> arc.util.Strings.autoFixed(v / tilesize, 2) + " " + mindustry.world.meta.StatUnit.blocks.localized()),
                     new ELinear(v -> shieldHealth = v, 820f, 35f, mindustry.world.meta.Stat.shieldHealth),
                     new ELinear(v -> deflectChance = v, 0f, 0.1f, mindustry.world.meta.Stat.baseDeflectChance, v -> arc.util.Strings.autoFixed(v * 100, 1) + "%")
             };

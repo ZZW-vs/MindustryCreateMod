@@ -674,6 +674,10 @@
 - 新增螺旋石油钻井（oil-derrick）：扭矩驱动的石油抽取器（`SolidPump`，`result=Liquids.oil`、`attribute=Attribute.oil`，需建在油层上），绘制为螺旋钻杆样式（类 `zzw.content.mechanics.torque.blocks.production.OilDerrick`）
 
 ## 更新日志
+- **经验系方块调整**：
+  - **shield-generator**：护盾范围基础 40 → 56（+2 格），每级 0.5 → 2.1，满级 15 级时 47.5 → 87.5（+5 格）
+  - **deflect-generator**：护盾范围基础 60 → 92（+4 格），每级 0.75 → 2.35，满级 30 级时 82.5 → 162.5（+10 格）
+  - **exp-unloader 中心绿色光圈修复**：`exp-unloader-top.png` 是纯白蒙版，之前被 `Draw.color()` 重置后直接以白色绘制，中心被不透明白色菱形盖住；同时光圈用普通混合、低 alpha、半径压在白色菱形内，导致完全看不出。现改为顶盘用经验色调制（中心呈绿色呼吸光），光圈改为加法混合 + `Layer.block + 1f` + 半径扩到顶盘外圈 + alpha 提高
 - **endgame 终局炮台三项调整**：
   - **激光射程再 +150 格**：`range` 1640 → 1640 + 150×8 = 2840 世界单位（爆炸范围仍固定 `blastRadius = 820` 不变）
   - **血量改为负数**：`health = -1`（`block.health` 仍为 68000，maxHealth / 面板 / 放置预览不受影响）。负血量会让引擎 `dead()` 判真而跳过更新甚至销毁，故覆写 `dead()` 恒为 false、`healthf()` 把负值钳制为 0（血条不出现负宽度/NaN），并在 `updateTile` 中把被读档/外部治疗改回非负的血量修正为负值

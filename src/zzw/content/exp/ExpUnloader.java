@@ -156,19 +156,28 @@ public class ExpUnloader extends ExpTank {
             }
 
             if(topRegion.found()){
+                // ★ 顶盘是纯白蒙版 (PU 原版靠颜色调制), 之前直接画白色会把中心盖成白块,
+                //   既遮住了下面的经验填充, 也让叠加的绿色光圈完全没有对比度
+                Draw.color(UnityPal.exp, Color.white, 0.6f + 0.4f * Mathf.absin(Time.time * 2f, 1f));
                 Draw.rect(topRegion, x, y, rotdeg());
+                Draw.color();
             }
 
-            // 中心经验光圈: 原版这里是一枚缓慢呼吸的绿色光点, 避免中间空着
+            // 中心经验光圈: 加法混合的辉光环, 抬到方块层之上并放到顶盘外圈,
+            // 否则会被顶盘白色菱形吞掉 (这就是之前"一直看不到"的原因)
             float pulse = Mathf.absin(Time.time * 2f, 1f);
+            Draw.z(Layer.block + 1f);
+            Draw.blend(Blending.additive);
             Draw.color(UnityPal.exp);
-            Draw.alpha(0.25f + 0.35f * pulse);
-            Fill.circle(x, y, 3f + 1.6f * pulse);
-            Draw.alpha(0.55f + 0.35f * pulse);
-            Lines.stroke(1.1f);
-            Lines.circle(x, y, 5f + 1.6f * pulse);
+            Draw.alpha(0.35f + 0.45f * pulse);
+            Fill.circle(x, y, 5.5f + 1.6f * pulse);
+            Draw.alpha(0.65f + 0.35f * pulse);
+            Lines.stroke(1.3f);
+            Lines.circle(x, y, 8f + 1.6f * pulse);
+            Draw.blend();
             Draw.color();
             Draw.alpha(1f);
+            Draw.z(Layer.block);
 
             // 绘制抽取激光 (到正在被抽取的相邻方块)
             drawExtractLasers();
