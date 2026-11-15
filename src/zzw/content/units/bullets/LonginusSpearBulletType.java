@@ -230,12 +230,12 @@ public class LonginusSpearBulletType extends BulletType {
     /** 光效主色。 */
     public Color glowColor = Color.valueOf("f53036");
     /**
-     * 飞行中枪的<b>可见枪身</b>长度 (世界单位, 1 格 = 8 单位)。192 ≈ 24 格。
+     * 飞行中枪的<b>可见枪身</b>长度 (世界单位, 1 格 = 8 单位)。224 ≈ 28 格。
      *
      * <p>★ 必须与炮台的 {@code spearLength} 保持一致: 用户要求"子弹尺寸和炮台上的朗枪一样大"。
      * 绘制时按贴图里不透明区域的实测宽度换算缩放, 宽高比跟随图片本身。</p>
      */
-    public float drawLength = 192f;
+    public float drawLength = 224f;
     /**
      * 追踪锁定目标的转向速度 (度/帧)。
      *
@@ -495,7 +495,9 @@ public class LonginusSpearBulletType extends BulletType {
         Draw.z(Layer.bullet);
         Draw.color(Color.white);
         Draw.alpha(1f);
-        // 以可见枪尖为锚: 枪尖正好落在子弹位置上, 枪身随后方延伸
+        // ★ 连画两遍: 枪身只有几像素宽, 单遍在缩小绘制时边缘像素的 alpha 会被插值稀释,
+        //   看起来发虚/半透明; 叠一遍能把整杆枪压成实心 (不透明部分颜色不变)。
+        drawSpear(region, drawLength, 1f, b.x, b.y, b.rotation());
         drawSpear(region, drawLength, 1f, b.x, b.y, b.rotation());
         Draw.reset();
     }

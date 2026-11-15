@@ -7,6 +7,8 @@ import arc.graphics.g2d.Draw;
 import arc.graphics.g2d.Fill;
 import arc.graphics.g2d.Lines;
 import arc.graphics.g2d.TextureRegion;
+import arc.math.Angles;
+import arc.math.Interp;
 import arc.math.Mathf;
 import arc.util.Eachable;
 import arc.util.Time;
@@ -27,13 +29,12 @@ import zzw.content.units.bullets.LonginusSpearBulletType;
  * 默认绘制只在固定位置画一张炮塔贴图, 无法表达"枪离体"这个状态,
  * 也无法把长条形的枪按握持点对齐到炮台中心。</p>
  *
- * <p>★ 状态逻辑非常简单, 只有两态:</p>
+ * <p>★ 一个装填周期里的三个状态 (全部由同步的 {@code reloadCounter} 推导, 不加本地计时器):</p>
  * <ul>
- *   <li>装填中 ({@code reloadCounter < reload}) → 枪隐藏, 只留空枪座光效;</li>
- *   <li>装填完成 ({@code reloadCounter >= reload}) → 枪正常显示。</li>
+ *   <li>开火后 0 ~ 35%: 枪在外面飞, 底座只剩空枪座光效;</li>
+ *   <li>35% ~ 85%: 枪从前方飞回枪座, 带红色残影并淡入;</li>
+ *   <li>85% ~ 100%: 蓄力, 枪沿枪管向后拉, 枪口红光变亮, 然后投出。</li>
  * </ul>
- * <p>不使用任何本地布尔状态, 完全由同步的 {@code reloadCounter} 推导,
- * 因此多人客户端表现一致。</p>
  */
 public class LonginusTurret extends ItemTurret {
 
@@ -41,7 +42,7 @@ public class LonginusTurret extends ItemTurret {
     public TextureRegion baseRegion;
 
     /**
-     * 枪的<b>可见枪身</b>长度 (世界单位, 1 格 = 8 单位)。192 ≈ 24 格。
+     * 枪的<b>可见枪身</b>长度 (世界单位, 1 格 = 8 单位)。224 ≈ 28 格。
      *
      * <p>★ 必须与弹体的 {@code drawLength} 保持一致 (子弹尺寸 = 炮台上的朗枪尺寸)。</p>
      *
@@ -49,7 +50,7 @@ public class LonginusTurret extends ItemTurret {
      * {@link LonginusSpearBulletType#spearScale}), 宽高比由图片自身决定;
      * 换图后无论四周留白怎么变, 屏幕上枪身的长度都固定是这个值。</p>
      */
-    public float spearLength = 192f;
+    public float spearLength = 224f;
     /**
      * 握持点距枪尾的比例 (0 = 枪尾, 1 = 枪尖), 该点对准炮台中心。
      *
@@ -57,8 +58,21 @@ public class LonginusTurret extends ItemTurret {
      * ★ 贴图本身枪尖朝右 (+x), 代码里不再额外旋转 180°。</p>
      */
     public float spearPivot = 0.35f;
-    /** 空枪座 / 能量环的主色。 */
+    /** 空枪座 / 能量环 / 拖影的主色。 */
     public Color scarColor = Color.valueOf("f53036");
+
+    // ---------- 装填 / 蓄力动画参数 (全部按"装填进度"的比例, 不依赖具体 reload 数值) ----------
+
+    /** 枪开始从前方飞回的装填进度。 */
+    public float returnStart = 0.35f;
+    /** 枪落回枪座的装填进度; 之后进入蓄力阶段。 */
+    public float returnEnd = 0.85f;
+    /** 蓄力(向后拉)开始的装填进度。 */
+    public float chargeStart = 0.85f;
+    /** 飞回动画的起点距离 (世界单位)。 */
+    public float returnDistance = 260f;
+    /** 蓄力时枪向后拉的最大距离 (世界单位)。 */
+    public float chargeDistance = 34f;
 
     public LonginusTurret(String name) {
         super(name);
@@ -108,19 +122,22 @@ public class LonginusTurret extends ItemTurret {
     public class LonginusBuild extends ItemTurretBuild {
 
         /** 枪的"在场度": 1 = 插在底座上, 0 = 已经发射出去。 */
-        public float spearPresence = 1f;
-        /** 枪是否已经射出去了 (true = 底座上只剩空枪座)。 */
-        public boolean spearOut;
-        /** 枪飞出去之后经过的时间 (tick)。 */
-        public float spearTimer;
+        public float spearPresence = 0f;
+        /** 飞回动画的进度 0..1 (1 = 已回到枪座)。 */
+        public float returnT;
+        /** 飞回动画的当前距离偏移 (世界单位, 正方向 = 枪口方向)。 */
+        public float returnOffset;
+        /** 蓄力进度 0..1 (1 = 已拉到最底, 马上投出)。 */
+        public float chargeT;
 
         @Override
         protected void shoot(BulletType type) {
             super.shoot(type);
             // 枪离体的瞬间直接隐藏, 不留拖影
             spearPresence = 0f;
-            spearOut = true;
-            spearTimer = 0f;
+            returnT = 0f;
+            returnOffset = returnDistance;
+            chargeT = 0f;
         }
 
         @Override
@@ -130,25 +147,28 @@ public class LonginusTurret extends ItemTurret {
         }
 
         /**
-         * ★ 这里千万不能用 {@code reloadCounter >= reload} 判断!
+         * 装填 / 蓄力动画, 完全由同步的 {@code reloadCounter} 推导 (多人一致)。
          *
-         * <p>基类 {@code ItemTurretBuild.updateTile()} 一旦装填完成又有目标,
-         * 会立刻开火并把 {@code reloadCounter} 清零; 而本方法是在 {@code super} 之后调用的,
-         * 所以永远读不到"装填完成"的那一帧 —— 枪会永久消失在底座上。</p>
-         *
-         * <p>改用本地计时器: 开火时清零, 每帧累加, 累加满 {@code reload} 枪才回到座上。</p>
+         * <p>{@code reloadCounter} 从 0 涨到 {@code reload}, 刚开火时为 0, 可以再开火时为 1,
+         * 令 {@code t = reloadCounter / reload}:</p>
+         * <ul>
+         *   <li>{@code 0 ~ 0.35}: 枪还在外面飞;</li>
+         *   <li>{@code 0.35 ~ 0.85}: 枪从前方 260 单位处飞回枪座, 同时淡入并拖一条红色残影;</li>
+         *   <li>{@code 0.85 ~ 1}: 蓄力, 枪沿着枪管向后拉 34 单位, 枪口红晕逐渐变亮。</li>
+         * </ul>
          */
         protected void updateSpear() {
-            if (spearOut) {
-                spearTimer += Time.delta;
-                if (spearTimer >= reload) {
-                    spearOut = false;
-                    spearTimer = 0f;
-                }
-            }
+            float t = reload <= 0f ? 1f : Mathf.clamp(reloadCounter / reload);
 
-            // 0.25 的插值速度 ≈ 0.06 秒淡入/淡出, 干脆但不生硬
-            spearPresence = Mathf.lerpDelta(spearPresence, spearOut ? 0f : 1f, 0.25f);
+            // 1. 飞回
+            returnT = Mathf.clamp((t - returnStart) / (returnEnd - returnStart));
+            returnOffset = returnT <= 0f ? returnDistance
+                : (1f - Interp.pow2Out.apply(returnT)) * returnDistance;
+            // 前 40% 的返回行程里淡入, 避免刚开火时在远处出现一个半透明的枪影
+            spearPresence = Mathf.clamp(returnT * 2.5f);
+
+            // 2. 蓄力: 最后 15% 装填向后拉枪
+            chargeT = Mathf.clamp((t - chargeStart) / Math.max(1f - chargeStart, 0.001f));
         }
 
         /**
@@ -176,19 +196,46 @@ public class LonginusTurret extends ItemTurret {
         /**
          * 绘制枪。
          *
-         * <p>贴图本身枪尖朝右 (+x), 绘制角度直接用 {@code rotation};
-         * {@code spearPivot} 表示握持点在"可见枪身由尾到尖"上的比例,
-         * 长度与粗细全部由 {@link LonginusSpearBulletType#drawSpear} 按贴图实际尺寸换算,
-         * 与子弹使用同一套逻辑。</p>
+         * <p>位置由两部分叠加: 飞回动画的 {@code returnOffset} (正值 = 偏前) 与
+         * 蓄力的 {@code -chargeDistance} (向后拉)。整体仍以 {@code spearPivot} 为握持点。</p>
          */
         protected void drawSpear() {
             TextureRegion region = LonginusSpearBulletType.spear();
             if (region == null || !region.found() || spearPresence <= 0.01f) return;
 
+            float ang = rotation;
+            float offset = returnOffset - chargeDistance * Interp.pow2In.apply(chargeT);
+            float px = x + Angles.trnsx(ang, offset);
+            float py = y + Angles.trnsy(ang, offset);
+
+            // ---------- 飞回途中的红色残影 ----------
+            if (returnT > 0.01f && returnT < 0.99f) {
+                Draw.z(Layer.turret - 1f);
+                Draw.blend(Blending.additive);
+                Draw.color(scarColor, 0.45f * (1f - returnT));
+                Lines.stroke(5f);
+                Lines.line(px, py, x, y);
+                Draw.blend();
+                Draw.reset();
+            }
+
+            Draw.z(Layer.turret);
             Draw.color(Color.white);
             Draw.alpha(spearPresence);
-            LonginusSpearBulletType.drawSpear(region, spearLength, spearPivot, x, y, rotation);
+            // 连画两遍: 枪身很细, 单遍缩小绘制时边缘会被插值稀释, 叠一遍保证实心
+            LonginusSpearBulletType.drawSpear(region, spearLength, spearPivot, px, py, ang);
+            LonginusSpearBulletType.drawSpear(region, spearLength, spearPivot, px, py, ang);
             Draw.alpha(1f);
+
+            // ---------- 蓄力时枪口的暗红光晕 ----------
+            if (chargeT > 0.01f) {
+                Draw.z(Layer.turret - 1f);
+                Draw.blend(Blending.additive);
+                Draw.color(scarColor, 0.55f * chargeT);
+                Fill.circle(x, y, 12f + 22f * Interp.pow2In.apply(chargeT));
+                Draw.blend();
+            }
+
             Draw.reset();
         }
 

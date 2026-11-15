@@ -706,7 +706,7 @@ public class Z_AdvTurrets {
                 Z_Items.darkAlloy, 900, Z_Items.terminum, 400, Z_Items.terminaAlloy, 120));
             health = 14500;
             size = 15;
-            range = 520f * 8f;        // 520 格 (1 格 = 8 世界单位)
+            range = 620f * 8f;        // 620 格 (1 格 = 8 世界单位)
             reload = 5f * 60f;        // 5 秒一发
             rotateSpeed = 2.2f;
             shootCone = 5f;
@@ -718,10 +718,10 @@ public class Z_AdvTurrets {
             shootSound = Z_Sounds.tenmeikiriShoot;
 
             // 弹药: 终末 (一发一杆枪)
-            // ★ 子弹中途不碰撞, 只追打发射瞬间锁定的那个单位, 所以寿命要够飞到 520 格外:
-            //   12 单位/帧 × 420 帧 = 5040 单位, 覆盖 520 格的射程
-            ammo(Z_Items.terminum, new LonginusSpearBulletType(12f, 1000000f) {{
-                lifetime = 420f;
+            // ★ 子弹中途不碰撞, 只追打发射瞬间锁定的那个单位, 所以寿命要够飞到 620 格外:
+            //   12 单位/帧 × 480 帧 = 5760 单位, 覆盖 620 格的射程
+            ammo(Z_Items.terminum, new LonginusSpearBulletType(12f, 2000000f) {{
+                lifetime = 480f;
                 drag = 0f;
             }});
 
