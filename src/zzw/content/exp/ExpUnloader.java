@@ -155,25 +155,42 @@ public class ExpUnloader extends ExpTank {
                 Draw.alpha(1f);
             }
 
+            // ★ 中心光效重做: 不再是"硬贴上去的色块", 而是融入顶盘菱形的能量汇聚效果
+            //   1) 顶盘本身就是纯白菱形蒙版 → 用经验色做<b>轻微</b>调制, 让顶盘与方块中心
+            //      的绿色菱形同一色系, 且调制量随呼吸缓慢变化 (不再是硬切的白/绿)
+            //   2) 叠加层全部用加法混合, 形状优先贴合顶盘的菱形 (Fill.poly 4 边),
+            //      半径限制在方块范围内, 边缘靠 alpha 二次衰减柔和淡出
+            //   3) 两层错相扩散光环从中心向外溢出并淡出, 形成"汇聚 → 溢出"的流动感
+            float breathe = 0.5f + 0.5f * Mathf.sin(Time.time * 0.045f);
+
             if(topRegion.found()){
-                // ★ 顶盘是纯白蒙版 (PU 原版靠颜色调制), 之前直接画白色会把中心盖成白块,
-                //   既遮住了下面的经验填充, 也让叠加的绿色光圈完全没有对比度
-                Draw.color(UnityPal.exp, Color.white, 0.6f + 0.4f * Mathf.absin(Time.time * 2f, 1f));
+                Draw.color(UnityPal.exp, Color.white, 0.74f + 0.20f * breathe);
                 Draw.rect(topRegion, x, y, rotdeg());
                 Draw.color();
             }
 
-            // 中心经验光圈: 加法混合的辉光环, 抬到方块层之上并放到顶盘外圈,
-            // 否则会被顶盘白色菱形吞掉 (这就是之前"一直看不到"的原因)
-            float pulse = Mathf.absin(Time.time * 2f, 1f);
             Draw.z(Layer.block + 1f);
             Draw.blend(Blending.additive);
             Draw.color(UnityPal.exp);
-            Draw.alpha(0.35f + 0.45f * pulse);
-            Fill.circle(x, y, 5.5f + 1.6f * pulse);
-            Draw.alpha(0.65f + 0.35f * pulse);
-            Lines.stroke(1.3f);
-            Lines.circle(x, y, 8f + 1.6f * pulse);
+
+            // 1) 菱形柔光: 与顶盘同形, 只做轻微呼吸, 不会整块盖住中心
+            Draw.alpha(0.06f + 0.08f * breathe);
+            Fill.poly(x, y, 4, 4.0f + 0.7f * breathe);
+
+            // 2) 内核光点: 能量汇聚处, 小而柔和
+            Draw.alpha(0.09f + 0.14f * breathe);
+            Fill.circle(x, y, 1.5f + 0.5f * breathe);
+
+            // 3) 两层错相光环: 由内向外扩散并在边缘自然淡出 (二次衰减)
+            for(int i = 0; i < 2; i++){
+                float t = (Time.time * 0.012f + i * 0.5f) % 1f;
+                float fade = (1f - t) * (1f - t);
+
+                Draw.alpha(0.30f * fade * (0.55f + 0.45f * breathe));
+                Lines.stroke(0.6f + 0.5f * (1f - t));
+                Lines.circle(x, y, 1.4f + t * 2.7f);
+            }
+
             Draw.blend();
             Draw.color();
             Draw.alpha(1f);
