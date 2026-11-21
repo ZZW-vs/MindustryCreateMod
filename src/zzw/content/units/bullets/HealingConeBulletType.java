@@ -120,11 +120,13 @@ public class HealingConeBulletType extends BulletType {
                 if (b.within(unit, length + (unit.hitSize / 2f)) && Angles.within(b.rotation(), b.angleTo(unit), cone)) {
                     int index = Mathf.clamp(Mathf.round(((UnityUtils.angleDistSigned(b.angleTo(unit), b.rotation()) + cone) / (cone * 2f)) * (data.length - 1)), 0, data.length - 1);
                     if ((b.dst2(unit) + (unit.hitSize / 2f)) < data[index]) {
+                        // ★ 恢复扫描对敌: 伤害与治疗量共用同一曲线 (max(minHeal, maxHealth% * healPercent))
+                        float amount = Math.max(minHeal, (unit.maxHealth / 100f) * healPercent);
                         if (unit.team != b.team) {
-                            unit.damage(b.damage);
+                            unit.damage(amount);
                             unit.apply(status, statusDuration);
                         } else {
-                            unit.heal(Math.max(minHeal, (unit.maxHealth / 100f) * healPercent));
+                            unit.heal(amount);
                             unit.apply(allyStatus, allyStatusDuration);
                         }
                     }
@@ -145,7 +147,9 @@ public class HealingConeBulletType extends BulletType {
                             Fx.healBlockFull.at(building.x, building.y, building.block.size, Pal.heal, building.block);
                         }
                     } else {
-                        building.damage(b.damage * buildingDamageMultiplier);
+                        // ★ 恢复扫描对敌: 与治疗量同一曲线换算, 建筑额外乘 buildingDamageMultiplier (180%)
+                        float damageAmount = Math.max(minHeal, building.maxHealth / 100f * healPercent);
+                        building.damage(damageAmount * buildingDamageMultiplier);
                     }
                 }
             }, tile -> tile.block() != null && tile.block().absorbLasers && tile.team() != b.team, data);

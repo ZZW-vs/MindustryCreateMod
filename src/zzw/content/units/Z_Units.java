@@ -27,6 +27,7 @@ import mindustry.type.Weapon;
 
 import zzw.content.units.weapons.BlankWeapon;
 import zzw.content.units.abilities.CustomLegsAbility;
+import zzw.content.units.abilities.RepairFieldDamageAbility;
 import zzw.content.units.abilities.TimeStopAbility;
 import zzw.content.units.anticheat.AntiCheatBulletModule;
 import zzw.content.units.anticheat.ArmorDamageModule;
@@ -3828,7 +3829,8 @@ public class Z_Units {
             // ★ 加强: 原版 8000 护盾/360 每秒与 180 平铺/2s 的修复场在 T6 血量下几乎不可见
             abilities.add(
                 new mindustry.entities.abilities.ForceFieldAbility(190f, 40f, 30000f, 60f * 8),
-                new mindustry.entities.abilities.RepairFieldAbility(600f, 60f, 220f){{ healPercent = 2f; }},
+                // ★ 修复场扫描同时对敌方造成等量伤害 (建筑 180%)
+                new RepairFieldDamageAbility(600f, 60f, 220f){{ healPercent = 2f; }},
                 // ★ 新增: 自身每秒 250 点回血 (range 1 只作用于自身)
                 new mindustry.entities.abilities.RepairFieldAbility(250f, 60f, 1f)
             );
@@ -3849,6 +3851,7 @@ public class Z_Units {
 
                 bullet = new HealingConeBulletType(3f) {{
                     healPercent = 6f;
+                    buildingDamageMultiplier = 1.8f;  // ★ 恢复扫描对建筑 180% 伤害
                     allyStatus = mindustry.content.StatusEffects.overclock;
                     allyStatusDuration = 9f * 60f;
                     status = Z_StatusEffects.weaken;  // PU_V8 UnityStatusEffects.weaken (伤害/生命-25%, 移速-50%)
@@ -3908,6 +3911,7 @@ public class Z_Units {
                 bullet = new HealingConeBulletType(3f) {{
                     healPercent = 5f;   // ★ 每秒 10%: 每 30f 结算 5%
                     minHeal = 25f;      // ★ 最低 50/s
+                    buildingDamageMultiplier = 1.8f;  // ★ 恢复扫描对建筑 180% 伤害
                     cone = 15f;
                     scanAccuracy = 25;
                     allyStatus = mindustry.content.StatusEffects.overclock;
