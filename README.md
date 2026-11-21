@@ -689,6 +689,10 @@
 - 新增螺旋石油钻井（oil-derrick）：扭矩驱动的石油抽取器（`SolidPump`，`result=Liquids.oil`、`attribute=Attribute.oil`，需建在油层上），绘制为螺旋钻杆样式（类 `zzw.content.mechanics.torque.blocks.production.OilDerrick`）
 
 ## 更新日志
+- **激光单位发射音效**：
+  - **cygnus**：激光武器改用原版 T5 corvus 的 `shootCorvus` 音效，用 atempo 拉长至约 4.15 秒（音高不变，保留原有能量/低频质感），`shootSoundVolume = 0.65`，避免盖过其他单位
+  - **mantle / aphelion**：激光武器改用 blue-eclipse 激光音效（`advance/eclipse-beam`）的降调加低频版——音高下调 16%（asetrate 降调 + atempo 还原时长）、110Hz 低架 +3.5dB，并在文件内压低音量供持续激光循环播放，保持低沉但不浑浊
+  - 新增音效文件 `assets/sounds/cygnus-laser.ogg`、`assets/sounds/advance/eclipse-laser-deep.ogg`，并在 `Z_Sounds` 注册为 `cygnusLaser` / `eclipseLaserDeep`，随 jar 打包
 - **endgame 终局炮台：穿透"模组内部哈希表血量"**：
   - 湮灭链新增第四层（最末兜底）：整条「廉价击杀 → 复活封印 → 反射拆解」全部失效时，反射遍历目标对象图，清零血量语义字段（health/hp/blood/life/vital/durability…，排除 max 类）以及以该单位（或 id）为键的容器条目（`Map`/`ObjectMap`/`ObjectFloatMap`/`IntMap`/`IntFloatMap`/`LongMap`），再补一次击杀；字段列表按类缓存、深度 1 层、对象数上限 64
   - 新增「持续施压」：仍被其自身回溯拉回来的单位登记进施压表，每 8 帧低频重新判定（最多 64 个、最长 600 帧），到期或真正消失即回收

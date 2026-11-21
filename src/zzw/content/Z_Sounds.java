@@ -65,7 +65,9 @@ public class Z_Sounds {
         kamiShootChime,     // kami 音铃射击音效
         kamiShootSimple,    // kami 简单射击音效
         kamiShootSimpleB,   // kami 简单射击 B 音效
-        laserFreeze;        // frost-laser-turret 冻结音效
+        laserFreeze,        // frost-laser-turret 冻结音效
+        cygnusLaser,        // cygnus 激光射击音效 (原版 shootCorvus 时长拉长版, 保持原音高)
+        eclipseLaserDeep;   // aphelion/mantle 激光开火音效 (blue-eclipse 激光降调加低频版)
 
     public static void load() {
         spaceFracture = loadSound("end/space-fracture");
@@ -128,6 +130,10 @@ kamiShootChime = loadSound("kami/kami-shoot-chime");
 kamiShootSimple = loadSound("kami/kami-shoot-simple");
 kamiShootSimpleB = loadSound("kami/kami-shoot-simple-b");
 laserFreeze = loadSound("koruh/laser-freeze");
+        // cygnus: 原版 corvus 激光音效 (shootCorvus) 经 atempo 拉长至约 4.15s, 音高不变
+        cygnusLaser = loadSound("cygnus-laser");
+        // aphelion/mantle: blue-eclipse 激光音效 (advance/eclipse-beam) 降调 16% + 低频增强, 时长不变
+        eclipseLaserDeep = loadSound("advance/eclipse-laser-deep");
     }
 
     /**
