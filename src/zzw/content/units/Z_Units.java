@@ -3851,6 +3851,7 @@ public class Z_Units {
 
                 bullet = new HealingConeBulletType(3f) {{
                     healPercent = 6f;
+                    enemyDamage = 1200f;              // ★ 对敌固定伤害 (每次 30f 扫描), 不按百分比
                     buildingDamageMultiplier = 1.8f;  // ★ 恢复扫描对建筑 180% 伤害
                     allyStatus = mindustry.content.StatusEffects.overclock;
                     allyStatusDuration = 9f * 60f;
@@ -3911,6 +3912,7 @@ public class Z_Units {
                 bullet = new HealingConeBulletType(3f) {{
                     healPercent = 5f;   // ★ 每秒 10%: 每 30f 结算 5%
                     minHeal = 25f;      // ★ 最低 50/s
+                    enemyDamage = 2000f;              // ★ 对敌固定伤害 (每次 30f 扫描), 不按百分比
                     buildingDamageMultiplier = 1.8f;  // ★ 恢复扫描对建筑 180% 伤害
                     cone = 15f;
                     scanAccuracy = 25;

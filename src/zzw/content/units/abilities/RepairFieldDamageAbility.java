@@ -9,7 +9,8 @@ import mindustry.gen.Unit;
 /**
  * 修复场扫描 + 对敌伤害
  * 治疗部分完全沿用 RepairFieldAbility (曲线/百分比/冷却均不变),
- * 额外在每次触发时对范围内敌方单位造成与治疗量换算等量的伤害, 对建筑再乘 buildingDamageMultiplier (默认 180%).
+ * 额外在每次触发时对范围内敌方单位造成固定伤害 (取治疗定值 amount), 对建筑再乘 buildingDamageMultiplier (默认 180%).
+ * 敌方伤害不随目标最大生命百分比变化, 始终为定值.
  */
 public class RepairFieldDamageAbility extends RepairFieldAbility {
     /** 建筑伤害倍率 */
@@ -30,12 +31,13 @@ public class RepairFieldDamageAbility extends RepairFieldAbility {
         if (damageTimer >= reload) {
             damageTimer = 0f;
 
+            // ★ 敌方伤害为定值 (治疗定值 amount), 不按目标最大生命百分比结算
             Units.nearbyEnemies(unit.team, unit.x, unit.y, range, other ->
-                other.damage(amount + healPercent / 100f * other.maxHealth()));
+                other.damage(amount));
 
             Vars.indexer.eachBlock(null, unit.x, unit.y, range,
                 build -> build.team != unit.team && build.health > 0f && build.isValid(),
-                build -> build.damage((amount + healPercent / 100f * build.maxHealth()) * buildingDamageMultiplier));
+                build -> build.damage(amount * buildingDamageMultiplier));
         }
     }
 }

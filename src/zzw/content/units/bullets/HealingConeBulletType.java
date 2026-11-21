@@ -40,6 +40,8 @@ public class HealingConeBulletType extends BulletType {
     public float allyStatusDuration = 0f;
     /** 每种治疗 tick(30f) 的最低治疗量; 与百分比治疗取较大者 */
     public float minHeal = 0f;
+    /** 对敌方单位每次扫描(30f)造成的固定伤害; 治疗侧仍按百分比曲线结算 */
+    public float enemyDamage = 300f;
     public arc.graphics.Color color = Pal.heal;
 
     private int idx = 0;
@@ -120,13 +122,12 @@ public class HealingConeBulletType extends BulletType {
                 if (b.within(unit, length + (unit.hitSize / 2f)) && Angles.within(b.rotation(), b.angleTo(unit), cone)) {
                     int index = Mathf.clamp(Mathf.round(((UnityUtils.angleDistSigned(b.angleTo(unit), b.rotation()) + cone) / (cone * 2f)) * (data.length - 1)), 0, data.length - 1);
                     if ((b.dst2(unit) + (unit.hitSize / 2f)) < data[index]) {
-                        // ★ 恢复扫描对敌: 伤害与治疗量共用同一曲线 (max(minHeal, maxHealth% * healPercent))
-                        float amount = Math.max(minHeal, (unit.maxHealth / 100f) * healPercent);
+                        // ★ 恢复扫描对敌: 固定伤害 (enemyDamage), 不按最大生命百分比结算
                         if (unit.team != b.team) {
-                            unit.damage(amount);
+                            unit.damage(enemyDamage);
                             unit.apply(status, statusDuration);
                         } else {
-                            unit.heal(amount);
+                            unit.heal(Math.max(minHeal, (unit.maxHealth / 100f) * healPercent));
                             unit.apply(allyStatus, allyStatusDuration);
                         }
                     }
@@ -147,9 +148,8 @@ public class HealingConeBulletType extends BulletType {
                             Fx.healBlockFull.at(building.x, building.y, building.block.size, Pal.heal, building.block);
                         }
                     } else {
-                        // ★ 恢复扫描对敌: 与治疗量同一曲线换算, 建筑额外乘 buildingDamageMultiplier (180%)
-                        float damageAmount = Math.max(minHeal, building.maxHealth / 100f * healPercent);
-                        building.damage(damageAmount * buildingDamageMultiplier);
+                        // ★ 恢复扫描对敌: 固定伤害 enemyDamage, 建筑额外乘 buildingDamageMultiplier (180%)
+                        building.damage(enemyDamage * buildingDamageMultiplier);
                     }
                 }
             }, tile -> tile.block() != null && tile.block().absorbLasers && tile.team() != b.team, data);
