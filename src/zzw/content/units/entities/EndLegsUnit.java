@@ -80,6 +80,7 @@ public class EndLegsUnit extends UnitEntity implements zzw.content.Factionc {
         // 初始化防作弊数据 (无敌帧槽位数按参数配置, 无配置回退 4, 与 PU132 EndComp.add 一致)
         trueHealth = type.health;
         trueMaxHealth = type.health;
+        zzw.content.units.anticheat.EndHealthLedger.put(this, trueHealth);
         trueTeam = team;
         invFrames = new float[ac != null ? ac.invincibilityArray : 4];
         // 登记进全局防作弊管理器 (PU132 Unity.antiCheat.addUnit)
@@ -161,13 +162,14 @@ public class EndLegsUnit extends UnitEntity implements zzw.content.Factionc {
             lockActive = false;
         }
 
-        // super.update() 后再次同步 (super 可能改了 health)
-        if (trueHealth > 0f) {
-            if (this.health > trueHealth) {
-                this.health = trueHealth;
-            } else {
-                trueHealth = this.health;
-            }
+        // ★ 只做"显示血量不得超过台账"的钳制, 绝不把台账回写成显示血量。
+        //   旧实现的 else 分支每帧 trueHealth = health, 台账会被原始伤害拖着一起归零,
+        //   kill()/destroy() 时台账已经 <= 0 → 复活时有时无。
+        //   秒杀/作弊把 health 清零时, 只要内部台账还有血就回溯 (只在异常时触发)。
+        if (trueHealth > 0f && !zzw.util.ReviveSeal.isSealed(this)) {
+            if (this.health > trueHealth) this.health = Math.min(maxHealth, trueHealth);
+            if (this.health <= 0f) this.health = Math.min(maxHealth, trueHealth);
+            dead = false;
         }
     }
 
@@ -221,6 +223,7 @@ public class EndLegsUnit extends UnitEntity implements zzw.content.Factionc {
 
             if (tmpAmount > 0) {
                 trueHealth -= tmpAmount;
+                zzw.content.units.anticheat.EndHealthLedger.put(this, trueHealth);
             }
         }
 
@@ -246,10 +249,14 @@ public class EndLegsUnit extends UnitEntity implements zzw.content.Factionc {
     private boolean denyDeath() {
         // ★ 终局炮台封印: 被湮灭时不走任何复活逻辑
         if (zzw.util.ReviveSeal.isSealed(this)) return false;
+        // ★ 以哈希台账为准: 即使实体字段被秒杀/作弊清零, 内部还有血就回溯
+        trueHealth = zzw.content.units.anticheat.EndHealthLedger.get(this, trueHealth);
         if (trueHealth > 0f) {
             aggression = 4f;
             aggressionTime = 10f * 60f;
             health = Math.max(health, Math.min(trueHealth, trueMaxHealth));
+            dead = false;
+            if (trueTeam != null) team = trueTeam;
             hitTime = 1f;
             zzw.content.units.effects.SpecialFx.endDeny.at(x, y, rotation, this);
             return true;
@@ -271,8 +278,17 @@ public class EndLegsUnit extends UnitEntity implements zzw.content.Factionc {
 
     @Override
     public void remove() {
-        if (!zzw.util.ReviveSeal.isSealed(this) && trueHealth > 0f && health > 0f) return;
+        // ★ 以哈希台账为准, 不再要求当前 health > 0 (被秒杀清零时也要能回溯)
+        float ledger = zzw.content.units.anticheat.EndHealthLedger.get(this, trueHealth);
+        trueHealth = ledger;
+        if (!zzw.util.ReviveSeal.isSealed(this) && ledger > 0f) {
+            health = Math.max(health, Math.min(ledger, trueMaxHealth));
+            dead = false;
+            if (trueTeam != null) team = trueTeam;
+            return;
+        }
         // 真实死亡: 从全局防作弊登记表注销 (PU132 EndComp.remove)
+        zzw.content.units.anticheat.EndHealthLedger.remove(this);
         zzw.util.AntiCheat.removeUnit(this);
         super.remove();
     }

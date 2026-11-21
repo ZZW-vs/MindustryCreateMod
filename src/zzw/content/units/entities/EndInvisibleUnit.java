@@ -48,6 +48,7 @@ public class EndInvisibleUnit extends UnitEntity implements zzw.content.Factionc
     public void setType(mindustry.type.UnitType type) {
         super.setType(type);
         antiCheat.lastHealth = type.health;
+        zzw.content.units.anticheat.EndHealthLedger.put(this, type.health);
     }
 
     @Override
@@ -55,6 +56,7 @@ public class EndInvisibleUnit extends UnitEntity implements zzw.content.Factionc
         if (added) return;
         super.add();
         antiCheat.lastHealth = health;
+        zzw.content.units.anticheat.EndHealthLedger.put(this, health);
         // 读取单位配置的防作弊参数 (无配置时走 AntiCheatBase 的保底上限)
         if (type instanceof zzw.content.type.UnityUnitType u && u.antiCheatType != null) {
             ac = u.antiCheatType;
@@ -76,6 +78,13 @@ public class EndInvisibleUnit extends UnitEntity implements zzw.content.Factionc
         }
 
         super.update();
+
+        // ★ 台账 > 0 时不允许停留在死亡/零血状态 (秒杀回溯; 只在异常时触发, 非每帧回溯)
+        if (antiCheat.lastHealth > 0f && !zzw.util.ReviveSeal.isSealed(this)) {
+            if (health > antiCheat.lastHealth) health = Math.min(maxHealth, antiCheat.lastHealth);
+            if (health <= 0f) health = Math.min(maxHealth, antiCheat.lastHealth);
+            dead = false;
+        }
 
         invFrame += Time.delta;
         disabledTime = Math.max(disabledTime - Time.delta, 0f);
@@ -152,6 +161,7 @@ public class EndInvisibleUnit extends UnitEntity implements zzw.content.Factionc
         if (trueDamage <= 0f) return;
         // 台账按上限内伤害扣减; 显示血量按原始伤害走原版路径 (含护甲/护盾/死亡触发)
         antiCheat.lastHealth -= trueDamage;
+        zzw.content.units.anticheat.EndHealthLedger.put(this, antiCheat.lastHealth);
         disabledTime = Math.max(1.4f * 60f, trueDamage / 25f);
         invFrame = 0f;
         // ★ 传入原始 amount: health 比台账先归零 → kill() → 台账 > 0 → 拒绝死亡+复活
@@ -165,12 +175,16 @@ public class EndInvisibleUnit extends UnitEntity implements zzw.content.Factionc
     private boolean denyDeath() {
         // ★ 终局炮台封印: 被湮灭时不走任何复活逻辑
         if (zzw.util.ReviveSeal.isSealed(this)) return false;
+        // ★ 以哈希台账为准: 即使实体字段被秒杀/作弊清零, 内部还有血就回溯
+        antiCheat.lastHealth = zzw.content.units.anticheat.EndHealthLedger.get(this, antiCheat.lastHealth);
         if (antiCheat.lastHealth > 0f) {
             // 狂暴: 4 倍速 + 持续 10 秒 (PU132 aggression=4, aggressionTime=10*60)
             aggression = 4f;
             aggressionTime = 10f * 60f;
             // 复活: 血量回充到台账值
-            health = Math.max(health, antiCheat.lastHealth);
+            health = Math.max(health, Math.min(antiCheat.lastHealth, maxHealth));
+            dead = false;
+            if (trueTeam != null) team = trueTeam;
             hitTime = 1f;
             // 红色粒子蓄力特效 (PU132 SpecialFx.endDeny)
             zzw.content.units.effects.SpecialFx.endDeny.at(x, y, rotation, this);
@@ -184,6 +198,7 @@ public class EndInvisibleUnit extends UnitEntity implements zzw.content.Factionc
         super.heal(amount);
         // 治疗同步回台账
         antiCheat.lastHealth = Math.max(antiCheat.lastHealth, health);
+        zzw.content.units.anticheat.EndHealthLedger.put(this, antiCheat.lastHealth);
     }
 
     @Override
@@ -200,8 +215,17 @@ public class EndInvisibleUnit extends UnitEntity implements zzw.content.Factionc
 
     @Override
     public void remove() {
-        if (!zzw.util.ReviveSeal.isSealed(this) && antiCheat.lastHealth > 0f && health > 0f) return;
+        // ★ 以哈希台账为准, 不再要求当前 health > 0
+        float ledger = zzw.content.units.anticheat.EndHealthLedger.get(this, antiCheat.lastHealth);
+        antiCheat.lastHealth = ledger;
+        if (!zzw.util.ReviveSeal.isSealed(this) && ledger > 0f) {
+            health = Math.max(health, Math.min(ledger, maxHealth));
+            dead = false;
+            if (trueTeam != null) team = trueTeam;
+            return;
+        }
         // 真实死亡: 从全局防作弊登记表注销 (PU132 EndComp.remove)
+        zzw.content.units.anticheat.EndHealthLedger.remove(this);
         zzw.util.AntiCheat.removeUnit(this);
         super.remove();
     }
@@ -231,6 +255,7 @@ public class EndInvisibleUnit extends UnitEntity implements zzw.content.Factionc
      */
     protected void subtractHealthRaw(float v) {
         antiCheat.lastHealth -= v;
+        zzw.content.units.anticheat.EndHealthLedger.put(this, antiCheat.lastHealth);
         if (health > antiCheat.lastHealth) health = antiCheat.lastHealth;
     }
 
@@ -242,6 +267,7 @@ public class EndInvisibleUnit extends UnitEntity implements zzw.content.Factionc
      */
     protected void subtractLastHealth(float v) {
         antiCheat.lastHealth -= v;
+        zzw.content.units.anticheat.EndHealthLedger.put(this, antiCheat.lastHealth);
     }
 
     /**

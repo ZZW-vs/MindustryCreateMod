@@ -425,9 +425,19 @@ public class SegmentWormEntity extends UnitEntity implements zzw.content.Faction
         if (Float.isNaN(health) || Float.isInfinite(health)) {
             health = lastHealth;
         }
-        // 只有在非主动死亡状态下才设dead=false (防止被外部代码误标dead)
-        if (lastHealth > 0f && health > 0f && lastHealth > 100f && !zzw.util.ReviveSeal.isSealed(this)) dead = false;
-        lastHealth = health;
+        if (endCheat) {
+            // ★ End 虫: 台账独立, 只允许治疗抬高台账, 绝不允许显示血量把台账拉低。
+            //   旧实现每帧 lastHealth = health, 台账会随原始伤害一起归零,
+            //   导致 kill()/destroy() 时台账已不足 → 复活时有时无。
+            if (lastHealth > 100f && !zzw.util.ReviveSeal.isSealed(this)) {
+                if (health > lastHealth) lastHealth = health;
+                if (health <= 0f) health = lastHealth;
+                dead = false;
+            }
+        } else {
+            // 普通多节虫保持旧同步 (它们没有独立台账)
+            lastHealth = health;
+        }
 
         super.update();
 
@@ -716,13 +726,24 @@ public class SegmentWormEntity extends UnitEntity implements zzw.content.Faction
             trueDamage = max / immunity / rogueDamageResist;
         }
 
-        // ★ 扣真实血量
+        // ★ 扣真实血量 (同步写入模组内部哈希台账)
         lastHealth -= trueDamage;
+        zzw.content.units.anticheat.EndHealthLedger.put(this, lastHealth);
         super.damage(trueDamage);
 
         // ★ 血量分布效率: 按"本次伤害占最大血量的比例"衰减, 不再是一下子清零
         healthDistributionEfficiency = Mathf.clamp(
             healthDistributionEfficiency - amount / Math.max(1f, maxHealth) * 300f);
+    }
+
+    /** 治疗同步回内部台账 (End 虫), 保证被动回血不会让台账落后于显示血量 */
+    @Override
+    public void heal(float amount) {
+        super.heal(amount);
+        if (endCheat) {
+            lastHealth = Math.max(lastHealth, health);
+            zzw.content.units.anticheat.EndHealthLedger.put(this, lastHealth);
+        }
     }
 
     /**
@@ -731,6 +752,7 @@ public class SegmentWormEntity extends UnitEntity implements zzw.content.Faction
      */
     @Override
     public void kill() {
+        if (endCheat) lastHealth = zzw.content.units.anticheat.EndHealthLedger.get(this, lastHealth);
         if (endCheat && lastHealth > 100f && !zzw.util.ReviveSeal.isSealed(this)) {
             // 还有血量时拒绝死亡，但不再增加大量抗性
             immunity += 100f;
@@ -743,6 +765,7 @@ public class SegmentWormEntity extends UnitEntity implements zzw.content.Faction
         }
         // lastHealth <= 100 时允许死亡
         lastHealth = 0f;
+        if (endCheat) zzw.content.units.anticheat.EndHealthLedger.put(this, 0f);
         super.kill();
     }
 
@@ -753,15 +776,18 @@ public class SegmentWormEntity extends UnitEntity implements zzw.content.Faction
      */
     @Override
     public void destroy() {
+        if (endCheat) lastHealth = zzw.content.units.anticheat.EndHealthLedger.get(this, lastHealth);
         if (endCheat && lastHealth > 100f && !zzw.util.ReviveSeal.isSealed(this)) {
             // ★ 复活表现 (PU132 EndComp): 血量回充 + 红色粒子蓄力特效
             immunity += 3500f;
             health = Math.max(health, lastHealth);
+            dead = false;
             hitTime = 1f;
             zzw.content.units.effects.SpecialFx.endDeny.at(x, y, rotation, this);
             return;
         }
         lastHealth = 0f;
+        if (endCheat) zzw.content.units.anticheat.EndHealthLedger.put(this, 0f);
         super.destroy();
         // 销毁所有段身
         for (SegmentUnitEntity seg : segments) {
@@ -1032,11 +1058,15 @@ public class SegmentWormEntity extends UnitEntity implements zzw.content.Faction
      *  ★ 防秒杀: lastHealth > 0 时拒绝移除 (PU132 EndWormUnit.remove L72-85) */
     @Override
     public void remove() {
+        if (endCheat) lastHealth = zzw.content.units.anticheat.EndHealthLedger.get(this, lastHealth);
         if (!zzw.util.ReviveSeal.isSealed(this) && lastHealth > 100f) {
             immunity += 3500f;
+            health = Math.max(health, Math.min(lastHealth, maxHealth));
+            dead = false;
             return;
         }
         lastHealth = 0f;
+        if (endCheat) zzw.content.units.anticheat.EndHealthLedger.put(this, 0f);
         super.remove();
         for (SegmentUnitEntity seg : segments) {
             if (seg != null && seg.isAdded()) {
@@ -1336,6 +1366,10 @@ public class SegmentWormEntity extends UnitEntity implements zzw.content.Faction
         // ★ 防秒杀: 初始化真实血量 (PU132 EndWormUnit.setType L90)
         if (lastHealth <= 0f && type != null) {
             lastHealth = type.health;
+        }
+        if (endCheat) {
+            // 写入模组内部哈希台账, 外部清零字段后仍可回溯
+            zzw.content.units.anticheat.EndHealthLedger.put(this, lastHealth);
         }
         // 在头部被添加到世界时创建段身 (优先用 configs Map, 否则用旧静态字段)
         if (!segmentsCreated && segments.length == 0) {

@@ -1485,8 +1485,8 @@ public class Z_Units {
         //  - 武器1: 红色激光 (LaserBulletType, 1400 伤害, 长度 390)
         //  - 武器2: 导弹发射器 (MissileBulletType, 10连发, 170 伤害, 追踪+蛇形)
         //  - 防作弊: 简化版 (无敌帧+单次上限+抗性递增)
-        //  - ★ PU132 原版有隐身能力 (InvisibleUnitType), v158 简化为普通 UnitType
-        //    (隐身机制依赖 Invisiblec 组件, v158 无原生支持)
+        //  - ★ PU132 原版隐身能力 (Invisiblec): 使用 InvisibleUnitType + EndInvisibleUnit,
+        //    血量 > 50% 且未交战时渐隐; 身体/轮廓/武器/阴影/光照统一按 fade 系数绘制
         // ═══════════════════════════════════════════════════════════
         opticaecus = new zzw.content.units.types.InvisibleUnitType("opticaecus") {{
             health = 60000f;

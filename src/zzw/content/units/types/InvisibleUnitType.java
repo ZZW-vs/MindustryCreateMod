@@ -47,7 +47,8 @@ public class InvisibleUnitType extends UnityUnitType{
      * 敌方保持 PU132 原版 0.01 (几乎全隐)。</p>
      */
     protected float fade(EndInvisibleUnit unit){
-        float minimum = Vars.player.team() == unit.team() ? 0.25f : 0.01f;
+        // Vars.player 在菜单/观战可能为 null, 此时按敌方处理 (几乎全隐)
+        float minimum = (Vars.player != null && Vars.player.team() == unit.team()) ? 0.25f : 0.01f;
         return Mathf.clamp(1f - unit.getAlphaLerp(), minimum, 1f);
     }
 
@@ -160,7 +161,9 @@ public class InvisibleUnitType extends UnityUnitType{
             // 本体: 隐身时透明度 = 1 - alphaLerp (轮廓颜色保持, 本体渐隐)
             // ★ found() 守卫: PU132 原版无条件绘制, 但 opticaecus 的无贴图匿名武器
             //   (中间激光炮) 会画出错误贴图 — 原版 v158 Weapon.draw 有此判断
-            if(unit instanceof EndInvisibleUnit e && outlineFound) Draw.alpha(1f - e.getAlphaLerp());
+            // ★ 无论武器有没有 outline 都要跟随隐身变透明, 否则隐身时武器仍是实心,
+            //   单位与贴图会明显割裂
+            if(unit instanceof EndInvisibleUnit e) Draw.alpha(1f - e.getAlphaLerp());
             if(weapon.region.found()) Draw.rect(weapon.region,
             wx, wy,
             weapon.region.width * Draw.scl * -Mathf.sign(weapon.flipSprite),
