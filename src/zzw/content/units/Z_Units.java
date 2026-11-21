@@ -3211,6 +3211,10 @@ public class Z_Units {
                 x = 0f;
                 y = 0f;
                 shootY = 16.75f;
+                // ★ 修复索敌: Weapon.rotate 默认 false, 原来整道激光沿单位身体朝向发射,
+                //   目标在侧面/身后时会射向空处; 改为炮口旋转瞄准目标
+                rotate = true;
+                rotateSpeed = 2f;
                 reload = 12f * 60f;
                 continuous = true;
                 cooldownTime = 280f;

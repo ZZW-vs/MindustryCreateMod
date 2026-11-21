@@ -95,6 +95,8 @@ public class SagittariusLaserBulletType extends BulletType {
                 build -> build.team != b.team,
                 build -> {
                     if (hit[0]) return;
+                    // 跳过已摧毁/失效建筑, 避免命中判定锁到死亡目标
+                    if (build.health <= 0f || !build.isValid()) return;
                     float size = build.block.size * mindustry.Vars.tilesize / 2f;
                     if (arc.math.geom.Intersector.distanceSegmentPoint(x1, y1, x2, y2, build.x, build.y) > width + size)
                         return;
@@ -110,7 +112,8 @@ public class SagittariusLaserBulletType extends BulletType {
         if (!hit[0]) {
             mindustry.entities.Units.nearbyEnemies(b.team, x1, y1, hitLen[0] + 50f, unit -> {
                 if (hit[0]) return;
-                if (!unit.hittable()) return;
+                // 跳过死亡/已移除/无血量单位, 避免命中判定锁到已死亡目标
+                if (!unit.isAdded() || unit.dead || unit.health <= 0f || !unit.hittable()) return;
                 if (arc.math.geom.Intersector.distanceSegmentPoint(x1, y1, x2, y2, unit.x, unit.y) > width + unit.hitSize / 2f)
                     return;
                 unit.damage(damage * fn);
