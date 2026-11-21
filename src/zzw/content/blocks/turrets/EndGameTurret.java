@@ -171,10 +171,11 @@ public class EndGameTurret extends PowerTurret {
         configurable = true;
         outputsPower = true;
         consumePower(320f);
-        reload = 430f;
-        // ★ 需求: 激光攻击范围 820 → 1640 (翻倍) → 再 +150 格 (= 1200 世界单位)
+        reload = 300f;
+        // ★ 需求: 激光攻击范围持续加强:
+        //   820 → 1640 (翻倍) → +150 格 → 再 +120 格 (= 960 世界单位) = 3800
         //   爆炸范围另见 blastRadius, 始终保持 820 不变
-        range = 1640f + 150f * 8f;
+        range = 1640f + 150f * 8f + 120f * 8f;
         size = 14;
         shootCone = 360f;
         rotate = false;
@@ -869,7 +870,7 @@ public class EndGameTurret extends PowerTurret {
                 Tmp.v1.trns(randomAngle, 18.5f).add(x, y);
 
                 if(Mathf.chanceDelta(0.75f * chance)){
-                    createLightning(Tmp.v1.x, Tmp.v1.y, randomAngle, 520f * trueEff);
+                    createLightning(Tmp.v1.x, Tmp.v1.y, randomAngle, 5200f * trueEff);
                 }
             }else{
                 // 停火 60 帧后才开始熄灭环灯 / 让轮盘转回
@@ -951,7 +952,7 @@ public class EndGameTurret extends PowerTurret {
                 updateEyesTargeting();
             }
 
-            if(eyeReloads[0] >= 15f){
+            if(eyeReloads[0] >= 10f){
                 eyeReloads[0] = 0f;
                 if(!isControlled()){
                     if(targets[eyeSequenceA] != null) eyeShoot(eyeSequenceA);
@@ -960,7 +961,7 @@ public class EndGameTurret extends PowerTurret {
                 }
                 eyeSequenceA = (eyeSequenceA + 1) % 8;
             }
-            if(eyeReloads[1] >= 5f){
+            if(eyeReloads[1] >= 3f){
                 eyeReloads[1] = 0f;
                 if(!isControlled()){
                     if(targets[eyeSequenceB] != null) eyeShoot(eyeSequenceB + 8);
@@ -1034,7 +1035,8 @@ public class EndGameTurret extends PowerTurret {
             Posc t = targets[index];
             if(t == null) return;
 
-            float dmg = 350f * threatLevel;
+            // ★ 单发威力加强: 350 → 4000 (再乘威胁等级)
+            float dmg = 4000f * threatLevel;
 
             if(t instanceof Healthc) ((Healthc)t).damage(dmg);
 

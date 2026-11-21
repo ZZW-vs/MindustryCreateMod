@@ -689,6 +689,12 @@
 - 新增螺旋石油钻井（oil-derrick）：扭矩驱动的石油抽取器（`SolidPump`，`result=Liquids.oil`、`attribute=Attribute.oil`，需建在油层上），绘制为螺旋钻杆样式（类 `zzw.content.mechanics.torque.blocks.production.OilDerrick`）
 
 ## 更新日志
+- **endgame 终局炮台攻击强化**：
+  - 激光射程 2840 → **3800**（再加 120 格）；爆炸范围 `blastRadius = 820` 保持不变
+  - 基础装填 430 → **300**（配合 `reloadMultiplier = 32`，齐射间隔约 0.156 秒）
+  - 眼睛开火节拍：内环 15 → **10** 帧、外环 5 → **3** 帧（火力密度提升约 1.5~1.7 倍）
+  - 单发威力：眼睛光束 350 → **4000**（×威胁等级）；随机闪电 520 → **5200**
+  - 性能约束不变：特效数量上限（`maxBurstLasers` / `maxBurstVapourizes` / `maxLightnings`）、空间索引查询、威胁统计 15 帧降频、反子弹扫描 4 帧节拍全部保留；湮灭仍为"廉价击杀 → 复活封印 → 反射拆解"的最后兜底顺序，FO 共鸣单位继续走其自身移除协议
 - **endgame 终局炮台四项强化**：
   - **模组内部血量**：血量改为存储在模组侧 `IntFloatMap`（按地块坐标索引，换图/读档清空），上限为方块血量的 100 倍（6,800,000）；游戏自身 `health` 恒为负数，不再参与结算。内部血量掉完前炮台绝不会消失；`kill/killed/remove/health(值)/damagePierce/damageContinuous/damageArmorMult` 等秒杀或旁路入口统一归入字段回溯（恢复 health/enabled/efficiency/内部血量并重连电力），回溯按 10 帧冷却限频，不做每帧回溯。普通伤害按真实数值扣内部血量，单发 ≥ 内部血量上限视为秒杀并回溯
   - **不再绘制血条 / 不被维修单位索敌**：`healthf()` 恒返回 1，`damaged()` 恒返回 false —— 引擎不画血条与裂痕，维修/治疗类辅助单位也不会再把它当伤员
