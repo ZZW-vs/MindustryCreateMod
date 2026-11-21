@@ -689,6 +689,11 @@
 - 新增螺旋石油钻井（oil-derrick）：扭矩驱动的石油抽取器（`SolidPump`，`result=Liquids.oil`、`attribute=Attribute.oil`，需建在油层上），绘制为螺旋钻杆样式（类 `zzw.content.mechanics.torque.blocks.production.OilDerrick`）
 
 ## 更新日志
+- **endgame 终局炮台四项强化**：
+  - **模组内部血量**：血量改为存储在模组侧 `IntFloatMap`（按地块坐标索引，换图/读档清空），上限为方块血量的 100 倍（6,800,000）；游戏自身 `health` 恒为负数，不再参与结算。内部血量掉完前炮台绝不会消失；`kill/killed/remove/health(值)/damagePierce/damageContinuous/damageArmorMult` 等秒杀或旁路入口统一归入字段回溯（恢复 health/enabled/efficiency/内部血量并重连电力），回溯按 10 帧冷却限频，不做每帧回溯。普通伤害按真实数值扣内部血量，单发 ≥ 内部血量上限视为秒杀并回溯
+  - **不再绘制血条 / 不被维修单位索敌**：`healthf()` 恒返回 1，`damaged()` 恒返回 false —— 引擎不画血条与裂痕，维修/治疗类辅助单位也不会再把它当伤员
+  - **自身回血**：每秒回复 50,000 内部血量（按 `delta()` 归一化）
+  - **节点式电力连接**：`configurable = true` + `outputsPower = true`，新增与 `PowerNode.config(Integer)` 一致的连接/断开逻辑、`onConfigureBuildTapped` 点选连线、`config()` 蓝图数据、选中时绘制连线与连接范围；连接上限 10（同 `maxNodes`），连接范围按中心距 26 格。原有断电重连记忆机制继续可用
 - **经验系方块调整**：
   - **shield-generator**：护盾范围基础 40 → 56（+2 格），每级 0.5 → 2.1，满级 15 级时 47.5 → 87.5（+5 格）
   - **deflect-generator**：护盾范围基础 60 → 92（+4 格），每级 0.75 → 2.35，满级 30 级时 82.5 → 162.5（+10 格）

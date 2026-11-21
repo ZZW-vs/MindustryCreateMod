@@ -4,8 +4,10 @@ import arc.Core;
 import arc.graphics.Blending;
 import arc.graphics.Color;
 import arc.graphics.g2d.Draw;
+import arc.graphics.g2d.Lines;
 import arc.graphics.g2d.TextureRegion;
 import arc.math.Mathf;
+import arc.math.geom.Point2;
 import arc.math.geom.Position;
 import arc.math.geom.Vec2;
 import arc.struct.IntSeq;
@@ -27,7 +29,10 @@ import mindustry.gen.Posc;
 import mindustry.gen.Unit;
 import mindustry.entities.units.UnitController;
 import mindustry.graphics.Drawf;
+import mindustry.graphics.Layer;
+import mindustry.graphics.Pal;
 import mindustry.world.blocks.defense.turrets.PowerTurret;
+import mindustry.world.blocks.power.PowerGraph;
 import mindustry.world.blocks.power.PowerNode;
 import mindustry.world.Block;
 import mindustry.world.meta.Stat;
@@ -108,6 +113,29 @@ public class EndGameTurret extends PowerTurret {
     /** 需求: 炮台血量为负数 (方块定义里的 health 仍为 68000, 供 maxHealth/面板使用)。 */
     public static final float negativeHealth = -1f;
 
+    // ================= 模组内部血量 =================
+    // ★ 需求: 血量完全存在模组内部, 不写进游戏自身的 health 字段。
+    //   关键点: 只要内部血量没掉完, 炮台就不会消失; 秒杀类入口 (kill/destroy/remove/
+    //   直接改写字段) 触发一次"字段回溯", 而不是被一击抹除。普通伤害仍然可以磨掉内部血量。
+    /** 内部血量 = 方块血量上限 × 该倍率 (普通伤害需要持续输出才磨得动)。 */
+    public static final float internalHealthMultiplier = 100f;
+    /** 内部血量表: 键为地块坐标 (packed), 值域 [0, 上限]; 世界加载时清空。 */
+    public static final arc.struct.IntFloatMap internalHealth = new arc.struct.IntFloatMap();
+
+    /** 字段回溯的最小间隔 (帧), 避免被连续秒杀调用时每帧做恢复工作。 */
+    public static final float rollbackCooldown = 10f;
+
+    static{
+        // 换图 / 读档时清掉上一张图的内部血量记录
+        arc.Events.on(mindustry.game.EventType.WorldLoadEvent.class, e -> internalHealth.clear());
+    }
+
+    /** 像电力节点一样建立电力连接的范围 (格, 按中心到中心计算; 14x14 方块故放宽)。 */
+    public float linkRange = 26f;
+    /** 电力连接数量上限 (与 PowerNode.maxNodes 默认值一致)。 */
+    public int maxLinks = 10;
+
+
     /** 三层环的旋转速度系数 (原版 ringProgresses)。 */
     private static final float[] ringProgresses = {0.013f, 0.035f, 0.024f};
     /** 三层环的旋转方向 (原版 ringDirections)。 */
@@ -139,6 +167,9 @@ public class EndGameTurret extends PowerTurret {
 
         // ★ 与 PU132 EndGameTurret 构造 + UnityBlocks 方块定义逐项一致
         health = 68000;
+        // ★ 需求: 允许像电力节点一样手动连接周围电器 (configurable + 自己实现 config(Integer))
+        configurable = true;
+        outputsPower = true;
         consumePower(320f);
         reload = 430f;
         // ★ 需求: 激光攻击范围 820 → 1640 (翻倍) → 再 +150 格 (= 1200 世界单位)
@@ -216,12 +247,68 @@ public class EndGameTurret extends PowerTurret {
         stats.remove(Stat.ammo);
     }
 
+    @Override
+    public void init() {
+        super.init();
+
+        // ★ 需求: 像电力节点一样手动连接周围电器。
+        //   逻辑与 PowerNode 的 config(Integer.class, ...) 完全一致:
+        //   已连接 → 双向断开并重新分流电力图; 未连接 → 校验后双向写入并合并电力图。
+        config(Integer.class, (entity, value) -> {
+            mindustry.world.modules.PowerModule power = entity.power;
+            Building other = Vars.world.build(value);
+            boolean contains = power.links.contains(value);
+            boolean valid = other != null && other != entity && other.power != null;
+
+            if(contains){
+                power.links.removeValue(value);
+                if(valid) other.power.links.removeValue(entity.pos());
+
+                PowerGraph newgraph = new PowerGraph();
+                newgraph.reflow(entity);
+                newgraph.update();
+
+                if(valid && other.power.graph != newgraph){
+                    PowerGraph og = new PowerGraph();
+                    og.reflow(other);
+                    og.update();
+                }
+            }else if(valid && linkValid(entity, other) && power.links.size < maxLinks){
+                power.links.addUnique(other.pos());
+                if(other.team == entity.team){
+                    other.power.links.addUnique(entity.pos());
+                }
+                power.graph.addGraph(other.power.graph);
+                power.graph.update();
+            }
+        });
+    }
+
+    /**
+     * 电力连接合法性判定 (对应 {@code PowerNode.linkValid} 的核心规则):
+     * 同队 / 有电力 / 可连接 / 中心距在 {@link #linkRange} 内。
+     */
+    public boolean linkValid(Building a, Building b){
+        if(a == b || b == null || b.power == null) return false;
+        if(!b.block.hasPower || !b.block.connectedPower || a.team != b.team) return false;
+        return Mathf.dst(a.x, a.y, b.x, b.y) <= linkRange * Vars.tilesize;
+    }
+
     public class EndGameTurretBuild extends PowerTurretBuild {
 
         // ===== 运行状态 (与 PU132 EndGameTurretBuilding 字段一一对应) =====
 
         /** 威胁等级 (1 + 范围内敌人强度), 放大眼睛光束伤害。 */
         protected float threatLevel = 1f;
+
+        /** 内部血量是否已耗尽 (只有此时才允许真正移除)。 */
+        protected boolean internalDead = false;
+
+        /** 上次字段回溯的时间 (Time.time), 用于限频, 避免每帧回溯。 */
+        protected float lastRollbackTime = -100f;
+
+        /** 每秒自身回复的内部血量。 */
+        public float internalHealPerSecond = 50000f;
         /** 停火后开始熄灭环灯的延时计时。 */
         protected float eyeResetTime = 0f;
         /** 眼睛亮度 (0~1)。 */
@@ -333,17 +420,172 @@ public class EndGameTurret extends PowerTurret {
          */
         @Override
         public void damage(float amount){
-            // 不可摧毁: 任何来源的伤害都不结算
+            // ★ 内部血量模型: 普通伤害按真实数值扣内部血量, 不写进游戏 health。
+            //   单次伤害 ≥ 内部血量上限 → 视为秒杀类效果, 不扣血, 走字段回溯。
+            if(amount <= 0f || internalDead) return;
+
+            if(amount >= maxInternalHealth()){
+                rollbackCheese();
+                return;
+            }
+
+            float hp = internalHealthNow() - amount;
+            setInternalHealth(hp);
+            if(hp <= 0f) internalDie();
         }
 
         @Override
         public void kill(){
-            // 不可摧毁: 忽略一切强制击杀
+            // 强制击杀 → 字段回溯, 而不是被一击抹除
+            rollbackCheese();
         }
 
         @Override
         public void killed(){
-            // 不可摧毁: 忽略引擎的销毁入口 (damage/kill 之外的最后一条路径)
+            // 引擎真正的销毁入口 → 同样回溯 (内部血量没掉完前绝不消失)
+            rollbackCheese();
+        }
+
+        @Override
+        public void remove(){
+            // 只有内部血量掉完 (internalDie) 才允许真正移除, 其它任何路径都回溯
+            if(internalDead){
+                super.remove();
+            }else{
+                rollbackCheese();
+            }
+        }
+
+        // ---- 其它伤害入口全部统一到内部血量模型 (外部模组常用这些旁路) ----
+
+        @Override
+        public void damage(float amount, boolean withEffect){
+            damage(amount);
+        }
+
+        @Override
+        public void damage(Team source, float amount){
+            damage(amount);
+        }
+
+        @Override
+        public void damagePierce(float amount){
+            damage(amount);
+        }
+
+        @Override
+        public void damagePierce(float amount, boolean withEffect){
+            damage(amount);
+        }
+
+        @Override
+        public void damageArmorMult(float amount, float armorMultiplier){
+            damage(amount);
+        }
+
+        @Override
+        public void damageArmorMult(float amount, float armorMultiplier, boolean withEffect){
+            damage(amount);
+        }
+
+        @Override
+        public void damageContinuous(float amount){
+            damage(amount * delta());
+        }
+
+        @Override
+        public void damageContinuousPierce(float amount){
+            damage(amount * delta());
+        }
+
+        @Override
+        public void damageContinuousArmorMult(float amount, float armorMultiplier){
+            damage(amount * delta());
+        }
+
+        @Override
+        public void health(float value){
+            // 外部直接改写血量字段 → 回溯
+            rollbackCheese();
+        }
+
+        @Override
+        public void dead(boolean value){
+            // 状态恒为"活着"
+        }
+
+        @Override
+        public void heal(){
+            // 自身回血由内部血量模型处理, 不接受外部治疗
+        }
+
+        @Override
+        public void heal(float amount){
+            // 同上
+        }
+
+        @Override
+        public void clampHealth(){
+            // 负血量不参与引擎的 clamp (否则会被压成 0)
+        }
+
+        // ================= 模组内部血量 =================
+
+        /** 内部血量上限 (方块血量的 100 倍)。 */
+        protected float maxInternalHealth(){
+            return block.health * internalHealthMultiplier;
+        }
+
+        /** 当前内部血量 (第一次访问时初始化为满)。 */
+        protected float internalHealthNow(){
+            int p = pos();
+            if(!internalHealth.containsKey(p)){
+                internalHealth.put(p, maxInternalHealth());
+            }
+            return internalHealth.get(p);
+        }
+
+        protected void setInternalHealth(float value){
+            internalHealth.put(pos(), Mathf.clamp(value, 0f, maxInternalHealth()));
+        }
+
+        /** 血量掉完 → 允许真正消失 (并注销防作弊登记, 否则会被写回)。 */
+        protected void internalDie(){
+            if(internalDead) return;
+            internalDead = true;
+            internalHealth.remove(pos(), internalHealth.get(pos(), 0f));
+            AntiCheatBuildings.remove(this);
+            health = 0f;
+            if(tile != null && tile.build == this){
+                tile.remove();
+            }
+        }
+
+        /**
+         * ★ 字段回溯: 秒杀类入口 (kill/killed/destroy/remove/超大单发伤害) 触发,
+         * 把被外部改写的关键状态恢复回去, 而不是让炮台被一击抹除。
+         *
+         * <p>按需求不做每帧回溯: 用 {@link EndGameTurret#rollbackCooldown} 限频,
+         * 连续多次秒杀调用只会在冷却结束后做一次恢复。</p>
+         */
+        protected void rollbackCheese(){
+            float now = Time.time;
+            if(now - lastRollbackTime < rollbackCooldown) return;
+            lastRollbackTime = now;
+
+            // 关键字段回滚
+            internalDead = false;
+            health = negativeHealth;
+            enabled = true;
+            efficiency = 1f;
+
+            // 内部血量被外部清空/篡改 → 至少恢复到满值
+            if(internalHealthNow() <= 0f) setInternalHealth(maxInternalHealth());
+
+            // 电力连接被拆 → 按记忆重连 (复用已有的记忆机制)
+            restorePowerLinks();
+
+            // 地块被抹掉/覆盖由防作弊守卫写回 (见 AntiCheat)
         }
 
         // ================= 负血量 =================
@@ -375,14 +617,20 @@ public class EndGameTurret extends PowerTurret {
         }
 
         /**
-         * 血条比例: 负血量直接钳制到 [0, 1], 避免负宽度 / NaN 的异常血条。
+         * 血条: 需求是"不再绘制血条"。
          *
-         * <p>血量为负 → 血条显示为空 (0%), 与负值语义一致, 且不会溢出绘制。</p>
+         * <p>血量完全存在模组内部, 游戏 health 恒为负数; 直接把比例返回 1 (满),
+         * 引擎与辅助单位都会认为它满血 —— 既不会画血条, 也不会被当成伤员。</p>
          */
         @Override
         public float healthf(){
-            float max = maxHealth();
-            return max <= 0f ? 0f : Mathf.clamp(health / max, 0f, 1f);
+            return 1f;
+        }
+
+        /** 需求: 不要让维修/治疗类辅助单位把它当作可修复目标。 */
+        @Override
+        public boolean damaged(){
+            return false;
         }
 
         /** 把血量修正回负值 (防止读档恢复旧值 / 外部 heal 把血量加回正数)。 */
@@ -504,6 +752,65 @@ public class EndGameTurret extends PowerTurret {
             }
         }
 
+        // ================= 节点式电力连接 (手动连线) =================
+
+        /** 与电力节点一致的配置数据 (供蓝图/复制粘贴还原连线)。 */
+        @Override
+        public Point2[] config(){
+            Point2[] out = new Point2[power.links.size];
+            for(int i = 0; i < out.length; i++){
+                out[i] = Point2.unpack(power.links.get(i)).sub(tileX(), tileY());
+            }
+            return out;
+        }
+
+        @Override
+        public boolean onConfigureBuildTapped(Building other){
+            // 点击另一个电力建筑即建立/断开连接 (与 PowerNode 一致)
+            if(other != this && EndGameTurret.this.linkValid(this, other)){
+                configure(other.pos());
+                return false;
+            }
+            return true;
+        }
+
+        @Override
+        public void drawSelect(){
+            super.drawSelect();
+            drawPowerLinks();
+        }
+
+        @Override
+        public void drawConfigure(){
+            Drawf.circles(x, y, block.size * Vars.tilesize / 2f + 1f + Mathf.absin(Time.time, 4f, 1f));
+            Drawf.circles(x, y, linkRange * Vars.tilesize);
+
+            // 已连接的电力建筑画框 (与节点一致; 只遍历现有连线, 不做全范围扫描)
+            for(int i = 0; i < power.links.size; i++){
+                Building link = Vars.world.build(power.links.get(i));
+                if(link != null && EndGameTurret.this.linkValid(this, link)){
+                    Drawf.square(link.x, link.y, link.block.size * Vars.tilesize / 2f + 1f, Pal.place);
+                }
+            }
+            Draw.reset();
+        }
+
+        /** 绘制当前电力连线 (选中时可见)。 */
+        protected void drawPowerLinks(){
+            if(power == null || power.links.size == 0) return;
+
+            Draw.z(Layer.power + 1f);
+            Lines.stroke(1.2f);
+            Draw.color(Pal.power);
+            for(int i = 0; i < power.links.size; i++){
+                Building link = Vars.world.build(power.links.get(i));
+                if(link != null){
+                    Lines.line(x, y, link.x, link.y);
+                }
+            }
+            Draw.reset();
+        }
+
         // ================= 主更新 =================
 
         @Override
@@ -517,6 +824,11 @@ public class EndGameTurret extends PowerTurret {
 
             // ★ 负血量: 读档 / 外部 heal 都可能把血量改回非负, 这里修正
             enforceNegativeHealth();
+
+            // ★ 需求: 每秒回复 50000 内部血量 (delta 归一化, 与帧率无关)
+            if(!internalDead){
+                setInternalHealth(internalHealthNow() + internalHealPerSecond * delta());
+            }
 
             updateEyes();
 
