@@ -74,16 +74,21 @@ public class KamiAI implements UnitController {
 
     /** 绘制屏障圆环并交由当前模式绘制特效 (由单位 Ability 每帧调用) */
     public void draw(){
+        if(unit == null || !unit.isAdded()) return;
+
         float z = Draw.z();
-        Draw.z(Layer.flyingUnit);
-        Lines.stroke(3f + Mathf.absin(12f, 1f));
-        Draw.color(Tmp.c1.set(Color.red).shiftHue(Time.time));
+        Draw.z(Layer.flyingUnit + 1f);
         Draw.blend(Blending.additive);
+        // ★ 平滑处理: 色相缓慢流动 + alpha 呼吸, 避免整圈在某一色相下与背景融合而"消失"
+        Draw.color(Tmp.c1.set(Color.red).shiftHue(Time.time * 0.25f));
+        Draw.alpha(0.7f + 0.3f * Mathf.absin(Time.time, 2.2f, 1f));
+        Lines.stroke(3f + Mathf.absin(12f, 1f));
         Lines.circle(x, y, barrierRange);
+        Draw.alpha(1f);
         if(pattern != null && waitTime <= 0f){
             pattern.draw(this);
         }
-        Draw.blend();
+        Draw.blend(Blending.normal);
         Draw.reset();
         Draw.z(z);
 
@@ -133,12 +138,17 @@ public class KamiAI implements UnitController {
             vec.trns(target.angleTo(unit), range).add(target).sub(unit).scl(0.05f * speed * Time.delta);
             unit.move(vec);
             unit.rotation = unit.angleTo(target);
-            if(patternTime <= 0f){
-                vec.set(x, y).lerpDelta(target.x, target.y, 0.1f * speed);
-                x = vec.x;
-                y = vec.y;
-            }
         }
+
+        // ★ 非冲刺阶段清空残留速度: 防止弹幕模式遗留的速度让 Boss 持续滑行、跑出作战范围
+        if(pattern != KamiPatterns.hyperSpeedPattern){
+            unit.vel.setZero();
+        }
+
+        // ★ 屏障中心平滑跟随 Boss 本体, 保证圆环与本体始终同屏 (修复圆环忽隐忽现)
+        vec.set(x, y).lerpDelta(unit.x, unit.y, Math.min(1f, 0.12f * Time.delta));
+        x = vec.x;
+        y = vec.y;
 
         // ★ 模式运行 (原版: 有目标且等待结束时)
         if(target != null && waitTime <= 0f){

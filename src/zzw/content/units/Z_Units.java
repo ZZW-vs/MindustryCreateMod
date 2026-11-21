@@ -5552,7 +5552,8 @@ public class Z_Units {
             hitSize = 36f;
             rotateSpeed = 0f;
             accel = 0f;
-            drag = 0f;
+            // ★ 不再把 drag 设为 0: 0 阻力会让冲刺/击退残留的速度永久保留, Boss 会一直滑行跑远
+            drag = 0.3f;
             outlineColor = Color.valueOf("464a61");
             clipSize = 1200f;
             drawCell = false;
@@ -5565,15 +5566,7 @@ public class Z_Units {
 
             // ★ 屏障绘制 Ability: 调用 KamiAI.draw() 绘制屏障圆环和弹幕特效
             // 这是追加绘制 (不替换默认的 type.draw(unit) 主体渲染)
-            abilities.add(new Ability() {
-                @Override
-                public void draw(mindustry.gen.Unit unit) {
-                    mindustry.entities.units.UnitController c = unit.controller();
-                    if (c instanceof KamiAI) {
-                        ((KamiAI) c).draw();
-                    }
-                }
-            });
+            abilities.add(new zzw.content.units.abilities.KamiBarrierAbility());
         }};
 
         // 新单位音效 (v160 Sounds 字段已固定, 直接引用; 旧反射名不存在)
