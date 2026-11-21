@@ -52,6 +52,7 @@ import zzw.content.units.bullets.HealingConeBulletType;
 import zzw.content.units.bullets.HealingNukeBulletType;
 import zzw.content.units.bullets.OppressionLaserBulletType;
 import zzw.content.units.bullets.ReflectingLaserBulletType;
+import zzw.content.units.bullets.SaberContinuousLaserBulletType;
 import zzw.content.units.type.AnomalyUnitType;
 import zzw.content.units.type.DeviationUnitType;
 import zzw.content.units.bullets.SagittariusLaserBulletType;
@@ -1382,32 +1383,33 @@ public class Z_Units {
             // ★ 使用 WormAI (继承 FlyingAI, 完全按 PU132 原版自动索敌+攻击)
             aiController = () -> new zzw.content.units.ai.WormAI();
 
-            // ===== 大激光武器 (和压迫者一样的 OppressionLaserBulletType, 3连发) =====
-            // ★ 用户需求:
-            //   - 3发为一组, 组内每发间隔3秒, 组间隔12秒
-            //   - 激光跟随单位移动, 新激光发射时旧激光脱节
-            //   - 不会自动发射, 目标进入小黑色激光攻击范围时才发射
-            //   - 玩家操控时按正常方式发射
-            // 时间线: t=0(激光1) → t=3s(激光2) → t=6s(激光3) → t=18s(下一组)
-            //   - shots=3, shotDelay=3*60=180, reload=18*60=1080
-            //   - 组间隔 = 18 - 6 = 12秒 ✓
-            //   - bullet.range=300 限制索敌范围 (小激光射程)
+            // ===== 激光武器 (改为 create-vortex 同款 SaberContinuousLaserBulletType) =====
+            // ★ 用户需求: 去掉原来的 Oppression 大激光, 换成类似 vortex 的连续激光,
+            //   但数值更高 (伤害/长度/宽度/笔画均高于 vortex 的 60/190/5)
             weapons.add(new BlankWeapon() {{
                 x = 0f;
                 y = 0f;
                 shootY = 8f;
                 mirror = false;
-                continuous = false;
+                continuous = true;
                 rotate = false;
-                shootCone = 360f;
-                reload = 20f * 60f;  // 20秒CD
-                shoot.firstShotDelay = ChargeEffect.oppressionCharge.lifetime;  // 4秒充能
-                parentizeEffects = true;
+                shootCone = 30f;
+                reload = 3f * 60f;
 
-                bullet = new OppressionLaserBulletType() {{
-                    // ★ 限制大激光索敌范围为小激光射程 (300f)
-                    //   AI 只在目标进入小激光范围时才触发大激光
-                    range = 300f;
+                bullet = new SaberContinuousLaserBulletType(300f) {{
+                    swipe = true;
+                    swipeDamageMultiplier = 1.3f;
+                    largeHit = false;
+                    lifetime = 4f * 60f;
+                    length = 300f;
+                    width = 12f;
+                    incendChance = 0f;
+                    hitEffect = zzw.content.units.effects.ScarFx.coloredHitLarge;
+                    lightColor = hitColor = zzw.content.graphics.UnityPal.scarColorAlpha;
+                    colors = new Color[]{zzw.content.graphics.UnityPal.scarColorAlpha,
+                        zzw.content.graphics.UnityPal.endColor, Color.white};
+                    shootEffect = zzw.content.units.effects.CombatFx.laserShoot;
+                    strokes = new float[]{3f, 2f, 0.6f};
                 }};
             }});
 
@@ -3108,7 +3110,9 @@ public class Z_Units {
                 mirror = false;
                 reload = 4f * 60f;
                 recoil = 0f;
-                shootSound = Sounds.shootLancer;
+                // ★ 原版 corvus 激光音效拉长版 (保持音高, 约 4.15s), 音量压低避免盖过其他单位
+                shootSound = Z_Sounds.cygnusLaser;
+                shootSoundVolume = 0.65f;
                 // PU_V8: 射击后自身减速 80tick
                 shootStatus = mindustry.content.StatusEffects.slow;
                 shootStatusDuration = 80f;
@@ -3615,6 +3619,8 @@ public class Z_Units {
                 reload = 4f * 60f;
                 continuous = true;
                 recoil = 0f;
+                // ★ blue-eclipse 激光音效的降调加低频版 (循环音效, 文件内已压低音量)
+                shootSound = Z_Sounds.eclipseLaserDeep;
                 // PU_V8: 射击期间自身减速
                 shootStatus = mindustry.content.StatusEffects.slow;
                 shootStatusDuration = 180f;
@@ -3700,9 +3706,9 @@ public class Z_Units {
             aphelionBullet.damage = 40f;
             aphelionBullet.lightning = 3;
             aphelionBullet.lightningDamage = 27f;
-            aphelionBullet.lightningCone = 360f;
+            aphelionBullet.lightningCone = 300f;   // ★ 闪电作用范围稍微缩小 (360° → 300°)
             aphelionBullet.lifetime = 50f;
-            aphelionBullet.lightningLength = 14;
+            aphelionBullet.lightningLength = 12;   // ★ 闪电延伸略微缩短 (14 → 12)
             aphelionBullet.intervalBullet.hitEffect = Fx.none;  // ★ 去掉沿途闪电命中的白色圆圈 (原版自带 Fx.hitLancerLow)
             aphelionBullet.lightningType = new BulletType(0f, 10f){
                 {
@@ -3714,8 +3720,8 @@ public class Z_Units {
                     hittable = false;
                     lightningColor = aphelionBullet.lightningColor;
                     lightning = 1;
-                    lightningCone = 65f;
-                    lightningLength = 6;
+                    lightningCone = 55f;
+                    lightningLength = 5;
                     lightningLengthRand = 3;
                 }
 
@@ -3743,6 +3749,8 @@ public class Z_Units {
                 continuous = true;
                 recoil = 0f;
                 cooldownTime = 6f * 60f;
+                // ★ blue-eclipse 激光音效的降调加低频版 (循环音效, 文件内已压低音量)
+                shootSound = Z_Sounds.eclipseLaserDeep;
                 bullet = new AcceleratingLaserBulletType(320f) {{
                     lifetime = 6f * 60f;   // ★ 激光持续时间 +1 秒 (5s → 6s)
                     maxLength = 430f;
@@ -4611,9 +4619,10 @@ public class Z_Units {
             // 使用 Mathf.random(最小值, 最大值) 生成随机伤害
             // 基础伤害在 40f 到 60f 之间随机
 
-            // ★ 每发 80 直接伤害 + 30 溅射, 子弹速度放慢 (10f), 寿命 30f 保持落点距离
-            BulletType mantodeaFlak = new FlakBulletType(10f, 80f) {{   // ★ DPS 5000 → 5500: 75/25 → 80/30
-                lifetime = 30f;
+            // ★ 每发 80 直接伤害 + 30 溅射; 弹速再放慢 (10f → 9f),
+            //   寿命 30f → 36f 保证落点距离覆盖新的 320 攻击范围
+            BulletType mantodeaFlak = new FlakBulletType(9f, 80f) {{   // ★ DPS 5000 → 5500: 75/25 → 80/30
+                lifetime = 36f;
                 collidesGround = true;
                 lightning = 4;
                 lightningLength = 5;
@@ -4634,7 +4643,7 @@ public class Z_Units {
                 rotate = false;
                 x = 14.25f;
                 y = 26.5f;
-                range = 240f;   // ★ 攻击范围再 +10 格 (160f → 240f)
+                range = 320f;   // ★ 攻击范围再 +5 格 (240f → 320f)
                 recoil = 2.5f;
                 shootY = 10f;
                 shootSound = Sounds.shoot;
@@ -4652,7 +4661,7 @@ public class Z_Units {
                 rotate = false;
                 x = 26.25f;
                 y = 19.5f;
-                range = 240f;   // ★ 攻击范围再 +10 格 (160f → 240f)
+                range = 320f;   // ★ 攻击范围再 +5 格 (240f → 320f)
                 recoil = 2.5f;
                 shootY = 10f;
                 shootSound = Sounds.shoot;
@@ -5563,7 +5572,6 @@ public class Z_Units {
         empire.weapons.first().shootSound = Sounds.shootFlame;
         empire.weapons.get(1).shootSound = Sounds.shootMissile;       // 导弹 (无 shootSnap)
         empire.weapons.get(2).shootSound = Sounds.shootArtillery;     // 炮弹 (无 artillery)
-        cygnus.weapons.first().shootSound = Sounds.shootLaser;        // 激光 (无 laser)
         caelifera.weapons.first().shootSound = Sounds.shoot;          // 基础枪械 (无 pew)
         schistocerca.weapons.first().shootSound = Sounds.shoot;
 
