@@ -211,6 +211,10 @@ public class SegmentWormEntity extends UnitEntity implements zzw.content.Faction
     public int maxSegments = 0;
     /** 当前再生计时器 (累加 Time.delta, 达到 regenTime 后重置) */
     protected float repairTime = 0f;
+    /** 分裂后的短暂冷却 (tick): 防止同一次高伤 AOE 打死多节时连续拆出多个新个体 */
+    protected float splitCooldown = 0f;
+    /** 每秒回血 (SegmentConfig.healPerSecond, 0=不回血) */
+    public float healPerSecond = 0f;
     /** 是否启用轻微晃动 (arcnelidia=true 轻微晃动, toxobyte=false 完全静止)
      *  借鉴 v154.3 UnitComp.wobble(), 但振幅更小 (0.02f vs 原版 0.05f) */
     public boolean wobbleEnabled = false;
@@ -470,6 +474,7 @@ public class SegmentWormEntity extends UnitEntity implements zzw.content.Faction
                     if (type != null && texturePrefix == null) texturePrefix = type.name + "-";
                     segmentSpacing = cfg.spacing;
                     regenTime = cfg.regenTime;
+                    healPerSecond = cfg.healPerSecond;
                     maxSegments = cfg.maxSegments;
                     wobbleEnabled = cfg.wobble;
                     splittable = cfg.splittable;
@@ -542,15 +547,34 @@ public class SegmentWormEntity extends UnitEntity implements zzw.content.Faction
             }
         }
 
+        // 分裂冷却: 只用于抑制"同一瞬间多节死亡"造成的重复拆分, 不影响正常分裂
+        if (splitCooldown > 0f) splitCooldown -= arc.util.Time.delta;
+
+        // ★ 被动回血 (SegmentConfig.healPerSecond): 按秒结算, 回满即停
+        if (healPerSecond > 0f && !dead && health < maxHealth) {
+            heal(healPerSecond * arc.util.Time.delta);
+        }
+
         // ★ 再生 (PU132 WormDefaultUnit.update L81-94, regenTime > 0 时启用)
         if (regenAvailable()) {
             repairTime += arc.util.Time.delta;
             if (repairTime >= regenTime) {
-                // 扣血 + 长出新段
-                float damage = (health / segments.length) / 2f;
-                damage(damage);
+                // PU132 原版: 由尾节承担生长代价 (尾节血量减半, 新节继承该血量),
+                // 不再按段数对头部造成伤害, 避免再生反过来触发头部受击/防作弊。
+                if (segments.length > 0) {
+                    SegmentUnitEntity regenTail = segments[segments.length - 1];
+                    if (regenTail != null) {
+                        regenTail.health = Math.max(1f, regenTail.health / 2f);
+                    }
+                }
                 addSegment();
                 repairTime = 0f;
+                // 明确的再生完成反馈: 新尾节处绿色愈合波
+                SegmentUnitEntity grownTail = segments.length > 0 ? segments[segments.length - 1] : null;
+                if (grownTail != null) {
+                    mindustry.content.Fx.heal.at(grownTail.x, grownTail.y);
+                    mindustry.gen.Sounds.healWave.at(grownTail.x, grownTail.y);
+                }
             }
         }
 
@@ -580,9 +604,18 @@ public class SegmentWormEntity extends UnitEntity implements zzw.content.Faction
     /** 添加新段身 (PU132 WormDefaultUnit.addSegment L336-368, 简化版)
      *  在尾部追加一个新段身, 扩展所有数组 */
     public void addSegment() {
-        if (segments.length <= 0) return;
         int oldLen = segments.length;
         int newLen = oldLen + 1;
+
+        // 先确定段身类型: 空链时依次回退到配置段身 / 旧静态默认值
+        mindustry.type.UnitType segType = oldLen > 0 && segments[oldLen - 1] != null
+            ? segments[oldLen - 1].type : null;
+        if (segType == null) {
+            SegmentConfig cfg = type != null ? configs.get(type.name) : null;
+            if (cfg != null) segType = cfg.segmentType;
+        }
+        if (segType == null) segType = defaultSegmentType;
+        if (segType == null) return;
 
         SegmentUnitEntity[] oldSegs = segments;
         Vec2[] oldPos = segPositions;
@@ -601,20 +634,25 @@ public class SegmentWormEntity extends UnitEntity implements zzw.content.Faction
             segRotations[i] = oldRot[i];
         }
 
-        if (segments[oldLen - 1] != null) {
+        // 空链时以头部为基准, 保证整条段身被打光后仍能从尾部重新长出来
+        float baseX = oldLen > 0 ? oldPos[oldLen - 1].x : x;
+        float baseY = oldLen > 0 ? oldPos[oldLen - 1].y : y;
+        float baseRot = oldLen > 0 ? oldRot[oldLen - 1] : rotation;
+        Vec2 baseVel = oldLen > 0 ? oldVel[oldLen - 1] : vel;
+        // 分裂模式下新节继承尾节当前血量 (PU132: unit.health = 尾节血量)
+        float baseHealth = oldLen > 0 && oldSegs[oldLen - 1] != null ? oldSegs[oldLen - 1].health : health;
+
+        if (oldLen > 0 && segments[oldLen - 1] != null) {
             segments[oldLen - 1].isTail = false;
         }
 
-        mindustry.type.UnitType segType = segments[oldLen - 1] != null ? segments[oldLen - 1].type : defaultSegmentType;
         SegmentUnitEntity newSeg = (SegmentUnitEntity) segType.create(team);
 
-        Vec2 oldTailPos = oldPos[oldLen - 1];
-        float oldTailRot = oldRot[oldLen - 1];
         Vec2 newPos = new Vec2();
-        newPos.trns(oldTailRot + 180f, segmentSpacing).add(oldTailPos);
+        newPos.trns(baseRot + 180f, segmentSpacing).add(baseX, baseY);
 
         newSeg.set(newPos.x, newPos.y);
-        newSeg.rotation = oldTailRot;
+        newSeg.rotation = baseRot;
         newSeg.head = this;
         newSeg.segmentIndex = oldLen;
         newSeg.isTail = true;
@@ -626,9 +664,12 @@ public class SegmentWormEntity extends UnitEntity implements zzw.content.Faction
         newSeg.dead = false;
         newSeg.add();
 
+        // 分裂模式: 新节继承尾节血量 (原版生长代价); 非分裂模式由 update 与头部同步
+        if (splittable) newSeg.health = Mathf.clamp(baseHealth, 1f, newSeg.maxHealth);
+
         segPositions[oldLen] = newPos;
-        segVelocities[oldLen] = new Vec2(segVelocities[oldLen - 1]);
-        segRotations[oldLen] = oldTailRot;
+        segVelocities[oldLen] = new Vec2(baseVel);
+        segRotations[oldLen] = baseRot;
         segments[oldLen] = newSeg;
     }
 
@@ -1023,7 +1064,8 @@ public class SegmentWormEntity extends UnitEntity implements zzw.content.Faction
      *  - splittable=true 且尾部段身死亡: 直接移除尾部
      *  - splittable=false: 伤害已转移给头部, 段身死亡只移除自己
      *  ★ preventSplit=true: 不分裂, 中间段死亡后把死段从链条里摘掉, 后续段重新衔接,
-     *    再由 regenTime 每 6 秒补回一节 (用户需求: 只再生不分裂, 避免复制 BOSS) */
+     *    再由 regenTime 补回 (仅 BOSS 单位使用, 避免复制出第二个满血 BOSS)。
+     *  ★ 分裂冷却: 同一瞬间多节死亡时只允许拆分一次, 其余按普通摘除处理 */
     public void onSegmentDied(SegmentUnitEntity seg) {
         // 头部已死亡时不再分裂/重组, 避免死亡瞬间拆出独立小虫
         if (dead || !isAdded()) return;
@@ -1033,8 +1075,13 @@ public class SegmentWormEntity extends UnitEntity implements zzw.content.Faction
         }
         if (deadIdx < 0) return;
 
-        // ★ 分裂: 中间段身死亡, 后半段创建为新虫子 (PU132 splittable)
-        if (splittable && !preventSplit && deadIdx < segments.length - 1) {
+        // ★ 分裂 (PU132 WormComp.remove): 中间段身死亡时后半段成为新个体。
+        //   splitMode 决定该单位是否允许分裂; canSplit 额外受短冷却保护, 防止一次
+        //   AOE 同帧打死多节时连续拆出多个新个体 (重复拆分)。
+        boolean splitMode = splittable && !preventSplit;
+        boolean canSplit = splitMode && splitCooldown <= 0f && deadIdx < segments.length - 1;
+
+        if (canSplit) {
             // 后半段段身 [deadIdx+1, end)
             int tailLen = segments.length - deadIdx - 1;
             SegmentUnitEntity[] tailSegs = new SegmentUnitEntity[tailLen];
@@ -1050,8 +1097,11 @@ public class SegmentWormEntity extends UnitEntity implements zzw.content.Faction
             // 创建新头部 (与原头部同类型)
             try {
                 SegmentWormEntity newHead = (SegmentWormEntity) type.create(team);
+                // 新头部直接坐在原后半段第一节的位置与朝向上, 不做任何跳位,
+                // 保证分裂瞬间两截是连续分开而不是瞬移
                 newHead.set(tailSegs[0].x, tailSegs[0].y);
                 newHead.rotation = tailRot[0];
+                newHead.elevation = elevation;
                 newHead.segmentsCreated = true;  // 跳过自动创建段身
                 newHead.splittable = true;
                 newHead.chainable = chainable;
@@ -1070,22 +1120,31 @@ public class SegmentWormEntity extends UnitEntity implements zzw.content.Faction
                     tailSegs[i].segmentIndex = i;
                     tailSegs[i].isTail = (i == tailLen - 1);
                 }
+                // 速度连续过渡: 新头部继承后半段第一节的速度, 不从 0 起步
+                newHead.vel.set(tailVel[0]);
+                // 血量按原版"孩子节成为新头"的规则: 取后半段第一节的血量,
+                // 不额外复制一个满血个体
+                newHead.health = Mathf.clamp(tailSegs[0].health, 1f, newHead.maxHealth);
+                newHead.lastHealth = newHead.health;
+                // 两半都进入短暂冷却, 防止连续拆分
+                splitCooldown = 30f;
+                newHead.splitCooldown = 30f;
                 // 播放分裂音效
                 if (splitSound != null) splitSound.at(this);
             } catch (Throwable t) {
                 Log.err("[分裂] 创建新头部失败", t);
             }
-        } else if (splittable && !preventSplit && splitSound != null) {
-            // 尾部段身死亡, 播放分裂音效
+        } else if (splitMode && splitSound != null) {
+            // 尾部段身死亡 / 冷却中的补充死亡: 不分裂, 仅播放音效
             splitSound.at(this);
         }
 
         // 从当前头部列表中移除死段及后半段 (分裂时后半段已转移给新头部)
-        int newLen = (splittable && !preventSplit) ? deadIdx : 0;
-        if (!splittable || preventSplit) {
-            // 非分裂 / 只再生不分裂: 保留所有存活段身 (死段被摘掉, 后续段自动衔接)
+        int newLen = canSplit ? deadIdx : 0;
+        if (!canSplit) {
+            // 非分裂 / 冷却中: 保留所有存活段身 (死段被摘掉, 后续段自动衔接)
             for (SegmentUnitEntity s : segments) {
-                if (s != null && s != seg && s.isAdded()) newLen++;
+                if (s != null && s != seg && s.isAdded() && !s.dead) newLen++;
             }
         }
         SegmentUnitEntity[] newSegs = new SegmentUnitEntity[newLen];
@@ -1093,10 +1152,10 @@ public class SegmentWormEntity extends UnitEntity implements zzw.content.Faction
         Vec2[] newVel = new Vec2[newLen];
         float[] newRot = new float[newLen];
         int idx = 0;
-        if (splittable && !preventSplit) {
+        if (canSplit) {
             // 分裂模式: 只保留死段之前的段身 [0, deadIdx)
             for (int i = 0; i < deadIdx; i++) {
-                if (segments[i] != null && segments[i].isAdded()) {
+                if (segments[i] != null && segments[i].isAdded() && !segments[i].dead) {
                     newSegs[idx] = segments[i];
                     newPos[idx] = segPositions[i];
                     newVel[idx] = segVelocities[i];
@@ -1109,7 +1168,7 @@ public class SegmentWormEntity extends UnitEntity implements zzw.content.Faction
         } else {
             // 非分裂模式: 保留所有存活段身
             for (int i = 0; i < segments.length; i++) {
-                if (segments[i] != null && segments[i] != seg && segments[i].isAdded()) {
+                if (segments[i] != null && segments[i] != seg && segments[i].isAdded() && !segments[i].dead) {
                     newSegs[idx] = segments[i];
                     newPos[idx] = segPositions[i];
                     newVel[idx] = segVelocities[i];
@@ -1119,6 +1178,14 @@ public class SegmentWormEntity extends UnitEntity implements zzw.content.Faction
                     idx++;
                 }
             }
+        }
+        // 统计与拷贝之间若发生状态变化, 裁掉尾部空槽, 避免后续遍历 NPE
+        if (idx != newLen) {
+            newSegs = java.util.Arrays.copyOf(newSegs, idx);
+            newPos = java.util.Arrays.copyOf(newPos, idx);
+            newVel = java.util.Arrays.copyOf(newVel, idx);
+            newRot = java.util.Arrays.copyOf(newRot, idx);
+            if (idx > 0) newSegs[idx - 1].isTail = true;
         }
         segments = newSegs;
         segPositions = newPos;
@@ -1276,6 +1343,7 @@ public class SegmentWormEntity extends UnitEntity implements zzw.content.Faction
             if (cfg != null) {
                 segmentSpacing = cfg.spacing;
                 regenTime = cfg.regenTime;
+                healPerSecond = cfg.healPerSecond;
                 maxSegments = cfg.maxSegments;
                 wobbleEnabled = cfg.wobble;
                 splittable = cfg.splittable;

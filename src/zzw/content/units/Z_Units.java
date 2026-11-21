@@ -481,10 +481,10 @@ public class Z_Units {
         // ★ key 用 type.name (v154.3 mod 单位的 name 带 mod 前缀, 如 "create-toxobyte")
         // PU132: segmentLength=25, segmentOffset=16.25f
         // PU132: regenTime=15*60f (15秒长一节), maxSegments 默认上限 25
-        // ★ splittable=true + preventSplit=true:
-        //   段身有独立血量, 高额伤害可以把中间某一节直接打没 (允许留下缺口),
-        //   但 onSegmentDied 只做索引重排与链条衔接, 不再把后半段转成新头部,
-        //   剩余段身始终跟随同一个头部, 不会拆成两个互相独立控制的个体。
+        // ★ splittable=true (PU132 原版): 段身有独立血量, 高额伤害可以把中间某一节打没;
+        //   中间段死亡时后半段会按原版规则分裂成新的独立个体, 尾部段死亡则只掉一节。
+        //   分裂瞬间新头部继承后半段第一节的位置/朝向/速度, 并带 0.5s 冷却,
+        //   避免同一发 AOE 同帧打死多节时重复拆分出多余个体。
         // ★ chainable=true (用户要求实现链式合并, 两条虫子靠近时合并)
         // ★ angleLimit=30f (龙的感觉: 更大的弯曲角度)
         // ★ segmentDamageScl=3f (段身受击时血量×3倍掉, 高伤更容易打掉一节)
@@ -494,8 +494,6 @@ public class Z_Units {
         SegmentWormEntity.configs.put(toxobyte.name,
             new SegmentWormEntity.SegmentConfig(toxobyteSegment, 25, 16.25f, 6f * 60f, 25, false, true, true,
                 30f, 3f, 0.1f, 0.5f, 8, 0.5f, false, 0f));
-        // ★ 禁止段身死亡后分裂出新个体: 打掉的节只从链上摘除, 整条虫仍是一体
-        SegmentWormEntity.configs.get(toxobyte.name).preventSplit = true;
         // toxobyte: 每秒回15血
         SegmentWormEntity.configs.get(toxobyte.name).healPerSecond = 15f;
 
