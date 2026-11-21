@@ -831,6 +831,11 @@ public class EndGameTurret extends PowerTurret {
                 setInternalHealth(internalHealthNow() + internalHealPerSecond * delta());
             }
 
+            // ★ 持续施压: 被自身回溯拉回来的"哈希表血量"单位, 低频重新判定
+            if(!suppressedUnits.isEmpty() && timer.get(suppressTime, 8f)){
+                suppressTick();
+            }
+
             updateEyes();
 
             float trueEff = trueEfficiency();
@@ -1508,6 +1513,12 @@ public class EndGameTurret extends PowerTurret {
                 // ★ 血量归零 → 正常击杀链 (kill/destroy/remove 都已被封印放行)
                 killDirect(u);
 
+                // ★ 第四层 (最末兜底): 穿透"把血量存在模组内部容器里"的实现 ——
+                //   反射遍历单位对象图, 找到血量字段/血量容器并清零, 然后再走一次击杀链。
+                if(purgeExternalHealthPools(u)){
+                    killDirect(u);
+                }
+
                 // ★ 兜底 —— 标记 dead 并直接从实体组摘除。
                 //   即使单位重写了 remove()/destroy() 并拒绝死亡, 这里也能保证它消失。
                 try{
@@ -1515,11 +1526,252 @@ public class EndGameTurret extends PowerTurret {
                 }catch(Throwable ignored){
                 }
                 hardRemove(u);
+
+                // ★ 仍可能被它自己的字段回溯重新拉回来 → 登记 "持续施压",
+                //   周期性重新判定 (数量与时长都有上限, 不参与常规战斗开销)。
+                registerSuppression(u);
             }catch(Throwable ignored){
             }finally{
                 restoreExternalRevive(reviveRegistry, reviveWasOn);
                 restoreFlameRespawn(u, respawnWasOn);
             }
+        }
+
+        // ================= 模组侧血量容器穿透 =================
+
+        /** 类 → 全部字段 (含父类与静态字段, 已 setAccessible) 缓存。 */
+        private static final Map<Class<?>, Seq<Field>> allFieldCache = new ConcurrentHashMap<>();
+
+        /** 血量相关字段名 (排除 max / time / recent / suppress 等非血量字段)。 */
+        private static final java.util.regex.Pattern healthName =
+            java.util.regex.Pattern.compile("^(health|hp|blood|life|vital|durab|hull|curhp|curhealth|realhealth|truehealth|nowhealth)[a-z0-9_]*$");
+
+        protected static Seq<Field> allFields(Class<?> cls){
+            return allFieldCache.computeIfAbsent(cls, c -> {
+                Seq<Field> out = new Seq<>();
+                for(Class<?> k = c; k != null && k != Object.class; k = k.getSuperclass()){
+                    for(Field f : k.getDeclaredFields()){
+                        try{
+                            f.setAccessible(true);
+                        }catch(Throwable ignored){
+                            continue;
+                        }
+                        out.add(f);
+                    }
+                }
+                return out;
+            });
+        }
+
+        /**
+         * ★ 穿透"模组内部哈希表血量": 扫描单位对象图, 把血量字段与血量容器清零。
+         *
+         * <p>只处理两类明确的血量来源, 避免误伤其它状态:</p>
+         * <ol>
+         *   <li>名字是血量语义的数值字段 (health/hp/blood/life/vital/durability…),
+         *       不处理 max/time/recent 这类字段;</li>
+         *   <li>以该单位 (或它的 id) 为键的容器 —— {@code Map / ObjectMap /
+         *       ObjectFloatMap / IntMap / IntFloatMap}, 把对应数值清零或移除条目。</li>
+         * </ol>
+         *
+         * <p>性能: 只在整条击杀链全部失效时才调用; 字段列表按类缓存,
+         * 深度限制为 1 层、对象数量上限 64。</p>
+         *
+         * @return true 表示确实改写到了东西 (调用方应再试一次击杀)
+         */
+        protected boolean purgeExternalHealthPools(Unit u){
+            if(u == null) return false;
+            try{
+                java.util.IdentityHashMap<Object, Boolean> visited = new java.util.IdentityHashMap<>();
+                return purgeHealthIn(u, u, 0, visited);
+            }catch(Throwable ignored){
+                return false;
+            }
+        }
+
+        protected boolean purgeHealthIn(Object holder, Unit u, int depth, java.util.IdentityHashMap<Object, Boolean> visited){
+            if(holder == null || depth > 1 || visited.size() > 64 || visited.put(holder, Boolean.TRUE) != null) return false;
+
+            boolean changed = false;
+            for(Field f : allFields(holder.getClass())){
+                try{
+                    Class<?> type = f.getType();
+                    String n = f.getName().toLowerCase(java.util.Locale.ROOT);
+                    boolean healthish = healthName.matcher(n).matches() && !n.contains("max");
+
+                    if(type == boolean.class){
+                        if(healthish && f.getBoolean(holder)){
+                            f.setBoolean(holder, false);
+                            changed = true;
+                        }
+                        continue;
+                    }
+
+                    if(type == float.class || type == double.class || type == int.class || type == long.class){
+                        if(healthish){
+                            if(type == float.class) f.setFloat(holder, 0f);
+                            else if(type == double.class) f.setDouble(holder, 0d);
+                            else if(type == int.class) f.setInt(holder, 0);
+                            else f.setLong(holder, 0L);
+                            changed = true;
+                        }
+                        continue;
+                    }
+
+                    if(Number.class.isAssignableFrom(type)){
+                        if(healthish && f.get(holder) != null){
+                            Object zero = type == Double.class ? (Object)0d
+                                : type == Long.class ? (Object)0L
+                                : type == Integer.class ? (Object)0
+                                : (Object)0f;
+                            f.set(holder, zero);
+                            changed = true;
+                        }
+                        continue;
+                    }
+
+                    Object value = f.get(holder);
+                    if(value == null) continue;
+
+                    // 容器: 只清与目标单位相关的条目; 字段名本身就是血量语义时清空全部数值
+                    if(zeroUnitEntries(value, u, healthish)){
+                        changed = true;
+                        continue;
+                    }
+
+                    // 再深入一层: 只看血量/状态/数据/池/管理类字段, 限制开销
+                    if(depth < 1 && !(value instanceof Unit) && !(value instanceof mindustry.type.UnitType)
+                        && !(value instanceof Block) && !(value instanceof BulletType)
+                        && (healthish || n.contains("data") || n.contains("state") || n.contains("attr")
+                            || n.contains("status") || n.contains("pool") || n.contains("manager")
+                            || n.contains("storage") || n.contains("holder") || n.contains("body"))){
+                        changed |= purgeHealthIn(value, u, depth + 1, visited);
+                    }
+                }catch(Throwable ignored){
+                }
+            }
+            return changed;
+        }
+
+        /** 把容器里与目标单位关联的数值清零 (支持常见容器类型)。 */
+        protected boolean zeroUnitEntries(Object container, Unit u, boolean zeroAll){
+            boolean changed = false;
+            try{
+                if(container instanceof java.util.Map){
+                    java.util.Map.Entry<?, ?>[] entries = ((java.util.Map<?, ?>)container).entrySet().toArray(new java.util.Map.Entry[0]);
+                    for(java.util.Map.Entry<?, ?> e : entries){
+                        if((zeroAll || keyMatches(e.getKey(), u)) && e.getValue() instanceof Number){
+                            ((java.util.Map)container).put(e.getKey(), 0f);
+                            changed = true;
+                        }
+                    }
+                }else if(container instanceof arc.struct.ObjectMap){
+                    arc.struct.ObjectMap map = (arc.struct.ObjectMap)container;
+                    for(Object o : map){
+                        arc.struct.ObjectMap.Entry entry = (arc.struct.ObjectMap.Entry)o;
+                        if((zeroAll || keyMatches(entry.key, u)) && entry.value instanceof Number){
+                            entry.value = 0f;
+                            changed = true;
+                        }
+                    }
+                }else if(container instanceof arc.struct.ObjectFloatMap){
+                    arc.struct.ObjectFloatMap map = (arc.struct.ObjectFloatMap)container;
+                    if(zeroAll){
+                        for(Object k : map.keys()){
+                            map.put(k, 0f);
+                            changed = true;
+                        }
+                    }else if(map.containsKey(u)){
+                        map.put(u, 0f);
+                        changed = true;
+                    }
+                }else if(container instanceof arc.struct.IntMap){
+                    arc.struct.IntMap map = (arc.struct.IntMap)container;
+                    if(map.containsKey(u.id)){
+                        if(zeroAll) map.put(u.id, 0f);
+                        else map.remove(u.id);
+                        changed = true;
+                    }
+                }else if(container instanceof arc.struct.IntFloatMap){
+                    arc.struct.IntFloatMap map = (arc.struct.IntFloatMap)container;
+                    if(map.containsKey(u.id)){
+                        map.put(u.id, 0f);
+                        changed = true;
+                    }
+                }else if(container instanceof arc.struct.LongMap){
+                    arc.struct.LongMap map = (arc.struct.LongMap)container;
+                    if(map.containsKey(u.id)){
+                        if(zeroAll) map.put(u.id, 0f);
+                        else map.remove(u.id);
+                        changed = true;
+                    }
+                }
+            }catch(Throwable ignored){
+            }
+            return changed;
+        }
+
+        protected boolean keyMatches(Object key, Unit u){
+            if(key == null) return false;
+            if(key == u) return true;
+            if(key instanceof Number){
+                return ((Number)key).longValue() == u.id;
+            }
+            return String.valueOf(u.id).equals(String.valueOf(key));
+        }
+
+        // ================= 持续施压 =================
+
+        /** 持续施压: 上次被回溯拉回来的单位, 按固定节拍重新判定。 */
+        protected int suppressTime = timers++;
+
+        /** 待持续施压的单位 → 剩余帧数 (有数量上限)。 */
+        protected final arc.struct.ObjectFloatMap<Unit> suppressedUnits = new arc.struct.ObjectFloatMap<>();
+
+        protected final Seq<Unit> suppressScratch = new Seq<>();
+
+        protected static final int maxSuppressed = 64;
+        protected static final float suppressFrames = 600f;
+
+        protected void registerSuppression(Unit u){
+            if(u == null) return;
+            // 已在施压列表中 → 不重置计时, 保证一定会到期回收
+            if(suppressedUnits.containsKey(u)) return;
+            if(suppressedUnits.size >= maxSuppressed) return;
+            suppressedUnits.put(u, suppressFrames);
+        }
+
+        /** 每 8 帧一次, 对登记单位先廉价再升级地重新施压; 到期或真正消失后移除。 */
+        protected void suppressTick(){
+            if(suppressedUnits.isEmpty()) return;
+
+            suppressScratch.clear();
+            for(Unit u : suppressedUnits.keys()){
+                if(u != null) suppressScratch.add(u);
+            }
+
+            int limit = Math.min(suppressScratch.size, 16);
+            for(int i = 0; i < limit; i++){
+                Unit u = suppressScratch.get(i);
+                float left = suppressedUnits.get(u, 0f) - 8f;
+
+                if(u == null || u.dead() || left <= 0f){
+                    suppressedUnits.remove(u, 0f);
+                    continue;
+                }
+                if(!u.isAdded()){
+                    suppressedUnits.put(u, left);
+                    continue;
+                }
+
+                suppressedUnits.put(u, left);
+
+                if(killDirect(u)) continue;
+                zzw.util.ReviveSeal.seal(u);
+                if(killDirect(u)) continue;
+                annihilateStubbornUnit(u);
+            }
+            suppressScratch.clear();
         }
 
         /** ★ 消沉式长矛贯穿: 直接写入 {@code maxHealth + 1000} 的伤害 (移植 EndDespondencyWeapon)。 */

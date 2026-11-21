@@ -689,6 +689,9 @@
 - 新增螺旋石油钻井（oil-derrick）：扭矩驱动的石油抽取器（`SolidPump`，`result=Liquids.oil`、`attribute=Attribute.oil`，需建在油层上），绘制为螺旋钻杆样式（类 `zzw.content.mechanics.torque.blocks.production.OilDerrick`）
 
 ## 更新日志
+- **endgame 终局炮台：穿透"模组内部哈希表血量"**：
+  - 湮灭链新增第四层（最末兜底）：整条「廉价击杀 → 复活封印 → 反射拆解」全部失效时，反射遍历目标对象图，清零血量语义字段（health/hp/blood/life/vital/durability…，排除 max 类）以及以该单位（或 id）为键的容器条目（`Map`/`ObjectMap`/`ObjectFloatMap`/`IntMap`/`IntFloatMap`/`LongMap`），再补一次击杀；字段列表按类缓存、深度 1 层、对象数上限 64
+  - 新增「持续施压」：仍被其自身回溯拉回来的单位登记进施压表，每 8 帧低频重新判定（最多 64 个、最长 600 帧），到期或真正消失即回收
 - **endgame 终局炮台攻击强化**：
   - 激光射程 2840 → **3800**（再加 120 格）；爆炸范围 `blastRadius = 820` 保持不变
   - 基础装填 430 → **300**（配合 `reloadMultiplier = 32`，齐射间隔约 0.156 秒）
