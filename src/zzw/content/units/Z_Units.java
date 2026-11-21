@@ -3097,7 +3097,9 @@ public class Z_Units {
             outlineColor = Color.valueOf("2e3142");
             constructor = mindustry.gen.LegsUnit::create;
             aiController = () -> new mindustry.ai.types.GroundAI();
-            range = 300f;
+            // ★ 面板射程按激光真实可达距离 (length=900) 显示, 不再只显示 300 的炮台 range;
+            //   与炮台侧 TurretRangeUtil.set 的口径一致: 显示圈/索敌/实际弹程统一
+            range = 900f;
 
             // 武器1: 反射激光 (PU_V8 ReflectingLaserBulletType, length=500f, width=65f, reflections=5)
             weapons.add(new BlankWeapon() {{
@@ -3126,7 +3128,8 @@ public class Z_Units {
                     lightningDamage = 75f;
                     hitEffect = zzw.content.units.effects.ScarFx.coloredHitLarge;   // PU_V8 HitFx.coloredHitLarge
                     hitColor = lightningColor = mindustry.graphics.Pal.heal;
-                    pierceCap = 3;
+                    // ★ 少量穿透: 3 → 6 个目标
+                    pierceCap = 6;
                     collidesTeam = true;
                     lightningLength = 12;
                     colors = new Color[]{
@@ -3616,7 +3619,8 @@ public class Z_Units {
                 shootStatus = mindustry.content.StatusEffects.slow;
                 shootStatusDuration = 180f;
                 bullet = new AcceleratingLaserBulletType(230f) {{
-                    lifetime = 330f;   // ★ 激光持续时间 +2.5 秒 (180 → 330)
+                    // ★ 比调整后的 aphelion (6s) 短约 0.8 秒: 5.2s = 312 帧
+                    lifetime = 312f;
                     maxLength = 380f;
                     maxRange = 330f;
                     oscOffset = 0.1f;
@@ -3740,7 +3744,7 @@ public class Z_Units {
                 recoil = 0f;
                 cooldownTime = 6f * 60f;
                 bullet = new AcceleratingLaserBulletType(320f) {{
-                    lifetime = 5f * 60f;   // ★ 激光持续时间 +1 秒
+                    lifetime = 6f * 60f;   // ★ 激光持续时间 +1 秒 (5s → 6s)
                     maxLength = 430f;
                     maxRange = 400f;
                     oscOffset = 0.2f;
@@ -3760,9 +3764,9 @@ public class Z_Units {
                     hitColor = mindustry.graphics.Pal.meltdownHit;
                     shootEffect = CombatFx.laserShoot;   // ★ 特效美化: 熔毁橙炮口
                 }};
-                // PU_V8: 射击期间自身减速, 持续整个激光生存期 (5*60 tick)
+                // PU_V8: 射击期间自身减速, 持续整个激光生存期 (6*60 tick)
                 shootStatus = mindustry.content.StatusEffects.slow;
-                shootStatusDuration = 5f * 60f;
+                shootStatusDuration = 6f * 60f;
             }});
 
             // 武器2: 黄色闪电炮弹 (PU_V8 原版: scepter bullet + lightning=3 + lightningType, 黄色)
