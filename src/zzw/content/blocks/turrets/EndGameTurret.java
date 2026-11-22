@@ -804,13 +804,19 @@ public class EndGameTurret extends PowerTurret {
             if(power == null || power.links.size == 0) return;
 
             Draw.z(Layer.power + 1f);
-            Lines.stroke(1.2f);
-            Draw.color(Pal.power);
+            // ★ 与普通电力线区分: 本炮台的连线改用终局主色 (scarColor) 的
+            //   外层光晕 + 内层亮芯, 不再沿用原版 Pal.power 的蓝色。
             for(int i = 0; i < power.links.size; i++){
                 Building link = Vars.world.build(power.links.get(i));
-                if(link != null){
-                    Lines.line(x, y, link.x, link.y);
-                }
+                if(link == null) continue;
+
+                Lines.stroke(3.6f);
+                Draw.color(scarColor, 0.35f);
+                Lines.line(x, y, link.x, link.y);
+
+                Lines.stroke(1.3f);
+                Draw.color(scarColor);
+                Lines.line(x, y, link.x, link.y);
             }
             Draw.reset();
         }
