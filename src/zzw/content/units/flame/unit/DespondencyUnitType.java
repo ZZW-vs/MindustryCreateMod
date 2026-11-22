@@ -8,8 +8,14 @@ import mindustry.graphics.Layer;
 import mindustry.graphics.Pal;
 import mindustry.type.Weapon;
 import mindustry.world.meta.Env;
+import zzw.content.units.flame.FlameSounds;
+import zzw.content.units.flame.bullets.EndCreepLaserBulletType;
+import zzw.content.units.flame.bullets.EndNukeBulletType;
+import zzw.content.units.flame.bullets.EndRailBulletType;
 import zzw.content.units.flame.unit.weapons.EndAntiAirWeapon;
 import zzw.content.units.flame.unit.weapons.EndDespondencyWeapon;
+import zzw.content.units.flame.unit.weapons.EndLauncherWeapon;
+import zzw.content.units.flame.unit.weapons.LaserWeapon;
 import zzw.content.units.types.DesolationUnitType;
 
 /**
@@ -85,7 +91,65 @@ public class DespondencyUnitType extends DesolationUnitType{
                 }},
 
                 // P2 阶段替换为完整三阶段处决武器；当前作为主武器占位
-                new EndDespondencyWeapon(this.name + "-main")
+                new EndDespondencyWeapon(this.name + "-main"),
+
+                new LaserWeapon(this.name + "-laser"){{
+                    x = 54.5f;
+                    y = -15f;
+                    mirror = true;
+
+                    continuous = true;
+                    rotate = true;
+                    alternate = false;
+                    reload = 8f * 60f;
+
+                    rotationLimit = 190f;
+                    rotateSpeed = 3.5f;
+
+                    shootCone = 2f;
+                    shootSound = FlameSounds.desLaser;
+                    laserShootSound = FlameSounds.desLaserShoot;
+
+                    bullet = new EndCreepLaserBulletType();
+                }},
+
+                new Weapon(this.name + "-railgun"){{
+                    x = 63f;
+                    y = -34f;
+                    shootY = 12f;
+                    mirror = true;
+
+                    rotate = true;
+                    alternate = true;
+                    reload = 110f;
+
+                    rotateSpeed = 1.6f;
+
+                    shootCone = 2.5f;
+                    shootSound = FlameSounds.desRailgun;
+
+                    bullet = new EndRailBulletType();
+                }},
+
+                new Weapon(this.name + "-cannon"){{
+                    x = 56f;
+                    y = -62.75f;
+                    shootY = 12f;
+                    mirror = true;
+
+                    rotate = true;
+                    alternate = true;
+                    reload = 8.5f * 60 * 2f;
+
+                    rotateSpeed = 1.2f;
+
+                    shootCone = 5f;
+                    shootSound = FlameSounds.desNukeShoot;
+
+                    bullet = new EndNukeBulletType();
+                }},
+
+                new EndLauncherWeapon(this.name + "-missile")
         );
     }
 

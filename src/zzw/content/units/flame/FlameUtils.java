@@ -323,6 +323,11 @@ public class FlameUtils{
         }
     }
 
+    /** 先升后降的三角曲线 (fin 在 [0,1], bias 为峰值位置)。 */
+    public static float biasSlope(float fin, float bias){
+        return fin < bias ? (fin / bias) : 1f - (fin - bias) / (1f - bias);
+    }
+
     /** 带符号的角度差 (-180, 180]。 */
     public static float angleDistSigned(float a, float b){
         a += 360f;

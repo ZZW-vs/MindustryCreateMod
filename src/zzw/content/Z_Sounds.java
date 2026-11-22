@@ -72,6 +72,8 @@ public class Z_Sounds {
     public static void load() {
         // 消沉 (FlameOut 移植) 专用音效, 文件已位于 assets/sounds/ 根目录
         zzw.content.units.flame.FlameSounds.load();
+        // 消沉死亡演出表 (按单位名注册), 依赖上面的音效已完成加载
+        zzw.content.units.flame.effects.SpecialDeathEffects.load();
         spaceFracture = loadSound("end/space-fracture");
         fractureShoot = loadSound("end/fracture-shoot");
         stopTime = loadSound("end/stop-time");

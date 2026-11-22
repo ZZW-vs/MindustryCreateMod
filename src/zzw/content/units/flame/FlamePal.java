@@ -11,6 +11,7 @@ import arc.graphics.Color;
 public class FlamePal{
     public static Color primary = new Color(0x9a75ffff);
     public static Color blood = new Color(0.95f, 0.95f, 0.95f);
+    public static Color paleYellow = new Color(1f, 1f, 0.5f);
 
     public static Color red = new Color(0xf53036ff);
     public static Color redLight = red.cpy().mul(2f);
