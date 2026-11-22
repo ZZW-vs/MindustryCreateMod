@@ -17,10 +17,13 @@ public class EndInvisibleUnit extends UnitEntity implements zzw.content.Factionc
 
 
     private final AntiCheatBase antiCheat = new AntiCheatBase();
-    private float disabledTime = 0f;
+    /** PU132 InvisibleComp.disabledTime 初值 120f: 出生后 2 秒内保持现身 */
+    private float disabledTime = 120f;
     private float invFrame = 0f;
     private float alphaLerp = 0f;
     private float scanInterval = 0f;
+    /** 敌方子弹扫描计时 (PU132: 隐身时每 5t 检测一次) */
+    private float bulletScan = 0f;
 
     public boolean isInvisible = false;
 
@@ -90,7 +93,17 @@ public class EndInvisibleUnit extends UnitEntity implements zzw.content.Factionc
         disabledTime = Math.max(disabledTime - Time.delta, 0f);
         antiCheat.updateAntiCheat();
 
-        // 扫描附近敌人/建筑, 距离过近则现身
+        // PU132: 隐身状态下每 5t 检测一次擦过本体的敌方子弹, 被瞄准时提前现身
+        bulletScan += Time.delta;
+        if (alphaLerp > 0.5f && bulletScan >= 5f) {
+            bulletScan = 0f;
+            float hs = hitSize();
+            Groups.bullet.intersect(x - hs / 2f, y - hs / 2f, hs, hs, b -> {
+                if (b.team() != team()) disabledTime = 1.2f * 60f;
+            });
+        }
+
+        // 扫描附近敌人/敌方建筑, 距离过近则现身 (PU132 InvisibleComp)
         scanInterval += Time.delta;
         if (scanInterval >= 30f) {
             scanInterval = 0f;
@@ -101,6 +114,13 @@ public class EndInvisibleUnit extends UnitEntity implements zzw.content.Factionc
                     near[0] = true;
                 }
             });
+            if (!near[0]) {
+                Groups.build.intersect(x - size, y - size, size * 2f, size * 2f, b -> {
+                    if (b.team != team() && b.block != null) {
+                        near[0] = true;
+                    }
+                });
+            }
             if (near[0]) {
                 disabledTime = 1.2f * 60f;
             }
