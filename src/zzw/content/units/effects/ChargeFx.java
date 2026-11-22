@@ -170,7 +170,8 @@ public class ChargeFx{
             }
         }
 
-        color(Tmp.c1.set(Pal.heal).lerp(Color.white, 0.35f));
+        // ★ sagittarius 专属: 内芯保持原始纯白 (不参与全局"压白"统一, 见用户要求还原蓄力表现)
+        color(Color.white);
         Fill.circle(e.x, e.y, size * 0.5f);
     }).followParent(true).rotWithParent(true),
 
