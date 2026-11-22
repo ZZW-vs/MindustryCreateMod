@@ -1403,14 +1403,16 @@ public class Z_Units {
                     largeHit = false;
                     lifetime = 4f * 60f;
                     length = 300f;
-                    width = 12f;
+                    // ★ 粗细与 create-vortex 一致 (width 5, strokes 1.5/1/0.3)
+                    width = 5f;
                     incendChance = 0f;
                     hitEffect = zzw.content.units.effects.ScarFx.coloredHitLarge;
                     lightColor = hitColor = zzw.content.graphics.UnityPal.scarColorAlpha;
                     colors = new Color[]{zzw.content.graphics.UnityPal.scarColorAlpha,
                         zzw.content.graphics.UnityPal.endColor, Color.white};
-                    shootEffect = zzw.content.units.effects.CombatFx.laserShoot;
-                    strokes = new float[]{3f, 2f, 0.6f};
+                    // ★ 恢复原版虚空炮口符文 (此前大激光使用的 portalSeal), 让中央空腔有完整开火表现
+                    shootEffect = zzw.content.units.effects.RuneFx.portalSeal;
+                    strokes = new float[]{1.5f, 1f, 0.3f};
                 }};
             }});
 
@@ -1427,6 +1429,8 @@ public class Z_Units {
                 bullet = new VoidFractureBulletType(32f, 800f) {{
                     ratioDamage = 1f / 50f;
                     ratioStart = damage * 20f;
+                    // ★ PU132 原版: 虚空碎裂弹炮口特效
+                    shootEffect = zzw.content.units.effects.ShootEffect.voidShoot;
                     activeSound = zzw.content.Z_Sounds.fractureShoot;
                     spikesSound = zzw.content.Z_Sounds.spaceFracture;
                     modules = new AntiCheatBulletModule[]{
