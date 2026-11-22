@@ -692,6 +692,10 @@
 - 新增螺旋石油钻井（oil-derrick）：扭矩驱动的石油抽取器（`SolidPump`，`result=Liquids.oil`、`attribute=Attribute.oil`，需建在油层上），绘制为螺旋钻杆样式（类 `zzw.content.mechanics.torque.blocks.production.OilDerrick`）
 
 ## 更新日志
+- **colossus 开火音效校正**：
+  - PU132 原版使用 `Sounds.laserblast`；实测 v146 的 `laserblast.ogg` 与 v160 的 `shootCorvus.ogg` **MD5 完全一致**，说明该字段在版本演进中改名为 `shootCorvus`
+  - 当前误映射为 `beamMeltdown`（持续光束循环音，与单发激光爆发的音色不符），已改为 `Sounds.shootCorvus`
+  - 仅改 colossus 主武器，pylon 等其它仍使用 `beamMeltdown` 的单位未动
 - **cygnus 视觉还原**（仅回退 cygnus，不影响其它单位已统一的特效）：
   - **EMP 弹本体**：内层 `shiningCircle` 光环由淡绿改回 PU132 原版的纯白，外层治疗绿尖刺环不变，恢复弹体原本的绿/白层次观感
   - **EMP 弹命中爆炸**：`hitEffect` 由 12 帧的 `CombatFx.empSpark` 改为新增的 `HitEffect.empHit`——还原 PU132 原版 50 帧淡绿色大圆环（半径 70）+ 中心淡绿闪光 + 10 枚外扩尖刺 + 白色核心 + 淡绿光源；`shootEffect`/`smokeEffect` 保持现有统一特效不动

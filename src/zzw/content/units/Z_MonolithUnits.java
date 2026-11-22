@@ -882,8 +882,10 @@ public class Z_MonolithUnits{
                 shoot = new ShootSpread(5, 2f);
                 shoot.shotDelay = 3f; // v155.4: shotDelay → shoot.shotDelay
                 inaccuracy = 6f;
-                // ★ v155.4: Sounds.laserblast → Sounds.beamMeltdown
-                shootSound = Sounds.beamMeltdown;
+                // ★ PU132 Sounds.laserblast 与 v160 Sounds.shootCorvus 为同一音频:
+                //   实测 v146 laserblast.ogg 与 v160 shootCorvus.ogg MD5 完全一致,
+                //   原来的 beamMeltdown 是持续光束循环音, 与单发激光爆发音色不符
+                shootSound = Sounds.shootCorvus;
 
                 bullet = new LaserBulletType(2500f){{
                     colors = new Color[]{UnityPal.monolith.cpy().a(0.4f), UnityPal.monolithLight, Color.white};
