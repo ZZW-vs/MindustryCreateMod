@@ -56,11 +56,10 @@ public class LightningSpawnAbility extends Ability {
     protected int lightningCount;
     protected Color backColor = UnityPal.monolithDark.cpy().a(0.5f);
     protected Color frontColor = UnityPal.monolithLight.cpy().a(0.5f);
-    protected mindustry.entities.Effect damageEffect = Fx.chainLightning;
-    // ★ 去白圆: 拖尾/命中改用非圆形特效 (原 CombatFx.laserHit/laserHitBlast 有白色大圆芯,
-    //   且拖尾不传颜色 → 白圆高频刷屏; 现改为弹色菱形拖尾 + 十字星命中)
-    protected mindustry.entities.Effect hitEffect = zzw.content.units.effects.CombatFx.starHit;
-    protected mindustry.entities.Effect trailEffect = zzw.content.units.effects.CombatFx.energyTrail;
+    // ★ PU132 原版: 球状闪电光环的链式闪电 / 命中 / 火花拖尾
+    protected mindustry.entities.Effect damageEffect = zzw.content.units.effects.SpecialFx.chainLightningActive;
+    protected mindustry.entities.Effect hitEffect = Fx.hitLaserBlast;
+    protected mindustry.entities.Effect trailEffect = zzw.content.units.effects.ParticleFx.monolithSpark;
 
     protected float timer, reload;
 
@@ -117,8 +116,8 @@ public class LightningSpawnAbility extends Ability {
                 }
             }
 
-            // ★ 传入 frontColor (浅蓝) + 以能量球半径为尺寸基准, 不再默认白色
-            if (Mathf.chanceDelta(trailChance)) trailEffect.at(x, y, lightningRadius, frontColor);
+            // PU132 原版调用: 只传坐标与旋转, 火花颜色由 monolithSpark 自身决定
+            if (Mathf.chanceDelta(trailChance)) trailEffect.at(x, y, lightningRadius);
         }
 
         // 相位: v158 无单位弹药, 固定展开 (原版随弹药余量收缩)
