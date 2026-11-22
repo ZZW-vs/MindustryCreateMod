@@ -388,6 +388,11 @@ public class Z_TechTree{
 
                 nodeProduce(Z_Items.denseAlloy, () -> {
                     nodeProduce(Z_Items.steel, () -> {
+                        // ★ 铀物品节点 (PU132 原版此处被注释掉, 导致铀没有物品节点; 用户要求补上)
+                        //   铀目前没有矿石/配方产出途径, 保持 alwaysUnlocked 以免产出目标卡死研究;
+                        //   物品节点照常挂在钢之后, 便于在树中查看与后续补产出途径。
+                        Z_Items.uranium.alwaysUnlocked = true;
+                        nodeProduce(Z_Items.uranium);
                         nodeProduce(Z_Liquids.lava, () -> {
                             nodeProduce(Z_Items.dirium, () -> {
                                 // End 派系物品挂物品链最深处: 迪里姆 → 先进合金 → 轻质合金 → 流明合金

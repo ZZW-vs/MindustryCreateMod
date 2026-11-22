@@ -24,6 +24,13 @@ import static mindustry.Vars.*;
  *   <li>SoulContainer 引用 → 简化为 ISoulTurret (zzw.content.blocks.soul 通用灵魂持有接口)</li>
  *   <li>acceptSoul()/join() (Soulc 接口) → ISoulTurret.souls()/maxSouls()/joinSoul()</li>
  * </ul></p>
+ *
+ * <p>★ 贴图归属说明 (避免与 PU132 遗留资源混淆):
+ * 本方块注册名为 {@code soul-infuser}, 实际使用
+ * {@code assets/sprites/blocks/fmonolith/production/soul-infuser(-top).png};
+ * 而 {@code assets/sprites/blocks/global/crafter/infusor*.png} 是 PU132 原版遗留的
+ * 一组空置贴图, 本项目没有任何代码引用 (不存在名为 infusor 的方块), 也不是灵魂灌注器的贴图。
+ * 这些文件暂时保留, 清理前需确认。</p>
  */
 public class SoulInfuser extends SoulFloorExtractor{
     /** 每次制作产生的灵魂数量 */

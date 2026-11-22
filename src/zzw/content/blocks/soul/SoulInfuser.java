@@ -24,6 +24,11 @@ import static mindustry.Vars.world;
  * - 产生灵魂时, 直接注入附近炮台
  *
  * 参考: PU_V8 unity/world/blocks/production/SoulInfuser.java
+ *
+ * ★ 历史遗留: 本类当前未被任何代码引用, 游戏内实际注册的 soul-infuser 是
+ * {@link zzw.content.blocks.production.SoulInfuser} (完整移植版)。
+ * 另: assets/sprites/blocks/global/crafter/infusor*.png 为 PU132 遗留空置贴图,
+ * 与本类及 soul-infuser 方块均无关, 暂时保留、清理前需确认。
  */
 public class SoulInfuser extends GenericCrafter {
     /** 每次注入产生的灵魂数量 */
