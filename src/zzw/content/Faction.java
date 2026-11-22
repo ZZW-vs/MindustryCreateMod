@@ -65,7 +65,7 @@ public enum Faction{
     monolith("monolith", UnityPal.monolith,
         "ore-monolite", "sharpslate", "sharpslate-wall", "infused-sharpslate",
         "infused-sharpslate-wall", "arch-sharpslate", "arch-energy", "lore-monolith",
-        "debris-extractor", "soul-infuser", "monolith-alloy-forge", "electrophobic-wall",
+        "debris-extractor", "soul-infuser", "monolith-alloy-forge", "deflector-aura", "electrophobic-wall",
         "electrophobic-wall-large", "life-stealer", "absorber-aura", "heat-ray", "incandescence",
         "ricochet", "shellshock", "purge", "blackout", "diviner", "mage", "recluse", "oracle",
         "prism", "supernova", "megalith", "accretion", "salvaged-lab", "char-shadowcape",
