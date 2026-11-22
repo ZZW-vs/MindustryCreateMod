@@ -167,7 +167,8 @@ public class CombatFx{
             int sign = Mathf.signs[i];
             color(e.color);
             Drawf.tri(e.x, e.y, 13f * e.fout(), 80f, e.rotation + 90f * sign);
-            color(colorHi(e.color, 1f));
+            // ★ citadel 专用: 外侧保持弹色 (黄), 内侧恢复纯白芯, 不参与全局压白
+            color(Color.white);
             Drawf.tri(e.x, e.y, Math.max(13f * e.fout() - 4f, 0f), 76f, e.rotation + 90f * sign);
         }
         Drawf.light(e.x, e.y, e.finpow() * 40f, e.color, 0.7f);
@@ -338,6 +339,25 @@ public class CombatFx{
             square(e.x + x, e.y + y, e.fout() * 2.4f + 0.5f, a + e.fin() * 120f);
         });
         color(colorHi(e.color, e.fout()));
+        for(int i = 0; i < 4; i++){
+            Drawf.tri(e.x, e.y, 3f * e.fout(), 10f * e.finpow(), e.rotation + 90f * i + e.finpow() * 50f);
+        }
+        Drawf.light(e.x, e.y, e.fout() * 18f, e.color, 0.6f);
+    }),
+
+    /**
+     * 大口径命中 (16f) —— citadel 专用还原版。
+     *
+     * <p>保留全局压白前的原始层次: 白亮方块渐变为弹色、中心三角由弹色渐变为白色。
+     * 不复用 {@link #bulletHitBig}, 以免把其它单位的命中特效一起回退。</p>
+     */
+    bulletHitBigCitadel = new Effect(16f, e -> {
+        randLenVectors(e.id, 7, e.finpow() * 22f, (x, y) -> {
+            float a = Mathf.angle(x, y);
+            color(Color.white, e.color, e.fin());
+            square(e.x + x, e.y + y, e.fout() * 2.4f + 0.5f, a + e.fin() * 120f);
+        });
+        color(e.color, Color.white, e.fout());
         for(int i = 0; i < 4; i++){
             Drawf.tri(e.x, e.y, 3f * e.fout(), 10f * e.finpow(), e.rotation + 90f * i + e.finpow() * 50f);
         }

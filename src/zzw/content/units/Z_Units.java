@@ -2905,8 +2905,8 @@ public class Z_Units {
                     trailSpacing = 25f;
                     splashDamage = 85f;   // ★ 伤害略降: 250/95 → 225/85
                     splashDamageRadius = 50f;
-                    hitEffect = zzw.content.units.effects.CombatFx.bulletHitBig;
-                    shootEffect = zzw.content.units.effects.CombatFx.railShootClean;   // ★ 去掉开火白色光圈
+                    hitEffect = zzw.content.units.effects.CombatFx.bulletHitBigCitadel;   // ★ citadel 专用: 还原原始白亮层次
+                    shootEffect = zzw.content.units.effects.CombatFx.railShootClean;   // ★ 无白圈版炮口, 内侧白芯已还原
                     trailEffect = zzw.content.units.effects.TrailFx.coloredRailgunSmallTrail;   // PU_V8 TrailFx.coloredRailgunSmallTrail
                     width = 9f;
                     height = 17f;
