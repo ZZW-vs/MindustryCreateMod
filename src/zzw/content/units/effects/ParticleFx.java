@@ -45,7 +45,7 @@ public class ParticleFx{
      * 白→激光色收缩三角 (朝向反向)。
      */
     public static final Effect blueTriangleTrail = new Effect(50f, e -> {
-        color(Color.white, mindustry.graphics.Pal.lancerLaser, e.fin());
+        color(Color.valueOf("cfe6ff"), mindustry.graphics.Pal.lancerLaser, e.fin());
         poly(e.x, e.y, 3, 4f * e.fout(), e.rotation + 180f);
     });
 
@@ -155,7 +155,7 @@ public class ParticleFx{
      * 远距离拉丝 (420+ 长度) 细线束。
      */
     public static final Effect currentCharge = new Effect(32f, e -> {
-        color(mindustry.graphics.Pal.surge, Color.white, e.fin());
+        color(mindustry.graphics.Pal.surge, Color.valueOf("f4ffc0"), e.fin());
         randLenVectors(e.id, 8, 420f + Mathf.random(24f, 28f) * e.fout(), e.rotation, 4f, (x, y) -> {
             stroke(0.3f + e.fout() * 2f);
             lineAngle(e.x + x, e.y + y, Mathf.angle(x, y), e.fout() * 14f + 0.5f);
@@ -175,13 +175,13 @@ public class ParticleFx{
 
     /** plasma 破片出现特效 (12f) — PU132 UnityFx.plasmaFragAppear。白色生长三角。 */
     public static final Effect plasmaFragAppear = new Effect(12f, e -> {
-        color(Color.white);
+        color(Color.valueOf("f4ffc0"));
         mindustry.graphics.Drawf.tri(e.x, e.y, e.fin() * 12f, e.fin() * 13f, e.rotation);
     }).layer(Layer.bullet - 0.01f);
 
     /** plasma 破片消失特效 (12f) — PU132 UnityFx.plasmaFragDisappear。surge→白收缩三角。 */
     public static final Effect plasmaFragDisappear = new Effect(12f, e -> {
-        color(mindustry.graphics.Pal.surge, Color.white, e.fin());
+        color(mindustry.graphics.Pal.surge, Color.valueOf("f4ffc0"), e.fin());
         mindustry.graphics.Drawf.tri(e.x, e.y, e.fout() * 10f, e.fout() * 11f, e.rotation);
     }).layer(Layer.bullet - 0.01f);
 

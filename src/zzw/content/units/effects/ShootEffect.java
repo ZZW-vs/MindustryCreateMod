@@ -111,7 +111,7 @@ public class ShootEffect {
         Fill.poly(e.x, e.y, 3, e.fout() * 24f, e.rotation);
         Fill.circle(e.x, e.y, e.fout() * 11f);
 
-        Draw.color(Color.white);
+        Draw.color(Color.valueOf("cfe6ff"));
         Fill.circle(e.x, e.y, e.fout() * 9f);
     });
 

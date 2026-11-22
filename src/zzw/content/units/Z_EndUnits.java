@@ -81,7 +81,7 @@ public class Z_EndUnits {
             overDamage = 800000f;
             ratioDamage = 1f / 40f;
             ratioStart = 1000000f;
-            colors = new Color[]{UnityPal.scarColorAlpha, UnityPal.scarColor, UnityPal.endColor, Color.white};
+            colors = new Color[]{UnityPal.scarColorAlpha, UnityPal.scarColor, UnityPal.endColor, Color.valueOf("ffc0ba")};
             modules = new zzw.content.units.anticheat.AntiCheatBulletModule[]{
                 new zzw.content.units.anticheat.ArmorDamageModule(0.1f, 30f, 30f, 0.4f)
             };
@@ -556,7 +556,7 @@ public class Z_EndUnits {
             weapons.add(new EnergyChargeWeapon(""){
                 TextureRegion r;
                 TextureRegion[] rs;
-                final Color[] colors = {UnityPal.scarColor, UnityPal.endColor, Color.white, Color.black};
+                final Color[] colors = {UnityPal.scarColor, UnityPal.endColor, Color.valueOf("ffc0ba"), Color.black};
 
                 {
                     mirror = false;

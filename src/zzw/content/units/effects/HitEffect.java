@@ -72,7 +72,7 @@ public class HitEffect {
             Fill.circle(v.x, v.y, (9f + rad / 7f) * (1f - nf));
         }
         e.scaled(15f, s -> {
-            Draw.color(SCAR_COLOR, Color.white, s.fin());
+            Draw.color(SCAR_COLOR, Color.valueOf("ffc0ba"), s.fin());
             Lines.stroke(2f);
             for(int i = 0; i < sparkAmount; i++){
                 float cf = (i / (sparkAmount - 1f)) * maxOffset2;
@@ -222,7 +222,7 @@ public class HitEffect {
         Angles.randLenVectors(e.id, 4, e.finpow() * 28f, (x, y) ->
             Fill.poly(e.x + x, e.y + y, 4, 3f + e.fout() * 9f, 0f));
 
-        Draw.color(Color.white, mindustry.graphics.Pal.lancerLaser, e.fin());
+        Draw.color(Color.valueOf("cfe6ff"), mindustry.graphics.Pal.lancerLaser, e.fin());
         Lines.stroke(1.5f * e.fout());
         Angles.randLenVectors(e.id * 2L, 7, e.finpow() * 42f, (x, y) -> {
             float a = Mathf.angle(x, y);
@@ -245,7 +245,7 @@ public class HitEffect {
      * 双层白/激光色扩散环。
      */
     public static final Effect branchFragHit = new Effect(8f, e -> {
-        Draw.color(Color.white, mindustry.graphics.Pal.lancerLaser, e.fin());
+        Draw.color(Color.valueOf("cfe6ff"), mindustry.graphics.Pal.lancerLaser, e.fin());
         Lines.stroke(0.5f + e.fout());
         Lines.circle(e.x, e.y, e.fin() * 5f);
         Lines.stroke(e.fout());
@@ -314,7 +314,7 @@ public class HitEffect {
      */
     public static final Effect hitExplosionMassive = new Effect(70f, 370f, e -> {
         e.scaled(17f, s -> {
-            Draw.color(Color.white, Color.lightGray, e.fin());
+            Draw.color(Color.lightGray, Color.gray, e.fin());
             Lines.stroke(s.fout() + 0.5f);
             Lines.circle(e.x, e.y, e.fin() * 185f);
         });

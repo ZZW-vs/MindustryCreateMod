@@ -34,7 +34,7 @@ public class WavefrontLaserBulletType extends AcceleratingLaserBulletType {
     public static final Effect muzzle = new Effect(30f, 220f, e -> {
         Draw.blend(Blending.additive);
 
-        color(Color.white, ADVANCE, e.fin());
+        color(Color.valueOf("cfe6ff"), ADVANCE, e.fin());
         // 贯穿炮管的白芯
         Drawf.tri(e.x, e.y, 16f * e.fout(), 110f * e.fout(), e.rotation);
         // 反向泄压
@@ -50,7 +50,7 @@ public class WavefrontLaserBulletType extends AcceleratingLaserBulletType {
             float a = e.rotation + i * 45f + e.fin() * 22f;
             float len = e.finpow() * 46f;
             stroke(1.6f * e.fout());
-            color(Color.white, ADVANCE, e.fin());
+            color(Color.valueOf("cfe6ff"), ADVANCE, e.fin());
             Lines.line(e.x + Angles.trnsx(a, 12f), e.y + Angles.trnsy(a, 12f),
                     e.x + Angles.trnsx(a, len), e.y + Angles.trnsy(a, len), false);
         }
@@ -64,7 +64,7 @@ public class WavefrontLaserBulletType extends AcceleratingLaserBulletType {
     public static final Effect tipImpact = new Effect(18f, 160f, e -> {
         Draw.blend(Blending.additive);
 
-        Draw.color(Color.white, ADVANCE, e.fin());
+        Draw.color(Color.valueOf("cfe6ff"), ADVANCE, e.fin());
         Fill.circle(e.x, e.y, 7f * e.fout());
 
         stroke(2.4f * e.fout() + 0.2f);
@@ -73,7 +73,7 @@ public class WavefrontLaserBulletType extends AcceleratingLaserBulletType {
 
         randLenVectors(e.id, 6, e.fin() * 30f, e.rotation + 180f, 75f, (x, y) -> {
             stroke(1.8f * e.fout() + 0.1f);
-            color(Color.white, ADVANCE_DARK, e.fin());
+            color(Color.valueOf("cfe6ff"), ADVANCE_DARK, e.fin());
             Lines.line(e.x + x * 0.35f, e.y + y * 0.35f, e.x + x, e.y + y, false);
         });
 
@@ -96,7 +96,7 @@ public class WavefrontLaserBulletType extends AcceleratingLaserBulletType {
             ADVANCE_DARK.cpy().mul(0.9f, 1f, 1f, 0.4f),
             ADVANCE_DARK.cpy(),
             ADVANCE.cpy(),
-            Color.white
+            Color.valueOf("cfe6ff")
         };
     }
 

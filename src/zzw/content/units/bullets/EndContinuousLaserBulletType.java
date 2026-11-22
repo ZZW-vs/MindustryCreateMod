@@ -29,7 +29,7 @@ public class EndContinuousLaserBulletType extends AntiCheatBulletTypeBase {
     public float fadeTime = 16f;
     public float lightStroke = 40f;
     public float spaceMag = 35f;
-    public Color[] colors = {Color.valueOf("ec745855"), Color.valueOf("ec7458aa"), Color.valueOf("ff9c5a"), Color.white};
+    public Color[] colors = {Color.valueOf("ec745855"), Color.valueOf("ec7458aa"), Color.valueOf("ff9c5a"), Color.valueOf("ffd8a8")};
     public float[] tscales = {1f, 0.7f, 0.5f, 0.2f};
     public float[] strokes = {2f, 1.5f, 1f, 0.3f};
     public float[] lenscales = {1f, 1.12f, 1.15f, 1.17f};

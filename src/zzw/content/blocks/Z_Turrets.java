@@ -658,7 +658,7 @@ public class Z_Turrets {
             firingMoveFract = 0.16f;
             shootEffect = CombatFx.muzzleFlashSmokeBig;
             recoil = 7f;
-            heatColor = Color.white;
+            heatColor = Pal.lancerLaser;  // ★ 跟随激光弹色, 避免开火时炮管过曝发白
             rotateSpeed = 1.9f;
             shootSound = Sounds.shootSpectre;
             loopSound = Sounds.beamPlasma;
@@ -691,7 +691,7 @@ public class Z_Turrets {
             firingMoveFract = 0.09f;
             shootEffect = CombatFx.muzzleFlashSmokeBig;
             recoil = 7f;
-            heatColor = Color.white;
+            heatColor = Pal.lancerLaser;  // ★ 跟随激光弹色, 避免开火时炮管过曝发白
             rotateSpeed = 0.97f;
             shootSound = Sounds.shootMeltdown;  // ★ 原版 Sounds.laserbig, v158 用 shootMeltdown 替代
             loopSound = Sounds.beamPlasma;
@@ -735,7 +735,7 @@ public class Z_Turrets {
             firingMoveFract = 0.09f;
             shootEffect = CombatFx.muzzleFlashSmokeBig;
             recoil = 7f;
-            heatColor = Color.white;
+            heatColor = Pal.lancerLaser;  // ★ 跟随激光弹色, 避免开火时炮管过曝发白
             rotateSpeed = 0.82f;
             shootSound = Z_Sounds.extinctionShoot;  // ★ 原版 UnitySounds.extinctionShoot (dark/extinction-shoot.ogg)
             loopSound = Z_Sounds.beamIntenseHighpitchTone;  // ★ 原版 UnitySounds.beamIntenseHighpitchTone (dark/beam-intense-highpitch-tone.ogg)
@@ -790,7 +790,7 @@ public class Z_Turrets {
                 incendChance = -1f;
                 length = 130f;
                 width = 4f;
-                colors = new Color[]{Pal.lancerLaser.cpy().a(3.75f), Pal.lancerLaser, Color.white};
+                colors = new Color[]{Pal.lancerLaser.cpy().a(3.75f), Pal.lancerLaser, Color.valueOf("cfe6ff")};
                 // ★ PU132 原版三层细光束 strokes = {0.92, 0.6, 0.28}
                 //   v158 原生类用 lerp(strokeFrom, strokeTo, i/(n-1)) 表示各层粗细:
                 //   0.92 / 0.6 / 0.28 → strokeFrom=0.92, strokeTo=0.28 (中层自动=0.6)
@@ -1226,7 +1226,7 @@ public class Z_Turrets {
                 public void draw(mindustry.gen.Bullet b) {
                     arc.graphics.g2d.Draw.color(Pal.lancerLaser);
                     arc.graphics.g2d.Fill.circle(b.x, b.y, 7f + b.fout() * 1.5f);
-                    arc.graphics.g2d.Draw.color(Color.white);
+                    arc.graphics.g2d.Draw.color(Color.valueOf("cfe6ff"));
                     arc.graphics.g2d.Fill.circle(b.x, b.y, 5.5f + b.fout());
                     
                     // 应用黑洞着色器扭曲效果
@@ -1496,7 +1496,7 @@ public class Z_Turrets {
                 sideAngle = 15f;
                 sideWidth = 0f;
                 sideLength = 0f;
-                colors = new Color[]{Pal.surge.cpy(), Pal.surge, Color.white};
+                colors = new Color[]{Pal.surge.cpy(), Pal.surge, Color.valueOf("f4ffc0")};
                 // PU132 chargeBeginEffect: 充能圈在发射时刻播 (v158 充能循环特效不可复刻, 取近似)
                 // ★ 改用带 followParent 的版本, 让光球跟随炮台转动/移动 (见下方 buildType 覆写)
                 chargeEffect = ChargeFx.currentCharge;
@@ -1702,7 +1702,7 @@ public class Z_Turrets {
                 public void draw(mindustry.gen.Bullet b) {
                     arc.graphics.g2d.Draw.color(Pal.accent);
                     arc.graphics.g2d.Fill.circle(b.x, b.y, 3f);
-                    arc.graphics.g2d.Draw.color(Color.white);
+                    arc.graphics.g2d.Draw.color(Color.valueOf("ffd8a8"));
                     arc.graphics.g2d.Fill.circle(b.x, b.y, 2f);
                 }
             };
@@ -1903,7 +1903,7 @@ public class Z_Turrets {
             coolantMultiplier = 2.5f;
             coolant = consume(new ConsumeLiquidFilter(l -> l == mindustry.content.Liquids.water || l == mindustry.content.Liquids.cryofluid, 1f));
             shootType = new AcceleratingLaserBulletType(390f) {{
-                colors = new Color[]{Color.valueOf("59a7ff55"), Color.valueOf("59a7ffaa"), Color.valueOf("a3e3ff"), Color.white};
+                colors = new Color[]{Color.valueOf("59a7ff55"), Color.valueOf("59a7ffaa"), Color.valueOf("a3e3ff"), Color.valueOf("cfe6ff")};
                 width = 29.2f;
                 collisionWidth = 12f;
                 knockback = 2.2f;
@@ -1952,7 +1952,7 @@ public class Z_Turrets {
                 lightColor = Color.valueOf("59a7ff");
                 conversionStatusEffect = mindustry.content.StatusEffects.none;
                 convertBlocks = false;
-                colors = new Color[]{Color.valueOf("59a7ff55"), Color.valueOf("59a7ffaa"), Color.valueOf("a3e3ff"), Color.white};
+                colors = new Color[]{Color.valueOf("59a7ff55"), Color.valueOf("59a7ffaa"), Color.valueOf("a3e3ff"), Color.valueOf("cfe6ff")};
             }};
             consume(new ConsumeLiquidFilter(liquid -> liquid.temperature <= 0.4f && liquid.flammability < 0.1f, 2.1f)).boost().update(false);
         }};

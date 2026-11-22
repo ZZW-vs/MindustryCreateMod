@@ -61,7 +61,7 @@ public class ChargeEffect {
      * 宽度随时间增长 (clamp(time/80)), 3 层颜色 scarColor→endColor→white
      */
     public static final Effect tenmeikiriChargeBegin = new Effect(158f, e -> {
-        Color[] colors = {SCAR_COLOR, END_COLOR, Color.white};
+        Color[] colors = {SCAR_COLOR, END_COLOR, Color.valueOf("ffc0ba")};
         for(int ii = 0; ii < 3; ii++){
             float s = (3 - ii) / 3f;
             float width = Mathf.clamp(e.time / 80f) * (20f + Mathf.absin(Time.time + (ii * 1.4f), 1.1f, 7f)) * s;
@@ -82,7 +82,7 @@ public class ChargeEffect {
     public static final Effect devourerCharge = new Effect(41f, 80f, e -> {
         // ★ 设置高渲染层级, 确保充能特效显示在单位上方
         Draw.z(Layer.flyingUnit + 1f);
-        Color[] colors = {SCAR_COLOR, END_COLOR, Color.white};
+        Color[] colors = {SCAR_COLOR, END_COLOR, Color.valueOf("ffc0ba")};
 
         for (int i = 0; i < colors.length; i++) {
             Draw.color(colors[i]);

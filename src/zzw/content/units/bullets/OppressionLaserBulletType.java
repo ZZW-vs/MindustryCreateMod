@@ -44,7 +44,7 @@ public class OppressionLaserBulletType extends AntiCheatBulletTypeBase {
     private static final float[] ltmp = new float[25], ltmp2 = new float[25];
     private static final Rand rand = new Rand(), rand2 = new Rand();
     private static final FloatSeq lines = new FloatSeq();
-    private static final Color[] lightningColors = {Color.white, Color.valueOf("f53036"), Color.black};
+    private static final Color[] lightningColors = {Color.valueOf("ffc0ba"), Color.valueOf("f53036"), Color.black};
 
     protected float length = 2150f, width = 140f, cone = 380f, endLength = 450f;
     protected float fadeInTime = 15f;
@@ -281,7 +281,7 @@ public class OppressionLaserBulletType extends AntiCheatBulletTypeBase {
             }
         }
 
-        // ===== 层4: 白色闪光线段 (18个; 还原 PU132 原版数量) =====
+        // ===== 层4: 浅红闪光线段 (18个; 还原 PU132 原版数量, 原纯白改为浅红防过曝) =====
         for (int i = 0; i < 18; i++) {
             boolean alt = i < 8;
             float as = alt ? 1f : 3f;
@@ -292,7 +292,7 @@ public class OppressionLaserBulletType extends AntiCheatBulletTypeBase {
             float fin = ((time + timeOffset) % d) / d;
 
             rand2.setSeed(timeSeed);
-            Draw.color(Color.white);
+            Draw.color(Color.valueOf("ffc0ba"));
 
             float delay = rand2.random(0.55f, 0.8f);
             float pos1 = Mathf.pow(rand2.nextFloat(), 2f);

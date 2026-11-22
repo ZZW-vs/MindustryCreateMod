@@ -55,7 +55,7 @@ public class EndCutterLaserBulletType extends AntiCheatBulletTypeBase {
         Color.valueOf("f5303690"),  // scarColorAlpha (半透明红)
         Color.valueOf("f53036"),    // scarColor (红)
         Color.valueOf("ff786e"),    // endColor (淡红)
-        Color.white
+        Color.valueOf("ffc0ba")     // 高光浅红 (替代纯白核心, 避免过曝)
     };
 
     // 闪电参数

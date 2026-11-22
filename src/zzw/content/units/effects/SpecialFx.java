@@ -107,7 +107,7 @@ public class SpecialFx{
         Tmp.c1.set(Color.red).shiftHue(time).a(e.fin());
         Draw.color(Tmp.c1);
         Draw.rect(r, kb.x, kb.y, ((width * 2f) + st) * scl, ((length * 2f) + st) * scl, kb.rotation());
-        Draw.color(Color.white);
+        Draw.color(Color.valueOf("ffc0ba"));
         Draw.rect(r, kb.x, kb.y, width * 2f * e.fin(), length * 2f * e.fin(), kb.rotation());
     }),
 
@@ -191,7 +191,7 @@ public class SpecialFx{
         float spacing = dst / links;
 
         Lines.stroke(2.5f * e.fout());
-        Draw.color(Color.white, e.color, e.fin());
+        Draw.color(Tmp.c2.set(e.color).lerp(Color.white, 0.35f), e.color, e.fin());
 
         Lines.beginLine();
         Lines.linePoint(e.x, e.y);
@@ -309,7 +309,7 @@ public class SpecialFx{
         }
         e.scaled(20f, s -> {
             Lines.stroke(1.5f);
-            Draw.color(UnityPal.plague, Color.white, s.fin());
+            Draw.color(UnityPal.plague, Color.valueOf("d7ffd0"), s.fin());
             Angles.randLenVectors(e.id, 5, 25f * s.finpow() + 0.1f, e.rotation, 20f, (x, y) -> {
                 float r = Mathf.angle(x, y);
                 Lines.lineAngle(e.x + x, e.y + y, r, 5f * s.fout());

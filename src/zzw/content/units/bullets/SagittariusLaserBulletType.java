@@ -24,7 +24,7 @@ import mindustry.graphics.Pal;
  * 参考: PU_V8 main/src/unity/entities/bullet/laser/SagittariusLaserBulletType.java
  */
 public class SagittariusLaserBulletType extends BulletType {
-    public Color[] colors = {Pal.heal.cpy().a(0.2f), Pal.heal.cpy().a(0.5f), Pal.heal.cpy().mul(1.2f), Color.white};
+    public Color[] colors = {Pal.heal.cpy().a(0.2f), Pal.heal.cpy().a(0.5f), Pal.heal.cpy().mul(1.2f), Color.valueOf("d6ffe3")};
     public float length = 550f, width = 45f;
     public int lasers = 8;
 

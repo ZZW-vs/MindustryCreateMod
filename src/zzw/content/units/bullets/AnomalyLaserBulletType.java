@@ -43,7 +43,7 @@ public class AnomalyLaserBulletType extends BulletType{
     float sideAngle = 90f;
 
     /** 绘制时的多层颜色: 外圈到内圈到白核 */
-    Color[] colors = {Pal.lancerLaser.cpy().mul(0.9f).a(0.3f), Pal.lancerLaser, Color.white};
+    Color[] colors = {Pal.lancerLaser.cpy().mul(0.9f).a(0.3f), Pal.lancerLaser, Color.valueOf("cfe6ff")};
 
     /**
      * @param damage 基础伤害 (充能越高伤害越高, 见 {@link #init(Bullet)})

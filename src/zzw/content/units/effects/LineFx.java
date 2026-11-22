@@ -42,7 +42,7 @@ public class LineFx{
 
         for(int i = 0; i < 2; i++){
             float width = (2 - i) * 2.2f * e.fout();
-            color(i == 0 ? UnityPal.scarColor : Color.white);
+            color(i == 0 ? UnityPal.scarColor : Color.valueOf("ffc0ba"));
             stroke(width);
             line(e.x, e.y, data.getX(), data.getY(), false);
             Fill.circle(e.x, e.y, width);

@@ -102,7 +102,7 @@ public class Z_AdvTurrets {
         for(int i = 0; i < 4; i++){
             float base = e.rotation + i * 90f + e.time * 4f;
             float len = (1f - e.fout()) * 46f;
-            Draw.color(Color.valueOf("a3e3ff"), Color.white, e.fin());
+            Draw.color(Color.valueOf("a3e3ff"), Color.valueOf("cfe6ff"), e.fin());
             Lines.stroke(2f * e.fout());
             float px = e.x, py = e.y;
             for(int s = 0; s < 4; s++){
@@ -114,7 +114,7 @@ public class Z_AdvTurrets {
                 py = ny;
             }
         }
-        Draw.color(Color.white, Color.valueOf("a3e3ff"), e.fin());
+        Draw.color(Color.valueOf("cfe6ff"), Color.valueOf("a3e3ff"), e.fin());
         // ★ 增大光球尺寸，从蓄力开始就显示
         // 使用e.fin()而不是e.fout()，让光球从蓄力开始就显示
         float ballSize = 20f * e.fin();  // 从蓄力开始就显示，逐渐增大
@@ -363,7 +363,7 @@ public class Z_AdvTurrets {
                 width = 24f;  // ★ 激光加粗 (原 15f → 24f)
                 sideAngle = 45f;
                 inaccuracy = 8f;
-                colors = new Color[]{Pal.lancerLaser.cpy().a(0.4f), Pal.lancerLaser, Color.white};
+                colors = new Color[]{Pal.lancerLaser.cpy().a(0.4f), Pal.lancerLaser, Color.valueOf("cfe6ff")};
                 hitEffect = CombatFx.laserHit;
                 hitSize = 4;
                 lifetime = 16f;
@@ -497,7 +497,7 @@ public class Z_AdvTurrets {
             shootType = new ContinuousLaserBulletType(3200f) {
                 // PU132 supernovaLaser: 光束沿途随机闪电 + 等离子粒子拖尾 (内联特效)
                 final mindustry.entities.Effect plasmaEffect = new mindustry.entities.Effect(36f, e -> {
-                    Draw.color(Color.white, Pal.lancerLaser, e.fin());
+                    Draw.color(Color.valueOf("cfe6ff"), Pal.lancerLaser, e.fin());
                     Fill.circle(
                         e.x + Angles.trnsx(e.rotation, e.fin() * 24f),
                         e.y + Angles.trnsy(e.rotation, e.fin() * 24f),
@@ -511,7 +511,7 @@ public class Z_AdvTurrets {
                         Color.valueOf("4be3ca55"),
                         Color.valueOf("91eedeaa"),
                         Pal.lancerLaser.cpy(),
-                        Color.white
+                        Color.valueOf("cfe6ff")
                     };
                     hitEffect = CombatFx.laserHit;
                     hitSize = 8f;

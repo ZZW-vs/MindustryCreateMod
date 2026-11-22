@@ -35,7 +35,7 @@ public class AcceleratingLaserBulletType extends BulletType {
     public float oscOffset = 1.4f, oscScl = 1.1f;
     public float pierceAmount = 4f;
     public boolean fastUpdateLength = true;
-    public Color[] colors = {Color.valueOf("ec745855"), Color.valueOf("ec7458aa"), Color.valueOf("ff9c5a"), Color.white};
+    public Color[] colors = {Color.valueOf("ec745855"), Color.valueOf("ec7458aa"), Color.valueOf("ff9c5a"), Color.valueOf("ffd8a8")};
 
     public AcceleratingLaserBulletType(float damage) {
         super(0f, damage);

@@ -2,6 +2,7 @@ package zzw.content.units.effects;
 
 import arc.graphics.Color;
 import arc.math.Mathf;
+import arc.util.Tmp;
 import mindustry.entities.Effect;
 import mindustry.graphics.Drawf;
 import mindustry.graphics.Layer;
@@ -51,11 +52,11 @@ public class CombatFx{
     public static final Effect
 
     muzzleFlash = new Effect(18f, 120f, e -> {
-        color(e.color, Color.white, e.fout());
+        color(colorHi(e.color, e.fout()));
         Drawf.tri(e.x, e.y, 9f * e.fout(), 28f * e.fout(), e.rotation);
         Drawf.tri(e.x, e.y, 7f * e.fout(), 16f * e.fout(), e.rotation + 180f);
 
-        color(e.color, Color.white, 0.45f);
+        color(colorHi(e.color, 0.45f));
         circle(e.x, e.y, 3f * e.fout());
 
         randLenVectors(e.id, 6, e.finpow() * 16f, e.rotation, 55f, (x, y) -> {
@@ -73,16 +74,16 @@ public class CombatFx{
      * {@code Mathf.curve(e.fin(), 0.4f)} 延迟出现) 与光源。</p>
      */
     muzzleFlashSmoke = new Effect(26f, 110f, e -> {
-        color(e.color, Color.white, e.fout());
+        color(colorHi(e.color, e.fout()));
         Drawf.tri(e.x, e.y, 8f * e.fout(), 24f * e.fout(), e.rotation);
-        color(e.color, Color.white, 0.45f);
+        color(colorHi(e.color, 0.45f));
         circle(e.x, e.y, 2.5f * e.fout());
 
         randLenVectors(e.id, 8, e.finpow() * 20f, e.rotation, 40f, (x, y) -> {
             float a = Mathf.angle(x, y);
             color(Color.lightGray, Color.darkGray, e.fin());
             circle(e.x + x, e.y + y, (1.2f + e.fout() * 3.2f) * Mathf.curve(e.fin(), 0.35f) + 0.4f);
-            color(e.color, Color.white, e.fout());
+            color(colorHi(e.color, e.fout()));
             lineAngle(e.x + x, e.y + y, a, e.fout() * 4f);
         });
 
@@ -96,22 +97,22 @@ public class CombatFx{
      * 环更粗, 附加一道后坐冲击环。</p>
      */
     muzzleFlashSmokeBig = new Effect(30f, 140f, e -> {
-        color(e.color, Color.white, e.fout());
+        color(colorHi(e.color, e.fout()));
         Drawf.tri(e.x, e.y, 12f * e.fout(), 36f * e.fout(), e.rotation);
         Drawf.tri(e.x, e.y, 9f * e.fout(), 22f * e.fout(), e.rotation + 180f);
 
-        color(e.color, Color.white, 0.45f);
+        color(colorHi(e.color, 0.45f));
         circle(e.x, e.y, 3.5f * e.fout());
 
         stroke(e.fout() * 2.2f + 0.3f);
-        color(e.color, Color.white, e.fout());
+        color(colorHi(e.color, e.fout()));
         arc.graphics.g2d.Lines.circle(e.x, e.y, e.finpow() * 22f);
 
         randLenVectors(e.id, 11, e.finpow() * 26f, e.rotation, 42f, (x, y) -> {
             float a = Mathf.angle(x, y);
             color(Color.lightGray, Color.darkGray, e.fin());
             circle(e.x + x, e.y + y, (1.5f + e.fout() * 4f) * Mathf.curve(e.fin(), 0.3f) + 0.5f);
-            color(e.color, Color.white, e.fout());
+            color(colorHi(e.color, e.fout()));
             lineAngle(e.x + x, e.y + y, a, e.fout() * 5f);
         });
 
@@ -125,12 +126,12 @@ public class CombatFx{
      * 白芯三角 (按 finpow 展开 112°), 中心白圆收尾。</p>
      */
     laserShoot = new Effect(21f, e -> {
-        color(e.color, Color.white, e.fout());
+        color(colorHi(e.color, e.fout()));
         for(int i = 0; i < 4; i++){
             Drawf.tri(e.x, e.y, 4f * e.fout(), 29f, e.rotation + 90f * i + e.finpow() * 112f);
         }
         // ★ 白芯按弹体颜色着色 (原纯白圆心过于"白板")
-        color(e.color, Color.white, 0.45f);
+        color(colorHi(e.color, 0.45f));
         circle(e.x, e.y, e.fout() * 5f);
     }),
 
@@ -142,7 +143,7 @@ public class CombatFx{
      */
     railShoot = new Effect(26f, 160f, e -> {
         e.scaled(12f, b -> {
-            color(Color.white, Color.lightGray, b.fin());
+            color(e.color, Color.lightGray, b.fin());
             stroke(b.fout() * 3f + 0.2f);
             arc.graphics.g2d.Lines.circle(b.x, b.y, b.finpow() * 50f);
         });
@@ -150,7 +151,7 @@ public class CombatFx{
             int sign = Mathf.signs[i];
             color(e.color);
             Drawf.tri(e.x, e.y, 13f * e.fout(), 80f, e.rotation + 90f * sign);
-            color(Color.white);
+            color(colorHi(e.color, 1f));
             Drawf.tri(e.x, e.y, Math.max(13f * e.fout() - 4f, 0f), 76f, e.rotation + 90f * sign);
         }
         Drawf.light(e.x, e.y, e.finpow() * 40f, e.color, 0.7f);
@@ -166,7 +167,7 @@ public class CombatFx{
             int sign = Mathf.signs[i];
             color(e.color);
             Drawf.tri(e.x, e.y, 13f * e.fout(), 80f, e.rotation + 90f * sign);
-            color(Color.white);
+            color(colorHi(e.color, 1f));
             Drawf.tri(e.x, e.y, Math.max(13f * e.fout() - 4f, 0f), 76f, e.rotation + 90f * sign);
         }
         Drawf.light(e.x, e.y, e.finpow() * 40f, e.color, 0.7f);
@@ -179,7 +180,7 @@ public class CombatFx{
      */
     starBlast = new Effect(26f, 120f, e -> {
         e.scaled(10f, s -> {
-            color(Pal.lightOrange, Color.white, s.fout());
+            color(Pal.lightOrange, Color.valueOf("ffb066"), s.fout());
             circle(s.x, s.y, 3f + s.fout() * 10f);
         });
 
@@ -218,15 +219,15 @@ public class CombatFx{
      * <p>三向火焰三角 + 白芯 + 环绕电火花 (randLenVectors 全向)。</p>
      */
     lightningShoot = new Effect(18f, e -> {
-        color(e.color, Color.white, e.fout());
+        color(colorHi(e.color, e.fout()));
         for(int i = 0; i < 3; i++){
             Drawf.tri(e.x, e.y, 5f * e.fout(), 22f * e.fout(), e.rotation + 120f * i + e.finpow() * 60f);
         }
-        color(Color.white);
+        color(colorHi(e.color, 1f));
         circle(e.x, e.y, 3f * e.fout());
 
         stroke(e.fout() * 1.2f + 0.3f);
-        color(e.color, Color.white, e.fout());
+        color(colorHi(e.color, e.fout()));
         randLenVectors(e.id, 8, e.finpow() * 18f, (x, y) ->
             lineAngle(e.x + x, e.y + y, Mathf.angle(x, y), e.fout() * 5f + 1f)
         );
@@ -257,7 +258,7 @@ public class CombatFx{
 
         randLenVectors(e.id, 4, e.finpow() * 15f, (x, y) -> {
             float a = Mathf.angle(x, y);
-            color(e.color, Color.white, e.fout() * 0.4f);
+            color(colorHi(e.color, e.fout() * 0.4f));
             poly(e.x + x, e.y + y, 4, e.fout() * 2.2f + 0.5f, a + e.fin() * 60f);
         });
 
@@ -276,13 +277,13 @@ public class CombatFx{
      * 放射三角碎片 + 弹色芯, 取代原"双层扩散圆环"。</p>
      */
     laserHitBlast = new Effect(20f, e -> {
-        color(e.color, Color.white, e.fin());
+        color(colorHi(e.color, e.fin()));
         poly(e.x, e.y, 3, e.finpow() * 18f + 1f, e.rotation + e.finpow() * 120f);
         poly(e.x, e.y, 3, e.finpow() * 18f + 1f, e.rotation + 180f - e.finpow() * 120f);
 
         randLenVectors(e.id, 7, e.finpow() * 20f, (x, y) -> {
             float a = Mathf.angle(x, y);
-            color(e.color, Color.white, e.fout());
+            color(colorHi(e.color, e.fout()));
             Drawf.tri(e.x + x, e.y + y, 2.4f * e.fout(), 5f * e.fout(), a);
         });
 
@@ -301,10 +302,10 @@ public class CombatFx{
     bulletHit = new Effect(14f, e -> {
         randLenVectors(e.id, 6, e.finpow() * 17f, e.rotation, 55f, (x, y) -> {
             float a = Mathf.angle(x, y);
-            color(Color.white, e.color, e.fin());
+            color(colorHi(e.color, 1f - e.fin()));
             square(e.x + x, e.y + y, e.fout() * 2f + 0.4f, a + e.fin() * 90f);
         });
-        color(e.color, Color.white, e.fout());
+        color(colorHi(e.color, e.fout()));
         stroke(e.fout() * 1.3f + 0.3f);
         lineAngle(e.x, e.y, e.rotation + 90f, e.fout() * 7f);
     }),
@@ -315,7 +316,7 @@ public class CombatFx{
      * <p>★ 重写: 三条短线火花 + 弹色方形小芯 (替代圆芯)。</p>
      */
     bulletHitSmall = new Effect(10f, e -> {
-        color(Color.white, e.color, e.fin());
+        color(colorHi(e.color, 1f - e.fin()));
         stroke(e.fout() * 0.9f + 0.3f);
         randLenVectors(e.id, 3, e.finpow() * 9f, (x, y) ->
             lineAngle(e.x + x, e.y + y, Mathf.angle(x, y), e.fin() * 3f + 0.8f)
@@ -333,10 +334,10 @@ public class CombatFx{
     bulletHitBig = new Effect(16f, e -> {
         randLenVectors(e.id, 7, e.finpow() * 22f, (x, y) -> {
             float a = Mathf.angle(x, y);
-            color(Color.white, e.color, e.fin());
+            color(colorHi(e.color, 1f - e.fin()));
             square(e.x + x, e.y + y, e.fout() * 2.4f + 0.5f, a + e.fin() * 120f);
         });
-        color(e.color, Color.white, e.fout());
+        color(colorHi(e.color, e.fout()));
         for(int i = 0; i < 4; i++){
             Drawf.tri(e.x, e.y, 3f * e.fout(), 10f * e.finpow(), e.rotation + 90f * i + e.finpow() * 50f);
         }
@@ -366,7 +367,7 @@ public class CombatFx{
      * <p>弹色液滴四溅 (大小圆双层) + 白色高光芯, 表现液体泼溅感。</p>
      */
     liquidHit = new Effect(18f, e -> {
-        color(Color.white, e.color, e.fin());
+        color(colorHi(e.color, 1f - e.fin()));
         randLenVectors(e.id, 7, e.finpow() * 16f, (x, y) -> {
             float s = 0.9f + e.fout() * 2.4f;
             circle(e.x + x, e.y + y, s);
@@ -383,7 +384,7 @@ public class CombatFx{
      * 的命中点, 无白圆芯。</p>
      */
     beamHit = new Effect(14f, e -> {
-        color(e.color, Color.white, e.fout());
+        color(colorHi(e.color, e.fout()));
         poly(e.x, e.y, 4, (0.6f + e.fout() * 3.4f) * (1f + Mathf.absin(4f, 0.25f)), 45f + e.fin() * 30f);
         stroke(e.fout() * 1f + 0.3f);
         randLenVectors(e.id, 4, e.fout() * 10f, (x, y) ->
@@ -397,7 +398,7 @@ public class CombatFx{
      * <p>高频折线电弧 (双向短刺) + 白芯, 表现电磁脉冲的噼啪感。</p>
      */
     empSpark = new Effect(12f, e -> {
-        color(Color.white, e.color, e.fin());
+        color(colorHi(e.color, 1f - e.fin()));
         stroke(e.fout() * 1.1f + 0.3f);
         randLenVectors(e.id, 5, e.finpow() * 13f, (x, y) -> {
             float a = Mathf.angle(x, y);
@@ -417,12 +418,12 @@ public class CombatFx{
      * <p>★ 白闪改为旋转方形闪爆 + 八向三角火花, 空爆观感更锋利。</p>
      */
     flakBlast = new Effect(18f, e -> {
-        color(Color.white, e.color, e.fout());
+        color(colorHi(e.color, e.fout()));
         square(e.x, e.y, 2f + e.fout() * 9f, e.fin() * 45f);
 
         randLenVectors(e.id, 8, e.finpow() * 18f, (x, y) -> {
             float a = Mathf.angle(x, y);
-            color(e.color, Color.white, e.fout());
+            color(colorHi(e.color, e.fout()));
             Drawf.tri(e.x + x, e.y + y, 2.4f * e.fout(), 4.5f * e.fout(), a);
         });
 
@@ -437,7 +438,7 @@ public class CombatFx{
      */
     blastExplosion = new Effect(28f, 140f, e -> {
         e.scaled(14f, s -> {
-            color(Color.white, s.fout());
+            color(e.color, s.fout() * 0.55f);
             circle(s.x, s.y, 3f + s.fout() * 14f);
         });
 
@@ -446,13 +447,13 @@ public class CombatFx{
         color(Color.darkGray);
         circle(e.x, e.y, e.foutpowdown() * 17f * 0.55f);
 
-        color(e.color, Color.white, e.fout());
+        color(colorHi(e.color, e.fout()));
         stroke(e.fout() * 2.4f + 0.3f);
         arc.graphics.g2d.Lines.poly(e.x, e.y, 6, e.finpow() * 25f + 1f, 30f + e.fin() * 20f);
 
         randLenVectors(e.id, 10, e.finpow() * 26f, (x, y) -> {
             float a = Mathf.angle(x, y);
-            color(e.color, Color.white, e.fout());
+            color(colorHi(e.color, e.fout()));
             Drawf.tri(e.x + x, e.y + y, 2.6f * e.fout(), 5f * e.fout(), a);
         });
 
@@ -467,7 +468,7 @@ public class CombatFx{
      */
     massiveExplosion = new Effect(40f, 220f, e -> {
         e.scaled(20f, s -> {
-            color(Color.white, s.fout());
+            color(e.color, s.fout() * 0.55f);
             circle(s.x, s.y, 6f + s.fout() * 26f);
         });
 
@@ -476,7 +477,7 @@ public class CombatFx{
         color(Color.darkGray);
         circle(e.x, e.y, e.foutpowdown() * 30f * 0.55f);
 
-        color(e.color, Color.white, e.fout());
+        color(colorHi(e.color, e.fout()));
         stroke(e.fout() * 3f + 0.4f);
         for(int i = 0; i < 4; i++){
             arc.graphics.g2d.Lines.arc(e.x, e.y, e.finpow() * 42f + 1f, 0.35f, 90f * i + e.fin() * 30f);
@@ -486,7 +487,7 @@ public class CombatFx{
 
         randLenVectors(e.id, 14, e.finpow() * 40f, (x, y) -> {
             float a = Mathf.angle(x, y);
-            color(e.color, Color.white, e.fout());
+            color(colorHi(e.color, e.fout()));
             Drawf.tri(e.x + x, e.y + y, 3.2f * e.fout(), 6.5f * e.fout(), a);
         });
         color(Color.lightGray, Color.darkGray, e.fin());
@@ -528,10 +529,10 @@ public class CombatFx{
      * <p>短促的定向光束线 + 端点白芯, 表现点防御武器的瞬时射线。</p>
      */
     pointBeam = new Effect(16f, e -> {
-        color(e.color, Color.white, e.fout());
+        color(colorHi(e.color, e.fout()));
         stroke(e.fout() * 1.6f + 0.3f);
         lineAngle(e.x, e.y, e.rotation, 3f + e.fout() * 24f);
-        color(Color.white);
+        color(colorHi(e.color, 1f));
         circle(e.x, e.y, e.fout() * 3f);
     }),
 
@@ -546,7 +547,7 @@ public class CombatFx{
         color(e.color, e.fout());
         poly(e.x, e.y, 4, e.fout() * e.rotation * 0.22f + 1f, e.rotation * 0.7f + e.fin() * 90f);
 
-        color(e.color, Color.white, e.fin());
+        color(colorHi(e.color, e.fin()));
         randLenVectors(e.id, 2, e.finpow() * e.rotation * 0.3f, (x, y) ->
             lineAngle(e.x + x, e.y + y, Mathf.angle(x, y), e.fout() * 3f + 0.5f)
         );
@@ -559,7 +560,7 @@ public class CombatFx{
      * 短刺 + 弹色小芯, 与圆形命中特效形成形态区分。</p>
      */
     starHit = new Effect(16f, e -> {
-        color(e.color, Color.white, e.fin());
+        color(colorHi(e.color, e.fin()));
         for(int i = 0; i < 4; i++){
             stroke(e.fout() * 1.6f + 0.3f);
             lineAngle(e.x, e.y, e.rotation + 90f * i + e.finpow() * 70f, e.finpow() * 16f);
@@ -583,7 +584,7 @@ public class CombatFx{
         circle(e.x, e.y, e.foutpowdown() * 16f);
 
         // 六芒星: 两个填充三角轮廓反向旋转展开
-        color(Color.valueOf("f53036"), Color.white, e.fout());
+        color(colorHi(Color.valueOf("f53036"), e.fout()));
         stroke(e.fout() * 2.2f + 0.3f);
         for(int i : Mathf.signs){
             arc.graphics.g2d.Lines.poly(e.x, e.y, 3, e.finpow() * 34f + 2f, e.fin() * 90f * i);
@@ -592,7 +593,7 @@ public class CombatFx{
         // 放射三角长钉
         randLenVectors(e.id, 10, e.finpow() * 52f, (x, y) -> {
             float a = Mathf.angle(x, y);
-            color(Color.valueOf("ff5a4a"), Color.white, e.fout());
+            color(colorHi(Color.valueOf("ff5a4a"), e.fout()));
             Drawf.tri(e.x + x, e.y + y, e.fout() * 4f, 10f * e.fout() + 2f, a);
         });
 
@@ -605,6 +606,14 @@ public class CombatFx{
 
         Drawf.light(e.x, e.y, e.finpow() * 65f, Color.valueOf("f53036"), 0.8f);
     });
+
+    /**
+     * 弹色高光: 在原色基础上最多混入 35% 白。
+     * 用于替代原先直接渐变到纯白的写法, 保留亮度层次但压掉"白板"过曝感。
+     */
+    private static Color colorHi(Color base, float amount){
+        return Tmp.c1.set(base).lerp(Color.white, Mathf.clamp(amount, 0f, 1f) * 0.35f);
+    }
 
     private CombatFx(){
     }

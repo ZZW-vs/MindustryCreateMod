@@ -170,7 +170,7 @@ public class ChargeFx{
             }
         }
 
-        color(Color.white);
+        color(Tmp.c1.set(Pal.heal).lerp(Color.white, 0.35f));
         Fill.circle(e.x, e.y, size * 0.5f);
     }).followParent(true).rotWithParent(true),
 
@@ -195,7 +195,7 @@ public class ChargeFx{
      * (×1.25) 构成充能剑形。</p>
      */
     tenmeikiriChargeBegin = new ParentEffect(158f, e -> {
-        Color[] colors = {UnityPal.scarColor, UnityPal.endColor, Color.white};
+        Color[] colors = {UnityPal.scarColor, UnityPal.endColor, Color.valueOf("ffc0ba")};
         for(int ii = 0; ii < 3; ii++){
             float s = (3 - ii) / 3f;
             float width = Mathf.clamp(e.time / 80f) * (20f + Mathf.absin(Time.time + (ii * 1.4f), 1.1f, 7f)) * s;
@@ -217,7 +217,7 @@ public class ChargeFx{
      * "荆棘状充能光环"。</p>
      */
     devourerChargeEffect = new ParentEffect(41f, e -> {
-        Color[] colors = {UnityPal.scarColor, UnityPal.endColor, Color.white};
+        Color[] colors = {UnityPal.scarColor, UnityPal.endColor, Color.valueOf("ffc0ba")};
 
         for(int i = 0; i < colors.length; i++){
             color(colors[i]);
@@ -397,7 +397,7 @@ public class ChargeFx{
     wBosonChargeBeginEffect = new Effect(38f, e -> {
         color(UnityPal.lightEffect, Pal.lancerLaser, e.fin());
         Fill.circle(e.x, e.y, 3f + e.fin() * 6f);
-        color(Color.white);
+        color(Color.valueOf("cfe6ff"));
         Fill.circle(e.x, e.y, 1.75f + e.fin() * 5.75f);
     }),
 
@@ -428,7 +428,7 @@ public class ChargeFx{
     ephmeronCharge = new Effect(80f, e -> {
         color(Pal.lancerLaser);
         UnityDrawf.shiningCircle(e.id, Time.time, e.x, e.y, e.fin() * 9.5f, 6, 25f, 20f, 3f * e.fin());
-        color(Color.white);
+        color(Color.valueOf("cfe6ff"));
         UnityDrawf.shiningCircle(e.id, Time.time, e.x, e.y, e.fin() * 7.5f, 6, 25f, 20f, 2.5f * e.fin());
     }).followParent(true).rotWithParent(true),
 

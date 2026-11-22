@@ -193,7 +193,7 @@ public class UnityFx {
         ringFx = new Effect(25f, e -> {
             if(!(e.data instanceof Unit u)) return;
             if(!u.isValid() || u.dead) return;
-            Draw.color(Color.white, e.color, e.fin());
+            Draw.color(Tmp.c1.set(e.color).lerp(Color.white, 0.35f), e.color, e.fin());
             Lines.stroke(e.fout() * 1.5f);
             Lines.circle(u.x, u.y, 8f);
         }),
@@ -271,7 +271,7 @@ public class UnityFx {
          * <p>数据: e.rotation 为强度, e.color 为冰色.</p>
          */
         freezeEffect = new Effect(30f, e -> {
-            Draw.color(Color.white, e.color, e.fin());
+            Draw.color(Tmp.c1.set(e.color).lerp(Color.white, 0.35f), e.color, e.fin());
             Lines.stroke(e.fout() * 2f);
             Lines.poly(e.x, e.y, 6, 4f + e.rotation * 1.5f * e.finpow(), Mathf.randomSeed(e.id) * 360f);
             Draw.color();
@@ -288,7 +288,7 @@ public class UnityFx {
 
         /** 冰片射击 (PU132 UnityFx.shootFlake): 6 向冰针 */
         shootFlake = new Effect(21f, e -> {
-            Draw.color(e.color, Color.white, e.fout());
+            Draw.color(e.color, Tmp.c1.set(e.color).lerp(Color.white, 0.35f), e.fout());
 
             for(int i = 0; i < 6; i++){
                 Drawf.tri(e.x, e.y, 3f * e.fout(), 12f, e.rotation + Mathf.randomSeed(e.id, 360f) + 60f * i);
@@ -297,7 +297,7 @@ public class UnityFx {
 
         /** 蓄力开火 (PU132 ShootFx.laserChargeShoot): 4 向旋转尖刺 */
         laserChargeShoot = new Effect(21f, e -> {
-            Draw.color(e.color, Color.white, e.fout());
+            Draw.color(e.color, Tmp.c1.set(e.color).lerp(Color.white, 0.35f), e.fout());
 
             for(int i = 0; i < 4; i++){
                 Drawf.tri(e.x, e.y, 4f * e.fout(), 29f, e.rotation + 90f * i + e.finpow() * 112f);
@@ -306,7 +306,7 @@ public class UnityFx {
 
         /** 连发蓄力开火 (PU132 ShootFx.laserChargeShootShort): 扩散方框 */
         laserChargeShootShort = new Effect(15f, e -> {
-            Draw.color(e.color, Color.white, e.fout());
+            Draw.color(e.color, Tmp.c1.set(e.color).lerp(Color.white, 0.35f), e.fout());
             Lines.stroke(2f * e.fout());
             Lines.square(e.x, e.y, 0.1f + 20f * e.finpow(), 45f);
         }),
@@ -316,7 +316,7 @@ public class UnityFx {
          * <p>v160 无 PU 的 {@code Utils.pow25Out}, 用 {@link Interp#pow2Out} 近似.</p>
          */
         laserFractalShoot = new Effect(40f, e -> {
-            Draw.color(Tmp.c1.set(e.color).lerp(Color.white, e.fout()));
+            Draw.color(Tmp.c1.set(e.color).lerp(Color.white, e.fout() * 0.35f));
 
             for(int i = 0; i < 4; i++){
                 Drawf.tri(e.x, e.y, 4f * e.fout(), 29f, e.rotation + 90f * i + e.finpow() * 112f);
@@ -400,7 +400,7 @@ public class UnityFx {
             float spacing = dst / links;
 
             Lines.stroke(2.5f * e.fout());
-            Draw.color(Color.white, e.color, e.fin());
+            Draw.color(Tmp.c1.set(e.color).lerp(Color.white, 0.35f), e.color, e.fin());
 
             Lines.beginLine();
 
@@ -437,7 +437,7 @@ public class UnityFx {
             float spacing = dst / links;
 
             Lines.stroke(4f * e.fout());
-            Draw.color(Color.white, e.color, e.fin());
+            Draw.color(Tmp.c1.set(e.color).lerp(Color.white, 0.35f), e.color, e.fin());
 
             Lines.beginLine();
 
@@ -488,7 +488,7 @@ public class UnityFx {
 
         /** 闪烁免伤特效 (PU132 UnityFx.blinkFx): 白→迪里姆色方框 */
         blinkFx = new Effect(30f, e -> {
-            Draw.color(Color.white, UnityPal.dirium, e.fin());
+            Draw.color(Tmp.c1.set(UnityPal.dirium).lerp(Color.white, 0.35f), UnityPal.dirium, e.fin());
             Lines.stroke(3f * e.rotation * e.fout());
             Lines.square(e.x, e.y, e.rotation * 4f * e.finpow());
         });

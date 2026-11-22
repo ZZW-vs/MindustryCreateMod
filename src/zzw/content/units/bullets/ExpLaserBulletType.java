@@ -170,12 +170,12 @@ public class ExpLaserBulletType extends LaserBulletType {
         Lines.stroke(b.fout() * width * strokes[1]);
         Lines.line(b.x, b.y, Tmp.v1.x, Tmp.v1.y);
 
-        Draw.color(Color.white);
+        Draw.color(Tmp.c1.set(getColor(b)).lerp(Color.white, 0.35f));
         Lines.stroke(b.fout() * width * strokes[2]);
         Lines.line(b.x, b.y, Tmp.v1.x, Tmp.v1.y);
 
         if(blip){
-            Draw.color(Color.white, getColor(b), b.fin());
+            Draw.color(Tmp.c1.set(getColor(b)).lerp(Color.white, 0.35f), getColor(b), b.fin());
             Lines.circle(Tmp.v1.x, Tmp.v1.y, b.fin() * width * 5f);
         }
         Draw.reset();

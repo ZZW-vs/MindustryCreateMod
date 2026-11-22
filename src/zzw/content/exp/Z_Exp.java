@@ -384,7 +384,7 @@ public class Z_Exp {
 
             powerUse = 7f;
             shootType = new ExpLaserBulletType(140f, 32f){{
-                colors = new arc.graphics.Color[]{mindustry.graphics.Pal.lancerLaser.cpy().a(0.4f), mindustry.graphics.Pal.lancerLaser, arc.graphics.Color.white};
+                colors = new arc.graphics.Color[]{mindustry.graphics.Pal.lancerLaser.cpy().a(0.4f), mindustry.graphics.Pal.lancerLaser, arc.graphics.Color.valueOf("cfe6ff")};
                 hitEffect = mindustry.content.Fx.hitLancer;
                 hitSize = 4;
                 lifetime = 16f;
@@ -429,7 +429,7 @@ public class Z_Exp {
 
             // PU132 UnityBullets.shardLaser: 激光 + 1 发激光碎片
             shootType = new ExpLaserBulletType(150f, 40f){{
-                colors = new arc.graphics.Color[]{mindustry.graphics.Pal.lancerLaser.cpy().a(0.4f), mindustry.graphics.Pal.lancerLaser, arc.graphics.Color.white};
+                colors = new arc.graphics.Color[]{mindustry.graphics.Pal.lancerLaser.cpy().a(0.4f), mindustry.graphics.Pal.lancerLaser, arc.graphics.Color.valueOf("cfe6ff")};
                 hitEffect = mindustry.content.Fx.hitLancer;
                 hitSize = 4;
                 lifetime = 16f;
@@ -458,7 +458,7 @@ public class Z_Exp {
             // PU132 UnityBullets.frostLaser: 命中后生成冻结圈 (freezePos)
             ammo(mindustry.content.Liquids.cryofluid, new ExpLaserBulletType(170f, 130){
                 {
-                    colors = new arc.graphics.Color[]{mindustry.graphics.Pal.lancerLaser.cpy().a(0.4f), mindustry.graphics.Pal.lancerLaser, arc.graphics.Color.white};
+                    colors = new arc.graphics.Color[]{mindustry.graphics.Pal.lancerLaser.cpy().a(0.4f), mindustry.graphics.Pal.lancerLaser, arc.graphics.Color.valueOf("cfe6ff")};
                     hitEffect = mindustry.content.Fx.hitLancer;
                     hitSize = 4;
                     lifetime = 16f;
@@ -539,7 +539,7 @@ public class Z_Exp {
 
             // PU132 UnityBullets.fractalLaser: 裂缝激光 + 命中生成扭曲力场
             shootType = new ExpLaserFieldBulletType(170f, 164f){{
-                colors = new arc.graphics.Color[]{Pal.lancerLaser.cpy().lerp(Pal.place, 0.5f).a(0.4f), Pal.lancerLaser.cpy().lerp(Pal.place, 0.5f), arc.graphics.Color.white};
+                colors = new arc.graphics.Color[]{Pal.lancerLaser.cpy().lerp(Pal.place, 0.5f).a(0.4f), Pal.lancerLaser.cpy().lerp(Pal.place, 0.5f), arc.graphics.Color.valueOf("cfe6ff")};
                 hitEffect = mindustry.content.Fx.hitLaserBlast;
                 hitSize = 6;
                 lifetime = 20f;
@@ -603,7 +603,7 @@ public class Z_Exp {
                 colors = new Color[]{
                         Pal.lancerLaser.cpy().lerp(Pal.sapBullet, 0.5f).a(0.4f),
                         Pal.lancerLaser.cpy().lerp(Pal.sapBullet, 0.5f),
-                        Color.white
+                        Color.valueOf("cfe6ff")
                 };
                 hitEffect = mindustry.content.Fx.hitLancer;
                 hitSize = 4;

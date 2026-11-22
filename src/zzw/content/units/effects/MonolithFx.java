@@ -568,7 +568,7 @@ public class MonolithFx{
         float rot = e.rotation;
         Tmp.v1.trns(rot, len);
         for(int i = 0; i < 2; i++){
-            color(i < 1 ? Color.white : Pal.lancerLaser);
+            color(i < 1 ? Color.valueOf("cfe6ff") : Pal.lancerLaser);
             float scl = i < 1 ? 1f : 0.5f;
             stroke(e.fout() * 10f * scl);
             lineAngle(e.x, e.y, rot, len, false);

@@ -27,6 +27,14 @@ import zzw.content.graphics.UnityPal;
  */
 public class ScarFx {
 
+    /** Scar 高光色: 浅红而非纯白, 避免开火/命中时出现白板闪光 */
+    private static final Color SCAR_HI = Color.valueOf("ffc0ba");
+
+    /** 弹色高光 (最多混入 35% 白) */
+    private static Color hi(Color base){
+        return Tmp.c1.set(base).lerp(Color.white, 0.35f);
+    }
+
     /**
      * Scar 磁轨炮射击特效 (24tick)
      * PU132 ShootFx.scarRailShoot
@@ -35,7 +43,7 @@ public class ScarFx {
      */
     public static final Effect scarRailShoot = new Effect(24f, e -> {
         e.scaled(10f, b -> {
-            Draw.color(Color.white, Color.lightGray, b.fin());
+            Draw.color(SCAR_HI, UnityPal.scarColor, b.fin());
             Lines.stroke(b.fout() * 3f + 0.2f);
             Lines.circle(b.x, b.y, b.fin() * 50f);
         });
@@ -43,7 +51,7 @@ public class ScarFx {
             int sign = Mathf.signs[i];
             Draw.color(UnityPal.scarColor);
             Drawf.tri(e.x, e.y, 13 * e.fout(), 85f, e.rotation + 90f * sign);
-            Draw.color(Color.white);
+            Draw.color(SCAR_HI);
             Drawf.tri(e.x, e.y, Math.max(13 * e.fout() - 4f, 0f), 81f, e.rotation + 90f * sign);
         }
     });
@@ -58,7 +66,7 @@ public class ScarFx {
             int sign = Mathf.signs[i];
             Draw.color(UnityPal.scarColor);
             Drawf.tri(e.x, e.y, 10f * e.fout(), 60f, e.rotation + 90f + 90f * sign);
-            Draw.color(Color.white);
+            Draw.color(SCAR_HI);
             Drawf.tri(e.x, e.y, Math.max(10 * e.fout() - 4f, 0f), 56f, e.rotation + 90f + 90f * sign);
         }
     });
@@ -73,7 +81,7 @@ public class ScarFx {
             int sign = Mathf.signs[i];
             Draw.color(UnityPal.scarColor);
             Drawf.tri(e.x, e.y, 10f * e.fout(), 24f, e.rotation + 90f + 90f * sign);
-            Draw.color(Color.white);
+            Draw.color(SCAR_HI);
             Drawf.tri(e.x, e.y, Math.max(10f * e.fout() - 4f, 0f), 20f, e.rotation + 90f + 90f * sign);
         }
     });
@@ -85,7 +93,7 @@ public class ScarFx {
      * - 全程: 5条射线从中心向外发射
      */
     public static final Effect scarHitSmall = new Effect(14f, e -> {
-        Draw.color(Color.white, UnityPal.scarColor, e.fin());
+        Draw.color(SCAR_HI, UnityPal.scarColor, e.fin());
         e.scaled(7f, s -> {
             Lines.stroke(0.5f + s.fout());
             Lines.circle(e.x, e.y, s.fin() * 5f);
@@ -101,7 +109,7 @@ public class ScarFx {
      * - 全程: 5条射线从中心向外发射
      */
     public static final Effect coloredHitSmall = new Effect(14f, e -> {
-        Draw.color(Color.white, e.color, e.fin());
+        Draw.color(hi(e.color), e.color, e.fin());
         e.scaled(7f, s -> {
             Lines.stroke(0.5f + s.fout());
             Lines.circle(e.x, e.y, s.fin() * 5f);
@@ -117,7 +125,7 @@ public class ScarFx {
      * - 全程: 6条射线朝弹道反方向 45° 扇形发射
      */
     public static final Effect coloredHitLarge = new Effect(21f, e -> {
-        Draw.color(Color.white, e.color, e.fin());
+        Draw.color(hi(e.color), e.color, e.fin());
         e.scaled(8f, s -> {
             Lines.stroke(0.5f + s.fout());
             Lines.circle(e.x, e.y, s.fin() * 11f);
@@ -136,7 +144,7 @@ public class ScarFx {
         if(!(e.data instanceof Float length)) return;
         int lenInt = Mathf.round(length / 8f);
         Lines.stroke(3f * e.fout());
-        Draw.color(e.color, Color.white, e.fin());
+        Draw.color(e.color, hi(e.color), e.fin());
 
         for(int i = 0; i < lenInt; i++){
             float offsetXA = i == 0 ? 0 : Mathf.randomSeed(e.id + i * 6413L, -4.5f, 4.5f);
@@ -191,7 +199,7 @@ public class ScarFx {
 
         float width = (Float)data[2];
 
-        Color[] colors = {Color.valueOf("f53036"), Color.valueOf("ff786e"), Color.white};
+        Color[] colors = {Color.valueOf("f53036"), Color.valueOf("ff786e"), SCAR_HI};
         float[] strokes = {2f, 1.3f, 0.6f};
         float oz = Draw.z();
 
@@ -200,7 +208,7 @@ public class ScarFx {
         for(int i = 0; i < 3; i++){
             Draw.z(oz + (i / 1000f));
             if(i >= 2){
-                Draw.color(Color.white);
+                Draw.color(SCAR_HI);
             }else{
                 // R 通道恒为 1, G/B 通道错相位闪烁 (PU132 Utils.offsetSinB)
                 Draw.color(Tmp.c1.set(colors[i]).mul(1f, 1f + offsetSinB(0f, 5f), 1f + offsetSinB(90f, 5f), 1f));
