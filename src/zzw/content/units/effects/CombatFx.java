@@ -481,6 +481,44 @@ public class CombatFx{
     }),
 
     /**
+     * 猩红系列命中爆炸 (24f) —— {@link #blastExplosion} 的去圆/去多边形版。
+     *
+     * <p>只保留火花与光源: 原版展开的实心圆和六边形轮廓在红弹弹道上很扎眼。
+     * 仅供 Scar 系列 (ryzer/sundown/rex/excelsus) 的红弹使用。</p>
+     */
+    scarBlastExplosion = new Effect(24f, 140f, e -> {
+        randLenVectors(e.id, 12, e.finpow() * 30f, (x, y) -> {
+            float a = Mathf.angle(x, y);
+            color(colorHi(e.color, e.fout()));
+            Drawf.tri(e.x + x, e.y + y, 2.6f * e.fout(), 6f * e.fout(), a);
+        });
+        color(e.color);
+        randLenVectors(e.id + 1, 4, e.finpow() * 18f, (x, y) ->
+            Drawf.tri(e.x + x, e.y + y, 3.4f * e.fout(), 8f * e.fout(), Mathf.angle(x, y))
+        );
+        Drawf.light(e.x, e.y, e.finpow() * 45f, e.color, 0.7f);
+    }),
+
+    /**
+     * 猩红系列巨型爆炸 (40f) —— {@link #massiveExplosion} 去圆弧/六边形版。
+     *
+     * <p>保留火花与灰烬方块、光源, 去掉四段圆弧环和六边形轮廓。
+     * 仅供 Scar 系列红弹使用, 其它单位仍用原 {@link #massiveExplosion}。</p>
+     */
+    scarMassiveExplosion = new Effect(40f, 220f, e -> {
+        randLenVectors(e.id, 16, e.finpow() * 45f, (x, y) -> {
+            float a = Mathf.angle(x, y);
+            color(colorHi(e.color, e.fout()));
+            Drawf.tri(e.x + x, e.y + y, 3.2f * e.fout(), 7f * e.fout(), a);
+        });
+        color(Color.lightGray, Color.darkGray, e.fin());
+        randLenVectors(e.id + 1, 6, e.finpow() * 30f, (x, y) ->
+            square(e.x + x, e.y + y, e.fout() * 3f + 0.5f, 45f)
+        );
+        Drawf.light(e.x, e.y, e.finpow() * 70f, e.color, 0.75f);
+    }),
+
+    /**
      * 巨型爆炸 (40f) —— 替代原版 {@code Fx.massiveExplosion}。
      *
      * <p>★ 冲击波重写: 四段 90° 弧线 (旋转扩散, 方向交替) +

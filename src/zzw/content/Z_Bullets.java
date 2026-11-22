@@ -91,7 +91,8 @@ public class Z_Bullets {
         backColor = trailColor = UnityPal.scarColor;
         frontColor = UnityPal.endColor;
         hitColor = UnityPal.scarColor;
-        hitEffect = despawnEffect = zzw.content.units.effects.CombatFx.blastExplosion;  // ★ 特效美化: 绯红弹色爆炸 (原版为橙色)
+        // ★ Scar 系列红弹: 去掉末端的圆圈与六边形, 只保留绯红火花
+        hitEffect = despawnEffect = zzw.content.units.effects.CombatFx.scarBlastExplosion;
         splashDamage = 36f;
         splashDamageRadius = 20f;
         weaveMag = 3f;
