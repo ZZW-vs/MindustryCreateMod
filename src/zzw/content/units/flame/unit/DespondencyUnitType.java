@@ -91,7 +91,7 @@ public class DespondencyUnitType extends DesolationUnitType{
                 }},
 
                 // P2 阶段替换为完整三阶段处决武器；当前作为主武器占位
-                new EndDespondencyWeapon(this.name + "-main"),
+                new EndDespondencyWeapon(),
 
                 new LaserWeapon(this.name + "-laser"){{
                     x = 54.5f;
