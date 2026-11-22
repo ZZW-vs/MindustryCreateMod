@@ -90,7 +90,7 @@ public enum Faction{
     end("end", Color.gray,
         "terminal-crucible", "end-forge", "end-game", "tenmeikiri", "enigma", "void-vessel",
         "chronos", "opticaecus", "devourer", "oppression", "apocalypse", "ravager", "desolation",
-        "thalassophobia");
+        "thalassophobia", "despondency");
 
     /** 全部派系 (PU132 {@code Faction.all})。 */
     public static final Faction[] all = values();

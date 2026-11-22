@@ -70,6 +70,8 @@ public class Z_Sounds {
         eclipseLaserDeep;   // aphelion/mantle 激光开火音效 (blue-eclipse 激光降调加低频版)
 
     public static void load() {
+        // 消沉 (FlameOut 移植) 专用音效, 文件已位于 assets/sounds/ 根目录
+        zzw.content.units.flame.FlameSounds.load();
         spaceFracture = loadSound("end/space-fracture");
         fractureShoot = loadSound("end/fracture-shoot");
         stopTime = loadSound("end/stop-time");

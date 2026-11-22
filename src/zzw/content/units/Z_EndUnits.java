@@ -31,6 +31,8 @@ import zzw.content.units.effects.ShootEffect;
 import zzw.content.units.effects.UnityDrawf;
 import zzw.content.units.entities.ApocalypseUnit;
 import zzw.content.units.entities.ThalassophobiaUnit;
+import zzw.content.units.flame.unit.DespondencyUnit;
+import zzw.content.units.flame.unit.DespondencyUnitType;
 import zzw.content.units.types.ApocalypseUnitType;
 import zzw.content.units.types.InvisibleUnitType;
 import zzw.content.units.types.ThalassophobiaUnitType;
@@ -69,7 +71,7 @@ import zzw.content.units.weapons.EnergyChargeWeapon;
  */
 public class Z_EndUnits {
 
-    public static UnitType apocalypse, thalassophobia;
+    public static UnitType apocalypse, thalassophobia, despondency;
 
     /** endLaserSmall 弹配置 (PU132 UnityBullets.endLaserSmall L1277-1291, 触手共用) */
     private static EndContinuousLaserBulletType endLaserSmall(){
@@ -95,6 +97,7 @@ public class Z_EndUnits {
         //   确保 ApocalypseUnit/ThalassophobiaUnit 已注册后再构造对应 UnitType (init 不失败)
         ZEntityRegister.register(ApocalypseUnit.class, ApocalypseUnit::create);
         ZEntityRegister.register(ThalassophobiaUnit.class, ThalassophobiaUnit::create);
+        ZEntityRegister.register(DespondencyUnit.class, DespondencyUnit::create);
     }
 
     /** 不再从 load() 直接调用, 改由 Z_Units 在 ravager 之后调用, 以调整单位注册顺序 */
@@ -107,6 +110,7 @@ public class Z_EndUnits {
     public static void loadUnits(){
         apocalypse();
         thalassophobia();
+        despondency();
     }
 
     //region apocalypse 天启
@@ -656,6 +660,30 @@ public class Z_EndUnits {
             });
 
             //endregion
+        }};
+    }
+
+    //endregion
+
+    //region despondency 消沉
+
+    /**
+     * despondency 消沉 —— End 系列最强单位 (FlameOut 完整移植)。
+     *
+     * <p>数值按 FO 原值: 1750 万血 / 200 甲 / 速度 2 / hitSize 217。
+     * 按项目约定继承 EndGroundUnit，复用 EndHealthLedger 与复活体系，
+     * 复活次数 5 次。</p>
+     *
+     * <p>防作弊参数按 FO 的 "每击上限 health/220" 语义换算：
+     * damageThreshold=health/600, maxDamageThreshold=health/200,
+     * maxDamageTaken=health/220, resistStart=health/100。</p>
+     */
+    private static void despondency(){
+        despondency = new DespondencyUnitType("despondency"){{
+            reviveLimit = 5;  // 最强 End 单位, 复活上限 5
+            antiCheatType = new zzw.content.units.anticheat.EndCheatVars(
+                    health / 600f, health / 200f, health / 220f, health / 100f,
+                    0.6f, 7f * 60f, 8f * 60f, 35f, 4);
         }};
     }
 
