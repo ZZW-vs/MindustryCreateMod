@@ -282,6 +282,70 @@ public class FlameFX{
         }
     });
 
+    /**
+     * 碎片落地尘土 (移植自 FO FlameFX.fragmentGroundImpact)。
+     *
+     * <p>rotation 为落地面积大小，颜色取落点地板色。</p>
+     */
+    public static Effect fragmentGroundImpact = new Effect(40f, 300f, e -> {
+        Rand r = new Rand(e.id);
+
+        color(e.color);
+
+        float size = e.rotation;
+        int iter = ((int)(size / 8f)) + 6;
+        for(int i = 0; i < iter; i++){
+            Vec2 v = Tmp.v1.trns(r.random(360f), r.random(size) + (r.random(0.5f, 1f) * size * 0.5f + 20f) * e.finpow()).add(e.x, e.y);
+            Fill.circle(v.x, v.y, r.random(5f, 16f) * e.fout());
+        }
+    }).layer(Layer.debris);
+
+    /** 碎片爆炸火星 (移植自 FO FlameFX.fragmentExplosionSpark)。 */
+    public static Effect fragmentExplosionSpark = new Effect(26f, 300f, e -> {
+        Rand r = new Rand(e.id);
+        float size = e.rotation;
+        e.lifetime = size / 1.5f + 10f;
+
+        float sfin = e.fin();
+
+        int iter2 = ((int)(size / 12f)) + 3;
+        float sfout = 1f - sfin;
+
+        color(Pal.lighterOrange, Pal.lightOrange, Color.gray, e.fin());
+        Lines.stroke((1.7f * sfout) * (1f + size / 60f));
+
+        Draw.z(Layer.effect + 0.001f);
+
+        for(int i = 0; i < iter2; i++){
+            Vec2 v = Tmp.v1.trns(r.random(360f), r.random(0.001f, size / 2f) + (r.random(0.4f, 2.2f) * size) * pow2Out.apply(sfin));
+            Lines.lineAngle(e.x + v.x, e.y + v.y, Mathf.angle(v.x, v.y), 1f + sfout * 3 * (1f + size / 50f));
+        }
+    });
+
+    /** 碎片飘散的烟尘 (移植自 FO FlameFX.debrisSmoke)。 */
+    public static Effect debrisSmoke = new Effect(40f, e -> {
+        color(Color.gray);
+        float fin = FlameUtils.biasSlope(e.fin(), 0.075f);
+        Fill.circle(e.x, e.y, e.rotation * fin);
+    });
+
+    /** 共情分身销毁 (移植自 FO FlameFX.empathyDecoyDestroy)。 */
+    public static Effect empathyDecoyDestroy = new Effect(90f, 700f, e -> {
+        Rand r = new Rand(e.id);
+
+        color(FlamePal.empathy);
+        Lines.stroke(12f * e.fout());
+        Lines.circle(e.x, e.y, 6f + 160f * e.fin());
+
+        Lines.stroke(2f * e.fout());
+        for(int i = 0; i < 10; i++){
+            Vec2 v = Tmp.v1.trns(r.random(360f), r.random(45f, 230f) * e.finpow()).add(e.x, e.y);
+
+            Lines.line(e.x, e.y, v.x, v.y, false);
+            Fill.poly(v.x, v.y, 4, 3f * e.fout());
+        }
+    });
+
     public static Effect desCreepHit = new Effect(20f, e -> {
         float angr = 90f;
         float len = 1f;

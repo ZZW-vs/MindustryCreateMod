@@ -21,6 +21,23 @@ public class GraphicUtils{
     /** 碎片/线段绘制复用的顶点数组。 */
     public static float[] verts = new float[4 * 6];
 
+    /**
+     * 以 (x,y) 为宽端、指向 (x2,y2) 绘制一条带锥度的血条 (移植自 flame.graphics.GraphicUtils)。
+     *
+     * @param width    宽端的宽度
+     * @param rotation 条带朝向
+     */
+    public static void tri(float x, float y, float x2, float y2, float width, float rotation){
+        float
+            rx = Angles.trnsx(rotation - 90f, width / 2f),
+            ry = Angles.trnsy(rotation - 90f, width / 2f);
+        Fill.tri(
+                x + rx, y + ry,
+                x2, y2,
+                x - rx, y - ry
+        );
+    }
+
     /** 以 (x,y) 为中心绘制一个旋转的菱形（四顶点 quad）。 */
     public static void diamond(float x, float y, float width, float length, float rotation){
         float tx1 = Angles.trnsx(rotation + 90f, width), ty1 = Angles.trnsy(rotation + 90f, width),

@@ -14,17 +14,24 @@ import arc.math.geom.Vec2;
 import arc.struct.Seq;
 import arc.util.Time;
 import arc.util.Tmp;
+import mindustry.content.Fx;
+import mindustry.entities.Effect;
 import mindustry.entities.bullet.BulletType;
 import mindustry.entities.units.WeaponMount;
+import mindustry.gen.Sounds;
 import mindustry.gen.Unit;
 import mindustry.graphics.Drawf;
+import mindustry.graphics.InverseKinematics;
 import mindustry.graphics.Layer;
 import mindustry.type.Weapon;
+import zzw.content.units.flame.FlameBatches;
 import zzw.content.units.flame.FlameOutSFX;
 import zzw.content.units.flame.FlamePal;
+import zzw.content.units.flame.effects.Fragmentation.FragmentEntity;
 import zzw.content.units.flame.effects.SpecialDeathEffects;
 import zzw.content.units.flame.entities.DesShockWaveEntity;
 import zzw.content.units.flame.entities.DesSpearEntity;
+import zzw.content.units.flame.graphics.FragmentationBatch;
 import zzw.content.units.flame.unit.DespondencyAI;
 import zzw.content.units.flame.unit.empathy.EmpathyDamage;
 import zzw.content.units.flame.unit.empathy.EmpathySpawner;
@@ -36,12 +43,9 @@ import zzw.content.units.flame.unit.empathy.EmpathySpawner;
  * <ol>
  *   <li>清杂: 释放 {@link DesShockWaveEntity} 冲击波，处决范围内脆弱目标;</li>
  *   <li>处决强敌: 对除主目标外的强力单位各投掷一支 {@link DesSpearEntity};</li>
- *   <li>最终处决: 连续投矛钉住主目标，6 秒后结算死亡演出。</li>
+ *   <li>最终处决: 连续投矛钉住主目标，6 秒后由 FragmentationBatch 拆成
+ *       手控碎片 ({@link FragmentHands})，双手抓住碎片并将其掷向目标。</li>
  * </ol>
- *
- * <p>★ P2 阶段说明: FO 最终处决用 FragmentationBatch 把目标拆成手控碎片
- * (FragmentHands)。该框架在 P3 完整接入；当前先用目标自身的死亡演出结算，
- * 长矛/冲击波/魔法阵/AI 流程均已按原版实现。</p>
  */
 public class EndDespondencyWeapon extends Weapon{
     Seq<DespondencyArm> arms = new Seq<>();
@@ -287,6 +291,12 @@ public class EndDespondencyWeapon extends Weapon{
                 return s.fade < 0f;
             });
         }
+        if(!m.fragHands.isEmpty()){
+            for(FragmentHands h : m.fragHands){
+                h.update(unit, m);
+            }
+            m.fragHands.remove(h -> h.fade >= 1f);
+        }
     }
 
     void destroyStrays(Unit unit, DespondencyMount mount){
@@ -357,8 +367,36 @@ public class EndDespondencyWeapon extends Weapon{
 
         if(m.finalTime >= 6f * 60f && m.stageTime > 4f * 60f + 90f){
             SpecialDeathEffects eff = SpecialDeathEffects.get(u.type);
-            // P2 观感回退: FO 这里用 FragmentationBatch 生成由 FragmentHands 操控的碎片, P3 恢复。
-            Runnable run = eff.solid ? () -> eff.deathUnit(u, u.x, u.y, unit.angleTo(u)) : () -> eff.cutAlt(u);
+            Runnable run = eff.solid ? () -> {
+                u.elevation = 0f;
+
+                FragmentationBatch batch = FlameBatches.fragBatch;
+                batch.baseElevation = 0f;
+                batch.trailEffect = Fx.none;
+                batch.explosionEffect = eff.explosionEffect != Fx.none ? eff.explosionEffect : null;
+                batch.altFunc = (hx, hy, tex) -> {};
+                batch.fragColor = Color.white;
+                batch.useAlt = false;
+                batch.resScale = 0.5f;
+                batch.islandScl = 0.075f;
+                batch.genGore = eff.hasInternal;
+                batch.goreColor = eff.internalColor;
+                batch.sound = eff.deathSound;
+                batch.onDeathFunc = eff.fragDeath;
+                batch.fragFunc = e -> {
+                    e.z = 0f;
+                    e.lifetime = 4f * 60f + Mathf.random(25f);
+                    e.impact = true;
+                    e.vx = 0f;
+                    e.vy = 0f;
+                    e.vz = 0f;
+                    e.vr = 0f;
+
+                    m.fragHands.add(new FragmentHands(unit, Mathf.range(4f), Mathf.range(24f), u, e));
+                };
+
+                batch.switchBatch(u::draw);
+            } : () -> eff.cutAlt(u);
             EmpathyDamage.damageUnit(u, u.maxHealth + 1000f, true, run);
             m.stageTime = eff.solid ? 4f * 60f + 90f : 120f;
             m.targetDestroyed = true;
@@ -460,6 +498,11 @@ public class EndDespondencyWeapon extends Weapon{
             }
             Draw.z(z);
         }
+        if(!m.fragHands.isEmpty()){
+            for(FragmentHands h : m.fragHands){
+                h.draw(unit);
+            }
+        }
 
         for(DespondencyArm arm : arms){
             if(m.times[arm.id] <= 0.001f) continue;
@@ -541,6 +584,7 @@ public class EndDespondencyWeapon extends Weapon{
         boolean spearCollided = false;
         float spearCollidedTime;
 
+        Seq<FragmentHands> fragHands = new Seq<>();
         boolean targetDestroyed = false;
 
         float magicIn, magicOut;
@@ -549,6 +593,156 @@ public class EndDespondencyWeapon extends Weapon{
             super(w);
 
             times = new float[((EndDespondencyWeapon)w).arms.size];
+        }
+    }
+
+    class FragmentHands{
+        /** ★ FO 原版是全局静态临时向量；这里改成每个手部实例自己的槽位，避免多台消沉互相覆盖。 */
+        final Vec2 v1 = new Vec2(), v2 = new Vec2(), v3 = new Vec2(), v4 = new Vec2(), v5 = new Vec2(), v6 = new Vec2();
+
+        float time, timeB;
+        float fade;
+        float length;
+        boolean flipped;
+
+        //source position
+        float sx, sy;
+        //position of targeted unit
+        float tx, ty;
+        //hand position, joint position
+        float hx, hy, jx, jy;
+
+        float cx, cy, cr;
+        FragmentEntity frag;
+        boolean holding, move2;
+
+        float nx, ny;
+        float delay;
+        float scl;
+
+        FragmentHands(Unit owner, float x, float y, Unit target, FragmentEntity f){
+            frag = f;
+
+            tx = target.x;
+            ty = target.y;
+
+            Vec2 v = v1.trns(owner.rotation, x, y).add(owner.x, owner.y);
+            hx = jx = v.x;
+            hy = jy = v.y;
+            sx = x;
+            sy = y;
+
+            length = f.dst(v.x, v.y) * 1.1f;
+            flipped = y < 0;
+            delay = Mathf.random(60f);
+            scl = Math.min(Mathf.pow((f.boundSize / 24f), 0.5f), 2f);
+        }
+
+        void update(Unit unit, DespondencyMount mount){
+            if((delay -= Time.delta) > 0) return;
+            time = Mathf.clamp(time + Time.delta / 25f);
+
+            Vec2 src = v6.trns(unit.rotation, sx, sy).add(unit);
+            if(!holding){
+                Vec2 t = v1.trns(unit.rotation, sx, sy).add(unit).lerp(frag, time);
+                hx = t.x;
+                hy = t.y;
+                float ang = Angles.angle(jx, jy, hx, hy);
+                if(time >= 1f){
+                    v5.set(frag.x - hx, frag.y - hy).rotate(-ang);
+                    cr = frag.rotation - ang;
+                    cx = v5.x;
+                    cy = v5.y;
+                    holding = true;
+
+                    if(frag.main.explosionSound != Sounds.none) frag.main.explosionSound.at(frag.x, frag.y, Mathf.random(0.9f, 1.1f) * Math.max(1f / (1f + (frag.area - 8f) / 70f), 0.5f), Mathf.clamp(frag.area / 8.1f));
+                    frag.main.explosionEffect.at(frag.x, frag.y, frag.area / 2.2f, frag.main.effectColor);
+                    Effect.shake(frag.area / 3.2f, frag.area / 4.2f, frag.x, frag.y);
+                    if(frag.main.onDeath != null) frag.main.onDeath.get(frag);
+
+                    float dx = (frag.x - tx) * 2f;
+                    float dy = (frag.y - ty) * 2f;
+                    v4.set(dx, dy).limit(length * 0.6f).add(t).sub(unit).limit(length * 0.9f);
+
+                    v4.rotate(-unit.rotation);
+                    nx = v4.x;
+                    ny = v4.y;
+
+                    int side = (flipped ? -1 : 1) * ny > 0 ? 1 : -1;
+                    ny *= side;
+                }
+            }else{
+                timeB += Time.delta;
+                if(timeB > 40f && !move2){
+                    float angDst = Angles.angleDist(unit.rotation, Angles.angle(src.x, src.y, hx, hy)) * 1.25f;
+                    v3.set(hx, hy).sub(src).rotate(-unit.rotation).setLength(length * 0.95f).rotate((flipped ? -1 : 1) * (7f + angDst));
+                    nx = v3.x;
+                    ny = v3.y;
+                    move2 = true;
+                }
+                float speed = move2 ? Mathf.clamp((timeB - 40f) / 40f) * 0.02f : 0.05f;
+
+                Vec2 v = v4.set(nx, ny).rotate(unit.rotation).add(unit);
+                hx = Mathf.lerpDelta(hx, v.x, speed);
+                hy = Mathf.lerpDelta(hy, v.y, speed);
+            }
+            float time2 = Mathf.clamp(time * 1.75f);
+            InverseKinematics.solve((length / 2f) * time2, (length / 2f) * time2, v2.set(hx, hy).sub(src), !flipped, v3);
+            Vec2 j = v3.add(src);
+            jx = Mathf.lerpDelta(jx, j.x, 0.5f);
+            jy = Mathf.lerpDelta(jy, j.y, 0.5f);
+
+            if(holding){
+                float ang = Angles.angle(jx, jy, hx, hy);
+                Vec2 v = v5.set(cx, cy).rotate(ang).add(hx, hy);
+                frag.x = v.x;
+                frag.y = v.y;
+                frag.rotation = cr + ang;
+            }
+
+            if((!frag.isAdded() || frag.time >= frag.lifetime) || !mount.finalActive){
+                fade += Time.delta / 12f;
+            }
+        }
+
+        void draw(Unit unit){
+            if(delay > 0 || fade >= 1f) return;
+            TextureRegion[][] regs = armRegions;
+            Vec2 src = v1.trns(unit.rotation, sx, sy).add(unit);
+            float ang = Mathf.slerp(Angles.angle(jx, jy, hx, hy), Angles.angle(src.x, src.y, hx, hy), 0.05f);
+            float fin = Mathf.clamp(fade + Mathf.clamp(1f - time * 2f));
+            int s = flipped ? 1 : -1;
+
+            for(int i = 0; i < 2; i++){
+                TextureRegion[] set = regs[i];
+
+                TextureRegion tr = Tmp.tr1, hand = set[3], fore = set[1], hind = set[0];
+                tr.set(hand);
+                float mu = Mathf.lerp(hand.v, hand.v2, 0.5f);
+                tr.setV(Mathf.lerp(hand.v, mu, fin));
+                tr.setV2(Mathf.lerp(hand.v2, mu, fin));
+
+                Draw.rect(tr, hx, hy, tr.width * Draw.scl * scl, tr.height * s * Draw.scl * scl, ang);
+
+                tr.set(fore);
+                mu = Mathf.lerp(fore.v, fore.v2, 0.5f);
+                tr.setV(Mathf.lerp(fore.v, mu, fin));
+                tr.setV2(Mathf.lerp(fore.v2, mu, fin));
+
+                float dx = (hx - jx) * 0.08f, dy = (hy - jy) * 0.08f;
+                Lines.stroke(tr.height * Draw.scl * s * scl);
+                Lines.line(tr, jx - dx, jy - dy, hx + dx * 0.2f, hy + dy * 0.2f, false);
+
+                tr.set(hind);
+                mu = Mathf.lerp(hind.v, hind.v2, 0.5f);
+                tr.setV(Mathf.lerp(hind.v, mu, fin));
+                tr.setV2(Mathf.lerp(hind.v2, mu, fin));
+
+                dx = (jx - src.x) * 0.1f;
+                dy = (jy - src.y) * 0.1f;
+                Lines.stroke(tr.height * Draw.scl * s * scl);
+                Lines.line(tr, src.x - dx, src.y - dy, jx + dx, jy + dy, false);
+            }
         }
     }
 

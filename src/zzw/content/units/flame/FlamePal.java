@@ -13,6 +13,9 @@ public class FlamePal{
     public static Color blood = new Color(0.95f, 0.95f, 0.95f);
     public static Color paleYellow = new Color(1f, 1f, 0.5f);
 
+    /** 共情系配色 (仅调试/特效引用)。 */
+    public static Color empathy = new Color(0xffcae9ff);
+
     public static Color red = new Color(0xf53036ff);
     public static Color redLight = red.cpy().mul(2f);
     public static Color darkRed = new Color(0.5f, 0f, 0f);

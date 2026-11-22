@@ -31,10 +31,12 @@ import mindustry.graphics.Drawf;
 import mindustry.graphics.Layer;
 import mindustry.world.Tile;
 import mindustry.world.blocks.environment.Floor;
+import zzw.content.units.flame.FlameBatches;
 import zzw.content.units.flame.FlamePal;
 import zzw.content.units.flame.FlameUtils;
 import zzw.content.units.flame.effects.FlameFX;
 import zzw.content.units.flame.effects.SpecialDeathEffects;
+import zzw.content.units.flame.graphics.CutBatch;
 import zzw.content.units.flame.graphics.GraphicUtils;
 import zzw.content.units.flame.unit.empathy.EmpathyDamage;
 import zzw.content.units.flame.unit.weapons.LaserWeapon.LaserRange;
@@ -162,6 +164,7 @@ public class EndCreepLaserBulletType extends ContinuousBulletType implements Las
         float ground = getGroundScl(b);
         float fly = getFlyingScl(b);
         float rot = b.rotation();
+        Vec2 forceVec = new Vec2();
 
         FlameUtils.hitLaser(b.team, 4f, b.x, b.y, v.x, v.y, null, h -> false, (h, x, y) -> {
             boolean near = (data.hitTime <= 0f) && Mathf.within(x, y, vx, vy, 140f + (len - b.fdata));
@@ -172,6 +175,7 @@ public class EndCreepLaserBulletType extends ContinuousBulletType implements Las
                 boolean near2 = Intersector.distanceLinePoint(bx, by, vx, vy, u.x, u.y) < (u.hitSize / 2f) / 2.5f;
                 float dam = u.isFlying() ? fly : ground;
 
+                float ele = u.elevation;
                 Runnable death = (u.isFlying() && near2) ? () -> {
                     SpecialDeathEffects eff = SpecialDeathEffects.get(u.type);
                     if(!eff.solid){
@@ -179,11 +183,37 @@ public class EndCreepLaserBulletType extends ContinuousBulletType implements Las
                         return;
                     }
 
-                    // P1 观感回退: FO 这里用 CutBatch 沿激光切开单位, P3 恢复。
-                    eff.deathUnit(u, x, y, rot);
+                    float tz = ele > 0.5f ? (u.type.lowAltitude ? Layer.flyingUnitLow : Layer.flyingUnit) : (u.type.groundLayer + Mathf.clamp(u.hitSize / 4000f, 0f, 0.01f));
+                    float shad = Mathf.clamp(ele, u.type.shadowElevation, 1f) * u.type.shadowElevationScl;
+
+                    CutBatch batch = FlameBatches.cutBatch;
+                    batch.explosionEffect = eff.explosionEffect != Fx.none ? eff.explosionEffect : null;
+                    batch.sound = eff.deathSound;
+                    batch.cutHandler = c -> {
+                        c.vx += u.vel.x;
+                        c.vy += u.vel.y;
+                        if(c.z >= tz - 0.01f){
+                            c.shadowZ = shad;
+                        }
+
+                        c.cutWorld(bx, by, v2x, v2y, null);
+                    };
+                    batch.switchBatch(u::draw);
                 } : (u.isGrounded() ? () -> {
                     SpecialDeathEffects eff = SpecialDeathEffects.get(u.type);
-                    eff.deathUnit(u, x, y, rot);
+                    eff.deathUnit(u, x, y, rot, e -> {
+                        float dx = e.x - x, dy = e.y - y;
+                        float dst = Mathf.dst(dx, dy);
+                        float force = Math.max((1f - Mathf.clamp(dst / (230f + u.hitSize / 2f + 100f))), (1f / (1f + dst / 50f)));
+
+                        Vec2 vec = forceVec.set(dx, dy).nor().setLength(force * 5f);
+                        if(!vec.isNaN()){
+                            e.vx = vec.x;
+                            e.vy = vec.y;
+                            e.vr = Mathf.range(24f) * force;
+                            e.vz = Mathf.random(-0.01f, 0.1f);
+                        }
+                    });
                 } : null);
 
                 if(dam > 0){
@@ -216,6 +246,7 @@ public class EndCreepLaserBulletType extends ContinuousBulletType implements Las
         FlameFX.desCreepHeavyHit.at(x, y, b.rotation(), scl);
 
         Rect r = new Rect().setCentered(x, y, range * 2f);
+        Vec2 forceVec = new Vec2();
 
         buildings.clear();
         Groups.unit.intersect(r.x, r.y, r.width, r.height, u -> {
@@ -223,7 +254,19 @@ public class EndCreepLaserBulletType extends ContinuousBulletType implements Las
                 EmpathyDamage.damageUnit(u, 12000f + u.maxHealth / 50f, true, () -> {
                     SpecialDeathEffects eff = SpecialDeathEffects.get(u.type);
                     float rot = u.angleTo(x, y) + 180f;
-                    eff.deathUnit(u, x, y, rot);
+                    eff.deathUnit(u, x, y, rot, e -> {
+                        float dx = e.x - x, dy = e.y - y;
+                        float dst = Mathf.dst(dx, dy);
+                        float force = Math.max((1f - Mathf.clamp(dst / (range + u.hitSize / 2f + 100f))), (1f / (1f + dst / 50f)));
+
+                        Vec2 vec = forceVec.set(dx, dy).nor().setLength(force * 5f);
+                        if(!vec.isNaN()){
+                            e.vx = vec.x;
+                            e.vy = vec.y;
+                            e.vr = Mathf.range(24f) * force;
+                            e.vz = Mathf.random(-0.01f, 0.1f);
+                        }
+                    });
                 });
             }
         });
@@ -261,7 +304,30 @@ public class EndCreepLaserBulletType extends ContinuousBulletType implements Las
                     Effect.rubble(bl.x, bl.y, bl.block.size);
                 }
 
-                // P1 观感回退: FO 这里用 DevastationBatch 拆分建筑, P3 恢复。
+                if(Mathf.chance(0.8f)){
+                    float healthBase = (bl.block.size * Vars.tilesize);
+                    FlameBatches.devasBatch.baseZ = Layer.block;
+                    FlameBatches.devasBatch.switchBatch(bl::draw, dev -> {
+                        dev.lifetime = Mathf.random(1f, 2f) * 60f;
+                        dev.health = (Math.min(dev.width, dev.height) / healthBase) * bl.maxHealth;
+                        dev.team = team;
+                        dev.explosion = eff.explosionEffect != Fx.none ? eff.explosionEffect : FlameFX.fragmentExplosion;
+                        dev.collides = Mathf.chance(0.5f);
+                        dev.contagiousChance = 0.1f;
+
+                        float dx = dev.x - x;
+                        float dy = dev.y - y;
+                        float len = Mathf.sqrt(dx * dx + dy * dy);
+                        float force = Mathf.clamp(1f - (len / (range + bl.hitSize() / 2f + 8f)));
+
+                        Vec2 v = forceVec.set(dx, dy).nor().setLength(force * 12f);
+                        if(!v.isNaN()){
+                            dev.vx = v.x;
+                            dev.vy = v.y;
+                            dev.vr = Mathf.range(25f * force);
+                        }
+                    });
+                }
             });
         }
         buildings.clear();

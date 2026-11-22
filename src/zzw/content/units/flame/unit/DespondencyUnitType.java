@@ -90,9 +90,6 @@ public class DespondencyUnitType extends DesolationUnitType{
                     bullet = new BulletType(0f, 9000f);
                 }},
 
-                // P2 阶段替换为完整三阶段处决武器；当前作为主武器占位
-                new EndDespondencyWeapon(),
-
                 new LaserWeapon(this.name + "-laser"){{
                     x = 54.5f;
                     y = -15f;
@@ -148,6 +145,9 @@ public class DespondencyUnitType extends DesolationUnitType{
 
                     bullet = new EndNukeBulletType();
                 }},
+
+                // 与 FO 相同: 主处决武器排在常规武器之后，保证手臂绘制层级
+                new EndDespondencyWeapon(),
 
                 new EndLauncherWeapon(this.name + "-missile")
         );
