@@ -70,6 +70,8 @@ public class ModularTurret extends Turret implements GraphBlockBase{
     final PartType[] categories = new PartType[]{PartType.base, PartType.breach, PartType.ammo, PartType.payload, PartType.misc};
     /** 可旋转的炮塔头部 (基础炮台本体) */
     TextureRegion headRegion;
+    /** 底座朝向变体 (仅由放置朝向决定, 与瞄准角无关) */
+    final TextureRegion[] baseRegions = new TextureRegion[4];
     TextureRegion partsRegion, rootRegion, rootOutlineRegion;
     /** peekAmmo 兜底弹种: 未装完蓝图时避免炮塔更新流程取到 null */
     static final BulletType dummyBullet = new BasicBulletType(1f, 0f);
@@ -202,10 +204,13 @@ public class ModularTurret extends Turret implements GraphBlockBase{
         rootRegion = Core.atlas.find(name + "-root");
         rootOutlineRegion = Core.atlas.find(name + "-root-outline");
         headRegion = Core.atlas.find(name + "-head");
+        for(int i = 0; i < baseRegions.length; i++) baseRegions[i] = Core.atlas.find(name + (i + 1));
         for(PartInfo part : parts){
             TextureRegion region = Core.atlas.find("create-part-" + part.icon);
             part.sprite = region;
             part.texRegion = region;
+            // 轮廓贴图用来把零件画成有厚度的结构件 (而不是平贴的图标)
+            part.outline = Core.atlas.find("create-part-" + part.icon + "-outline");
         }
         for(int i = 0; i < categories.length; i++) categories[i].region = Core.atlas.find("create-partscategory" + (i + 1));
     }
@@ -711,8 +716,10 @@ public class ModularTurret extends Turret implements GraphBlockBase{
 
         @Override
         public void draw(){
-            // ★ 底座: 只用固定贴图, 不取任何朝向变体 —— 无论瞄准角、放置朝向如何都绝不旋转
-            Draw.rect(region, x, y);
+            // 底座: 只按"放置朝向"取变体, 与瞄准角无关, 因此永远不会跟着瞄准旋转
+            int placeDir = ((Building)this).rotation & 3;
+            TextureRegion base = baseRegions[placeDir];
+            Draw.rect(base != null && base.found() ? base : region, x, y);
             drawTeamTop();
 
             // 回转环 (固定, 不随瞄准转动), 让底座与旋转体有层次
@@ -733,7 +740,9 @@ public class ModularTurret extends Turret implements GraphBlockBase{
             float oy = Mathf.sinDeg(rotation) * recoil;
             float cx = x + ox, cy = y + oy;
             boolean built = validTurret && headRegion.found();
-            Draw.alpha(built ? 1f : 0.25f + 0.5f * aniProg);
+            // 建造中与建成后是同一套图形, 只差清晰度: 建造中半透明, 建成全不透明
+            float reveal = built ? 1f : 0.45f + 0.45f * aniProg;
+            Draw.alpha(reveal);
 
             // ① 基础炮台本体: 主体, 随瞄准角旋转
             if(headRegion.found()){
@@ -749,8 +758,8 @@ public class ModularTurret extends Turret implements GraphBlockBase{
                 Draw.rect(rootRegion, cx, cy, rot);
             }
 
-            // ② 零件叠加层: 严格按蓝图格位叠在本体上, 随瞄准一起转
-            drawParts(rot, cx, cy);
+            // ② 零件结构层: 严格按蓝图格位叠在本体上, 随瞄准一起转
+            drawParts(rot, cx, cy, reveal);
 
             // ③ 炮口火光
             if(built && curRecoil > 0.08f){
@@ -772,12 +781,14 @@ public class ModularTurret extends Turret implements GraphBlockBase{
         }
 
         /**
-         * 绘制零件叠加层: 严格按蓝图格位换算到方块内, 与蓝图一一对应。
+         * 绘制零件结构层: 严格按蓝图格位换算到方块内, 与蓝图一一对应。
          *
          * <p>每格像素 = 方块边长 / 网格数, 整张网格正好铺满方块, 不会溢出;
-         * 多格零件只在锚点格绘制一次。所有零件随瞄准角一起旋转。</p>
+         * 多格零件只在锚点格绘制一次。每个零件先画 {@code -outline} 轮廓垫底形成厚度,
+         * 再叠零件本体并轻微压暗, 让它看起来是装在本体上的机械件而不是平贴的图标。
+         * 所有零件随瞄准角一起旋转。</p>
          */
-        protected void drawParts(float rot, float cx, float cy){
+        protected void drawParts(float rot, float cx, float cy, float reveal){
             if(bluePrint.size == 0) return;
             int gridN = Math.max(gridW, gridH);
             float cell = size * tilesize / gridN;
@@ -803,8 +814,20 @@ public class ModularTurret extends Turret implements GraphBlockBase{
                 // 网格坐标 → 方块本地像素 (网格中心与方块中心重合)
                 float lx = (gx + p.tw * 0.5f - gridW * 0.5f) * cell;
                 float ly = (gy + p.th * 0.5f - gridH * 0.5f) * cell;
+                float w = p.tw * cell, h = p.th * cell;
                 Tmp.v1.set(lx, ly).rotate(rot).add(cx, cy);
-                Draw.rect(tex, Tmp.v1.x, Tmp.v1.y, p.tw * cell, p.th * cell, rot);
+
+                // 轮廓垫底: 形成一点点厚度与投影, 避免看起来像平贴的图标
+                if(p.outline != null && p.outline.found()){
+                    Draw.color(0f, 0f, 0f, 0.55f * reveal);
+                    Draw.rect(p.outline, Tmp.v1.x, Tmp.v1.y, w + 2.5f, h + 2.5f, rot);
+                }
+
+                // 零件本体: 轻微压暗, 让彩色零件融入炮塔的金属色
+                Draw.color(0.84f, 0.87f, 0.80f, reveal);
+                Draw.rect(tex, Tmp.v1.x, Tmp.v1.y, w, h, rot);
+                Draw.color();
+                Draw.alpha(reveal);
             }
         }
     }

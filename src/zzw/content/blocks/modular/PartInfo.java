@@ -27,6 +27,8 @@ public class PartInfo{
     public final byte[] connectOut, connectIn;
     public final OrderedMap<PartStatType, PartStat> stats = new OrderedMap<>(12);
     public TextureRegion sprite, sprite2, texRegion;
+    /** 零件轮廓贴图 (part-*-outline), 用于把零件画成有体积的结构件而不是平贴图标 */
+    public TextureRegion outline;
     /** 零件图标文件名 (不含 part- 前缀), 由方块 load() 映射成图集贴图 */
     public String icon;
     final Seq<ConnectData> connInList = new Seq<>(), connOutList = new Seq<>();
