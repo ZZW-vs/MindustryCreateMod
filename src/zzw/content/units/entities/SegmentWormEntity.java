@@ -571,11 +571,14 @@ public class SegmentWormEntity extends UnitEntity implements zzw.content.Faction
             if (repairTime >= regenTime) {
                 // PU132 原版: 由尾节承担生长代价 (尾节血量减半, 新节继承该血量),
                 // 不再按段数对头部造成伤害, 避免再生反过来触发头部受击/防作弊。
+                // ★ 段身被打光时头部本身就是"尾节", 原版同样由它承担一次减半代价。
                 if (segments.length > 0) {
                     SegmentUnitEntity regenTail = segments[segments.length - 1];
                     if (regenTail != null) {
                         regenTail.health = Math.max(1f, regenTail.health / 2f);
                     }
+                } else {
+                    health = Math.max(1f, health / 2f);
                 }
                 addSegment();
                 repairTime = 0f;
@@ -1140,22 +1143,39 @@ public class SegmentWormEntity extends UnitEntity implements zzw.content.Faction
                 newHead.maxSegments = maxSegments;
                 newHead.wobbleEnabled = wobbleEnabled;
                 newHead.add();
-                // 转移后半段段身给新头部
-                newHead.segments = tailSegs;
-                newHead.segPositions = tailPos;
-                newHead.segVelocities = tailVel;
-                newHead.segRotations = tailRot;
-                for (int i = 0; i < tailLen; i++) {
-                    tailSegs[i].head = newHead;
-                    tailSegs[i].segmentIndex = i;
-                    tailSegs[i].isTail = (i == tailLen - 1);
+                // ★ 原版分裂时"后半段第一节即成为新头" (PU132: wc.head(child)):
+                //   这里让新头部取代该节, 不再保留同位置的段身实体,
+                //   否则新头与首节重叠、站位与血量都会重复计算。
+                SegmentUnitEntity absorbedHeadSegment = tailSegs[0];
+                int remain = tailLen - 1;
+                SegmentUnitEntity[] remainSegs = new SegmentUnitEntity[remain];
+                Vec2[] remainPos = new Vec2[remain];
+                Vec2[] remainVel = new Vec2[remain];
+                float[] remainRot = new float[remain];
+                for (int i = 0; i < remain; i++) {
+                    remainSegs[i] = tailSegs[i + 1];
+                    remainPos[i] = tailPos[i + 1];
+                    remainVel[i] = tailVel[i + 1];
+                    remainRot[i] = tailRot[i + 1];
+                }
+                newHead.segments = remainSegs;
+                newHead.segPositions = remainPos;
+                newHead.segVelocities = remainVel;
+                newHead.segRotations = remainRot;
+                for (int i = 0; i < remain; i++) {
+                    remainSegs[i].head = newHead;
+                    remainSegs[i].segmentIndex = i;
+                    remainSegs[i].isTail = (i == remain - 1);
                 }
                 // 速度连续过渡: 新头部继承后半段第一节的速度, 不从 0 起步
                 newHead.vel.set(tailVel[0]);
                 // 血量按原版"孩子节成为新头"的规则: 取后半段第一节的血量,
                 // 不额外复制一个满血个体
-                newHead.health = Mathf.clamp(tailSegs[0].health, 1f, newHead.maxHealth);
+                newHead.health = Mathf.clamp(absorbedHeadSegment.health, 1f, newHead.maxHealth);
                 newHead.lastHealth = newHead.health;
+                // 被新头部取代的首节退出场景 (原版中它本身就充当新头)
+                absorbedHeadSegment.head = null;
+                absorbedHeadSegment.remove();
                 // 两半都进入短暂冷却, 防止连续拆分
                 splitCooldown = 30f;
                 newHead.splitCooldown = 30f;
