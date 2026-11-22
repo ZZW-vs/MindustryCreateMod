@@ -138,6 +138,7 @@ public class Z_EndUnits {
             outlineColor = UnityPal.darkerOutline;
 
             // PU132: antiCheatType = (h/600, h/200, h/600, h/100, 0.6, 7m, 8m, 35, 4)
+            reviveLimit = 5;  // 复活次数 (最强 End 单位, 上限 5)
             antiCheatType = new zzw.content.units.anticheat.EndCheatVars(
                 health / 600f, health / 200f, health / 600f, health / 100f, 0.6f, 7f * 60f, 8f * 60f, 35f, 4);
 
@@ -410,6 +411,7 @@ public class Z_EndUnits {
             outlineColor = UnityPal.darkerOutline;
 
             // PU132: antiCheatType = (8000, 16000, h/520, h/120, 0.6, 7m, 8m, 35, 4)
+            reviveLimit = 5;  // 复活次数 (最强 End 单位, 上限 5)
             antiCheatType = new zzw.content.units.anticheat.EndCheatVars(
                 8000f, 16000f, health / 520f, health / 120f, 0.6f, 7f * 60f, 8f * 60f, 35f, 4);
 

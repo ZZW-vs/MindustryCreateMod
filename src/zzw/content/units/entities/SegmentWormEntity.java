@@ -239,6 +239,18 @@ public class SegmentWormEntity extends UnitEntity implements zzw.content.Faction
     // ===== 防作弊系统 (移植自 PU132 EndWormUnit) =====
     /** 真实血量 (防止被外部代码直接修改 health 秒杀) */
     protected float lastHealth = 0f;
+    /** 已使用的复活次数 (达到 reviveLimit 后走正常死亡)。 */
+    protected int revivesUsed = 0;
+    /** "受伤过快"统计: 窗口起点与窗口内累计原始伤害。 */
+    protected float fastDamageStart = 0f, fastDamage = 0f;
+
+    /** 复活次数上限: 读取单位配置, 再受全局硬上限 5 限制。 */
+    protected int reviveLimit() {
+        if (type instanceof zzw.content.type.UnityUnitType u) {
+            return Math.min(u.reviveLimit, zzw.content.units.anticheat.EndCheatVars.MAX_REVIVES);
+        }
+        return 0;
+    }
     /** 抗性 (仅对单次超量伤害生效, 缓慢衰减, PU132 EndWormUnit.immunity) */
     protected float immunity = 1f;
     /** 流氓伤害抗性 (受击递增, 缓慢衰减, PU132 EndWormUnit.rogueDamageResist) */
@@ -429,7 +441,7 @@ public class SegmentWormEntity extends UnitEntity implements zzw.content.Faction
             // ★ End 虫: 台账独立, 只允许治疗抬高台账, 绝不允许显示血量把台账拉低。
             //   旧实现每帧 lastHealth = health, 台账会随原始伤害一起归零,
             //   导致 kill()/destroy() 时台账已不足 → 复活时有时无。
-            if (lastHealth > 100f && !zzw.util.ReviveSeal.isSealed(this)) {
+            if (lastHealth > 100f && revivesUsed < reviveLimit() && !zzw.util.ReviveSeal.isSealed(this)) {
                 if (health > lastHealth) lastHealth = health;
                 if (health <= 0f) health = lastHealth;
                 dead = false;
@@ -717,6 +729,23 @@ public class SegmentWormEntity extends UnitEntity implements zzw.content.Faction
         }
         if (Float.isNaN(amount) || Float.isInfinite(amount) || amount <= 0f) return;
 
+        // ★ 受伤过快判定 (记忆/台账介入): 1 秒窗口内累计原始伤害超过最大生命 15% 的部分,
+        //   按 50% 额外压入真实血量台账, 让爆发/持续高 DPS 更快耗尽"隐藏血量", 避免无脑硬复活。
+        if (Time.time - fastDamageStart > zzw.content.units.anticheat.EndCheatVars.FAST_DAMAGE_WINDOW) {
+            fastDamageStart = Time.time;
+            fastDamage = 0f;
+        }
+        fastDamage += amount;
+        float fastThreshold = maxHealth * zzw.content.units.anticheat.EndCheatVars.FAST_DAMAGE_RATIO;
+        if (fastDamage > fastThreshold) {
+            float fastExtra = Math.min(amount, fastDamage - fastThreshold)
+                    * zzw.content.units.anticheat.EndCheatVars.FAST_DAMAGE_LEDGER_PENALTY;
+            if (fastExtra > 0f) {
+                lastHealth = Math.max(lastHealth - fastExtra, 0f);
+                zzw.content.units.anticheat.EndHealthLedger.put(this, lastHealth);
+            }
+        }
+
         // ★ 单次上限 = max(2000, 剩余血量 5%)
         float max = Math.max(2000f, lastHealth / 20f);
         float trueDamage = Math.min(amount, max);
@@ -756,11 +785,13 @@ public class SegmentWormEntity extends UnitEntity implements zzw.content.Faction
     @Override
     public void kill() {
         if (endCheat) lastHealth = zzw.content.units.anticheat.EndHealthLedger.get(this, lastHealth);
-        if (endCheat && lastHealth > 100f && !zzw.util.ReviveSeal.isSealed(this)) {
+        if (endCheat && lastHealth > 100f && revivesUsed < reviveLimit() && !zzw.util.ReviveSeal.isSealed(this)) {
+            revivesUsed++;
             // 还有血量时拒绝死亡，但不再增加大量抗性
             immunity += 100f;
-            // ★ 复活表现 (PU132 EndComp): 血量回充 + 红色粒子蓄力特效
-            health = Math.max(health, lastHealth);
+            // ★ 复活表现 (PU132 EndComp): 只回充台账的 40% + 红色粒子蓄力特效
+            health = Math.max(health, lastHealth
+                    * zzw.content.units.anticheat.EndCheatVars.REVIVE_HEAL_RATIO);
             hitTime = 1f;
             zzw.content.units.effects.SpecialFx.endDeny.at(x, y, rotation, this);
             dead = false;
@@ -780,10 +811,12 @@ public class SegmentWormEntity extends UnitEntity implements zzw.content.Faction
     @Override
     public void destroy() {
         if (endCheat) lastHealth = zzw.content.units.anticheat.EndHealthLedger.get(this, lastHealth);
-        if (endCheat && lastHealth > 100f && !zzw.util.ReviveSeal.isSealed(this)) {
-            // ★ 复活表现 (PU132 EndComp): 血量回充 + 红色粒子蓄力特效
+        if (endCheat && lastHealth > 100f && revivesUsed < reviveLimit() && !zzw.util.ReviveSeal.isSealed(this)) {
+            revivesUsed++;
+            // ★ 复活表现 (PU132 EndComp): 只回充台账的 40% + 红色粒子蓄力特效
             immunity += 3500f;
-            health = Math.max(health, lastHealth);
+            health = Math.max(health, lastHealth
+                    * zzw.content.units.anticheat.EndCheatVars.REVIVE_HEAL_RATIO);
             dead = false;
             hitTime = 1f;
             zzw.content.units.effects.SpecialFx.endDeny.at(x, y, rotation, this);
@@ -1062,9 +1095,11 @@ public class SegmentWormEntity extends UnitEntity implements zzw.content.Faction
     @Override
     public void remove() {
         if (endCheat) lastHealth = zzw.content.units.anticheat.EndHealthLedger.get(this, lastHealth);
-        if (!zzw.util.ReviveSeal.isSealed(this) && lastHealth > 100f) {
+        if (!zzw.util.ReviveSeal.isSealed(this) && lastHealth > 100f && revivesUsed < reviveLimit()) {
+            revivesUsed++;
             immunity += 3500f;
-            health = Math.max(health, Math.min(lastHealth, maxHealth));
+            health = Math.max(health, Math.min(lastHealth, maxHealth)
+                    * zzw.content.units.anticheat.EndCheatVars.REVIVE_HEAL_RATIO);
             dead = false;
             return;
         }
@@ -1380,6 +1415,9 @@ public class SegmentWormEntity extends UnitEntity implements zzw.content.Faction
         if (type != null) texturePrefix = type.name + "-";
         // 读取 End 防作弊配置 (PU132: 只有 @FactionDef("end") 的多节虫有 Endc 组件)
         endCheat = type instanceof zzw.content.type.UnityUnitType u && u.antiCheatType != null;
+        revivesUsed = 0;
+        fastDamageStart = 0f;
+        fastDamage = 0f;
         if (endCheat) {
             lastHealth = type.health;
         }

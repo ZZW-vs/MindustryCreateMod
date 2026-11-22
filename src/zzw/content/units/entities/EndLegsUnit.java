@@ -69,6 +69,19 @@ public class EndLegsUnit extends UnitEntity implements zzw.content.Factionc {
         return new EndLegsUnit();
     }
 
+    /** 已使用的复活次数 (达到 reviveLimit 后走正常死亡)。 */
+    private int revivesUsed;
+    /** "受伤过快"统计: 窗口起点与窗口内累计原始伤害。 */
+    private float fastDamageStart, fastDamage;
+
+    /** 复活次数上限: 读取单位配置, 再受全局硬上限 5 限制。 */
+    private int reviveLimit() {
+        if (type instanceof zzw.content.type.UnityUnitType u) {
+            return Math.min(u.reviveLimit, zzw.content.units.anticheat.EndCheatVars.MAX_REVIVES);
+        }
+        return 0;
+    }
+
     @Override
     public void add() {
         if (added) return;
@@ -83,6 +96,9 @@ public class EndLegsUnit extends UnitEntity implements zzw.content.Factionc {
         zzw.content.units.anticheat.EndHealthLedger.put(this, trueHealth);
         trueTeam = team;
         invFrames = new float[ac != null ? ac.invincibilityArray : 4];
+        revivesUsed = 0;
+        fastDamageStart = 0f;
+        fastDamage = 0f;
         // 登记进全局防作弊管理器 (PU132 Unity.antiCheat.addUnit)
         zzw.util.AntiCheat.addUnit(this);
     }
@@ -98,7 +114,7 @@ public class EndLegsUnit extends UnitEntity implements zzw.content.Factionc {
         // ★ 血量双轨 (修正): 台账独立扣减, 不回充 health (同 EndGroundUnit)
         if (maxHealth < trueMaxHealth || Float.isNaN(maxHealth)) maxHealth = trueMaxHealth;
         trueMaxHealth = maxHealth;
-        if (trueHealth > 0f && !zzw.util.ReviveSeal.isSealed(this)) dead = false;
+        if (trueHealth > 0f && revivesUsed < reviveLimit() && !zzw.util.ReviveSeal.isSealed(this)) dead = false;
 
         // 抗性衰减 (按单位配置参数 resistDuration, 无配置回退 6*60)
         float resistDuration = ac != null ? ac.resistDuration : 6f * 60f;
@@ -166,7 +182,7 @@ public class EndLegsUnit extends UnitEntity implements zzw.content.Factionc {
         //   旧实现的 else 分支每帧 trueHealth = health, 台账会被原始伤害拖着一起归零,
         //   kill()/destroy() 时台账已经 <= 0 → 复活时有时无。
         //   秒杀/作弊把 health 清零时, 只要内部台账还有血就回溯 (只在异常时触发)。
-        if (trueHealth > 0f && !zzw.util.ReviveSeal.isSealed(this)) {
+        if (trueHealth > 0f && revivesUsed < reviveLimit() && !zzw.util.ReviveSeal.isSealed(this)) {
             if (this.health > trueHealth) this.health = Math.min(maxHealth, trueHealth);
             if (this.health <= 0f) this.health = Math.min(maxHealth, trueHealth);
             dead = false;
@@ -177,6 +193,24 @@ public class EndLegsUnit extends UnitEntity implements zzw.content.Factionc {
     public void damage(float amount) {
         // ★ 防作弊伤害处理 (PU132 EndComp.damage 结构 + 段身单位的"超量伤害才衰减"规则)
         if (Float.isNaN(amount) || Float.isInfinite(amount) || amount <= 0f) return;
+
+        // ★ 受伤过快判定 (记忆/台账介入): 1 秒窗口内累计原始伤害超过最大生命 15% 的部分,
+        //   按 50% 额外压入真实血量台账, 让爆发/持续高 DPS 更快耗尽"隐藏血量", 避免无脑硬复活。
+        if (Time.time - fastDamageStart > zzw.content.units.anticheat.EndCheatVars.FAST_DAMAGE_WINDOW) {
+            fastDamageStart = Time.time;
+            fastDamage = 0f;
+        }
+        fastDamage += amount;
+        float fastThreshold = trueMaxHealth * zzw.content.units.anticheat.EndCheatVars.FAST_DAMAGE_RATIO;
+        if (fastDamage > fastThreshold) {
+            float fastExtra = Math.min(amount, fastDamage - fastThreshold)
+                    * zzw.content.units.anticheat.EndCheatVars.FAST_DAMAGE_LEDGER_PENALTY;
+            if (fastExtra > 0f) {
+                trueHealth = Math.max(trueHealth - fastExtra, 0f);
+                zzw.content.units.anticheat.EndHealthLedger.put(this, trueHealth);
+            }
+        }
+
         // 无敌帧中, 拒绝伤害
         if (invFrames[invIndex] > 0f) return;
 
@@ -252,9 +286,14 @@ public class EndLegsUnit extends UnitEntity implements zzw.content.Factionc {
         // ★ 以哈希台账为准: 即使实体字段被秒杀/作弊清零, 内部还有血就回溯
         trueHealth = zzw.content.units.anticheat.EndHealthLedger.get(this, trueHealth);
         if (trueHealth > 0f) {
+            // ★ 复活次数上限: 用尽后不再复活 (最多 MAX_REVIVES 次)
+            if (revivesUsed >= reviveLimit()) return false;
+            revivesUsed++;
             aggression = 4f;
             aggressionTime = 10f * 60f;
-            health = Math.max(health, Math.min(trueHealth, trueMaxHealth));
+            // 复活: 只回充台账的 40% (弱化"加血条"观感)
+            health = Math.max(health, Math.min(trueHealth, trueMaxHealth)
+                    * zzw.content.units.anticheat.EndCheatVars.REVIVE_HEAL_RATIO);
             dead = false;
             if (trueTeam != null) team = trueTeam;
             hitTime = 1f;
@@ -281,8 +320,10 @@ public class EndLegsUnit extends UnitEntity implements zzw.content.Factionc {
         // ★ 以哈希台账为准, 不再要求当前 health > 0 (被秒杀清零时也要能回溯)
         float ledger = zzw.content.units.anticheat.EndHealthLedger.get(this, trueHealth);
         trueHealth = ledger;
-        if (!zzw.util.ReviveSeal.isSealed(this) && ledger > 0f) {
-            health = Math.max(health, Math.min(ledger, trueMaxHealth));
+        if (!zzw.util.ReviveSeal.isSealed(this) && ledger > 0f && revivesUsed < reviveLimit()) {
+            revivesUsed++;
+            health = Math.max(health, Math.min(ledger, trueMaxHealth)
+                    * zzw.content.units.anticheat.EndCheatVars.REVIVE_HEAL_RATIO);
             dead = false;
             if (trueTeam != null) team = trueTeam;
             return;

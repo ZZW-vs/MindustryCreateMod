@@ -48,6 +48,19 @@ public class ThalassophobiaUnit extends DecorationUnitEntity implements WaterMov
     /** 真实血量台账 (按防作弊上限缓慢扣减) */
     private float trueHealth;
 
+    /** 已使用的复活次数 (达到 reviveLimit 后走正常死亡)。 */
+    private int revivesUsed;
+    /** "受伤过快"统计: 窗口起点与窗口内累计原始伤害。 */
+    private float fastDamageStart, fastDamage;
+
+    /** 复活次数上限: 读取单位配置, 再受全局硬上限 5 限制。 */
+    private int reviveLimit() {
+        if (type instanceof zzw.content.type.UnityUnitType u) {
+            return Math.min(u.reviveLimit, zzw.content.units.anticheat.EndCheatVars.MAX_REVIVES);
+        }
+        return 0;
+    }
+
     /** 实体工厂 (UnitType.constructor 用) */
     public static ThalassophobiaUnit create() {
         return new ThalassophobiaUnit();
@@ -70,6 +83,9 @@ public class ThalassophobiaUnit extends DecorationUnitEntity implements WaterMov
             ac = u.antiCheatType;
         }
         trueHealth = type.health;
+        revivesUsed = 0;
+        fastDamageStart = 0f;
+        fastDamage = 0f;
     }
 
     /**
@@ -79,6 +95,22 @@ public class ThalassophobiaUnit extends DecorationUnitEntity implements WaterMov
      */
     @Override
     public void damage(float amount) {
+        if (Float.isNaN(amount) || Float.isInfinite(amount) || amount <= 0f) return;
+
+        // ★ 受伤过快判定 (记忆/台账介入): 1 秒窗口内累计原始伤害超过最大生命 15% 的部分,
+        //   按 50% 额外压入真实血量台账, 让爆发/持续高 DPS 更快耗尽"隐藏血量", 避免无脑硬复活。
+        if (Time.time - fastDamageStart > zzw.content.units.anticheat.EndCheatVars.FAST_DAMAGE_WINDOW) {
+            fastDamageStart = Time.time;
+            fastDamage = 0f;
+        }
+        fastDamage += amount;
+        float fastThreshold = maxHealth * zzw.content.units.anticheat.EndCheatVars.FAST_DAMAGE_RATIO;
+        if (fastDamage > fastThreshold) {
+            float fastExtra = Math.min(amount, fastDamage - fastThreshold)
+                    * zzw.content.units.anticheat.EndCheatVars.FAST_DAMAGE_LEDGER_PENALTY;
+            if (fastExtra > 0f) trueHealth = Math.max(trueHealth - fastExtra, 0f);
+        }
+
         if (ac != null) {
             trueHealth -= Math.min(amount, ac.maxDamageTaken);
             if (trueHealth < 0f) trueHealth = 0f;
@@ -98,7 +130,11 @@ public class ThalassophobiaUnit extends DecorationUnitEntity implements WaterMov
         // ★ 终局炮台封印: 被湮灭时不走任何复活逻辑
         if (zzw.util.ReviveSeal.isSealed(this)) return false;
         if (ac != null && trueHealth > 0f) {
-            health = Math.max(health, Math.min(trueHealth, maxHealth));
+            // ★ 复活次数上限: 用尽后不再复活 (最多 MAX_REVIVES 次)
+            if (revivesUsed >= reviveLimit()) return false;
+            revivesUsed++;
+            health = Math.max(health, Math.min(trueHealth, maxHealth)
+                    * zzw.content.units.anticheat.EndCheatVars.REVIVE_HEAL_RATIO);
             hitTime = 1f;
             zzw.content.units.effects.SpecialFx.endDeny.at(x, y, rotation, this);
             return true;

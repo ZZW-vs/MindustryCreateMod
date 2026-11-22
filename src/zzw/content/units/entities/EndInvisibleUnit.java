@@ -41,6 +41,19 @@ public class EndInvisibleUnit extends UnitEntity implements zzw.content.Factionc
     /** 单位配置的防作弊参数集 (add() 时从 UnitType.antiCheatType 读取) */
     private zzw.content.units.anticheat.EndCheatVars ac;
 
+    /** 已使用的复活次数 (达到 reviveLimit 后走正常死亡)。 */
+    private int revivesUsed;
+    /** "受伤过快"统计: 窗口起点与窗口内累计原始伤害。 */
+    private float fastDamageStart, fastDamage;
+
+    /** 复活次数上限: 读取单位配置, 再受全局硬上限 5 限制。 */
+    private int reviveLimit() {
+        if (type instanceof zzw.content.type.UnityUnitType u) {
+            return Math.min(u.reviveLimit, zzw.content.units.anticheat.EndCheatVars.MAX_REVIVES);
+        }
+        return 0;
+    }
+
     /** 派系 (FactionMeta 按单位类型登记, End 单位统一为 end 派系)。 */
     @Override
     public zzw.content.Faction faction(){
@@ -66,6 +79,9 @@ public class EndInvisibleUnit extends UnitEntity implements zzw.content.Factionc
         }
         // 所属阵营 (PU132 trueTeam): 被作弊改队后, 台账充足时强制恢复
         trueTeam = team;
+        revivesUsed = 0;
+        fastDamageStart = 0f;
+        fastDamage = 0f;
         // 登记进全局防作弊管理器 (PU132 Unity.antiCheat.addUnit)
         zzw.util.AntiCheat.addUnit(this);
     }
@@ -83,9 +99,13 @@ public class EndInvisibleUnit extends UnitEntity implements zzw.content.Factionc
         super.update();
 
         // ★ 台账 > 0 时不允许停留在死亡/零血状态 (秒杀回溯; 只在异常时触发, 非每帧回溯)
-        if (antiCheat.lastHealth > 0f && !zzw.util.ReviveSeal.isSealed(this)) {
+        if (antiCheat.lastHealth > 0f && revivesUsed < reviveLimit() && !zzw.util.ReviveSeal.isSealed(this)) {
             if (health > antiCheat.lastHealth) health = Math.min(maxHealth, antiCheat.lastHealth);
-            if (health <= 0f) health = Math.min(maxHealth, antiCheat.lastHealth);
+            if (health <= 0f) {
+                // 被异常清零时的回溯同样计入复活次数
+                revivesUsed++;
+                health = Math.min(maxHealth, antiCheat.lastHealth);
+            }
             dead = false;
         }
 
@@ -159,6 +179,24 @@ public class EndInvisibleUnit extends UnitEntity implements zzw.content.Factionc
     @Override
     public void damage(float amount) {
         if (Float.isNaN(amount) || Float.isInfinite(amount) || amount <= 0f) return;
+
+        // ★ 受伤过快判定 (记忆/台账介入): 1 秒窗口内累计原始伤害超过最大生命 15% 的部分,
+        //   按 50% 额外压入真实血量台账, 让爆发/持续高 DPS 更快耗尽"隐藏血量", 避免无脑硬复活。
+        if (Time.time - fastDamageStart > zzw.content.units.anticheat.EndCheatVars.FAST_DAMAGE_WINDOW) {
+            fastDamageStart = Time.time;
+            fastDamage = 0f;
+        }
+        fastDamage += amount;
+        float fastThreshold = maxHealth * zzw.content.units.anticheat.EndCheatVars.FAST_DAMAGE_RATIO;
+        if (fastDamage > fastThreshold) {
+            float fastExtra = Math.min(amount, fastDamage - fastThreshold)
+                    * zzw.content.units.anticheat.EndCheatVars.FAST_DAMAGE_LEDGER_PENALTY;
+            if (fastExtra > 0f) {
+                antiCheat.lastHealth = Math.max(antiCheat.lastHealth - fastExtra, 0f);
+                zzw.content.units.anticheat.EndHealthLedger.put(this, antiCheat.lastHealth);
+            }
+        }
+
         if (invFrame < 15f) return;
 
         // ★ 单次伤害上限: 优先用 UnitType 上配置的 antiCheatType。
@@ -198,11 +236,15 @@ public class EndInvisibleUnit extends UnitEntity implements zzw.content.Factionc
         // ★ 以哈希台账为准: 即使实体字段被秒杀/作弊清零, 内部还有血就回溯
         antiCheat.lastHealth = zzw.content.units.anticheat.EndHealthLedger.get(this, antiCheat.lastHealth);
         if (antiCheat.lastHealth > 0f) {
+            // ★ 复活次数上限: 用尽后不再复活 (最多 MAX_REVIVES 次)
+            if (revivesUsed >= reviveLimit()) return false;
+            revivesUsed++;
             // 狂暴: 4 倍速 + 持续 10 秒 (PU132 aggression=4, aggressionTime=10*60)
             aggression = 4f;
             aggressionTime = 10f * 60f;
-            // 复活: 血量回充到台账值
-            health = Math.max(health, Math.min(antiCheat.lastHealth, maxHealth));
+            // 复活: 只回充台账的 40% (弱化"加血条"观感)
+            health = Math.max(health, Math.min(antiCheat.lastHealth, maxHealth)
+                    * zzw.content.units.anticheat.EndCheatVars.REVIVE_HEAL_RATIO);
             dead = false;
             if (trueTeam != null) team = trueTeam;
             hitTime = 1f;
@@ -238,8 +280,10 @@ public class EndInvisibleUnit extends UnitEntity implements zzw.content.Factionc
         // ★ 以哈希台账为准, 不再要求当前 health > 0
         float ledger = zzw.content.units.anticheat.EndHealthLedger.get(this, antiCheat.lastHealth);
         antiCheat.lastHealth = ledger;
-        if (!zzw.util.ReviveSeal.isSealed(this) && ledger > 0f) {
-            health = Math.max(health, Math.min(ledger, maxHealth));
+        if (!zzw.util.ReviveSeal.isSealed(this) && ledger > 0f && revivesUsed < reviveLimit()) {
+            revivesUsed++;
+            health = Math.max(health, Math.min(ledger, maxHealth)
+                    * zzw.content.units.anticheat.EndCheatVars.REVIVE_HEAL_RATIO);
             dead = false;
             if (trueTeam != null) team = trueTeam;
             return;

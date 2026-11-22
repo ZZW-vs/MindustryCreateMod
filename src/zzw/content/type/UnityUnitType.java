@@ -120,6 +120,14 @@ public class UnityUnitType extends UnitType{
      */
     public zzw.content.units.anticheat.EndCheatVars antiCheatType;
 
+    /**
+     * End 防作弊复活次数上限 (用户要求最多 5 次)。
+     *
+     * <p>由实体在 add() 时读取, 实际使用时会再与 {@link EndCheatVars#MAX_REVIVES} 取小;
+     * 0 表示不复活。各 End 单位按强度分别配置。</p>
+     */
+    public int reviveLimit = 0;
+
     public UnityUnitType(String name){
         super(name);
         outlines = false;
