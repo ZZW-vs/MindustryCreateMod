@@ -309,6 +309,39 @@ public class HitEffect {
     });
 
     /**
+     * EMP 弹命中爆炸 (50f) — PU132 HitFx.empHit。
+     *
+     * <p>淡绿色实心闪光 + 半径 70 的淡绿圆环 + 10 枚外扩尖刺 + 白色核心。
+     * 仅 cygnus 的 EMP 弹使用; 不复用 {@code CombatFx.empSpark}, 避免改动其它单位
+     * 已统一的命中特效。</p>
+     */
+    public static final Effect empHit = new Effect(50f, 100f, e -> {
+        float rad = 70f;
+        e.scaled(7f, b -> {
+            Draw.color(mindustry.graphics.Pal.heal);
+            Draw.alpha(b.fout());
+            Fill.circle(e.x, e.y, rad);
+        });
+
+        Draw.color(mindustry.graphics.Pal.heal);
+        Lines.stroke(e.fout() * 3f);
+        Lines.circle(e.x, e.y, rad);
+
+        int points = 10;
+        float offset = Mathf.randomSeed(e.id, 360f);
+        for(int i = 0; i < points; i++){
+            float angle = i * 360f / points + offset;
+            mindustry.graphics.Drawf.tri(e.x + Angles.trnsx(angle, rad), e.y + Angles.trnsy(angle, rad),
+                6f, 50f * e.fout(), angle);
+        }
+
+        Fill.circle(e.x, e.y, 12f * e.fout());
+        Draw.color();
+        Fill.circle(e.x, e.y, 6f * e.fout());
+        mindustry.graphics.Drawf.light(e.x, e.y, rad * 1.6f, mindustry.graphics.Pal.heal, e.fout());
+    });
+
+    /**
      * 超大命中爆炸 (70f) — PU132 HitFx.hitExplosionMassive (L459-478)。
      * 白色扩散冲击环 + 灰色烟团 + 橙色放射线, fin 迫击炮 / 大口径弹药专用。
      */

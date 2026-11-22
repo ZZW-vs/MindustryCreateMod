@@ -3165,7 +3165,7 @@ public class Z_Units {
                     radius = 90f;              // ★ 攻击优化: 70f → 90f
                     splashDamage = 20f;        // ★ 攻击优化: 5f → 20f
                     splashDamageRadius = 90f;  // ★ 攻击优化: 70f → 90f
-                    hitEffect = CombatFx.empSpark;
+                    hitEffect = zzw.content.units.effects.HitEffect.empHit;   // ★ 还原 PU132 原版淡绿圆环爆炸
                     shootEffect = CombatFx.empSpark;
                     smokeEffect = CombatFx.muzzleFlashSmokeBig;
                     backColor = hitColor = mindustry.graphics.Pal.heal;

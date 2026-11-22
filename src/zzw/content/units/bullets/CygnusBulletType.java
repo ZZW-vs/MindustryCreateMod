@@ -25,8 +25,8 @@ public class CygnusBulletType extends EmpBulletType {
     public float size = 8f;
     public float allyStatusDuration = 60f * 2f;
     public StatusEffect allyStatus = StatusEffects.overclock;
-    /** ★ 内层光环颜色: 由纯白改为淡绿, 与治疗绿弹体保持一致 */
-    public Color ringColor = mindustry.graphics.Pal.heal.cpy().lerp(Color.white, 0.45f);
+    /** ★ 内层光环颜色: 按 PU132 原版保持纯白, 与治疗绿外层形成层次 */
+    public Color ringColor = Color.white;
 
     public CygnusBulletType() {
         super();

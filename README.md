@@ -692,6 +692,9 @@
 - 新增螺旋石油钻井（oil-derrick）：扭矩驱动的石油抽取器（`SolidPump`，`result=Liquids.oil`、`attribute=Attribute.oil`，需建在油层上），绘制为螺旋钻杆样式（类 `zzw.content.mechanics.torque.blocks.production.OilDerrick`）
 
 ## 更新日志
+- **cygnus 视觉还原**（仅回退 cygnus，不影响其它单位已统一的特效）：
+  - **EMP 弹本体**：内层 `shiningCircle` 光环由淡绿改回 PU132 原版的纯白，外层治疗绿尖刺环不变，恢复弹体原本的绿/白层次观感
+  - **EMP 弹命中爆炸**：`hitEffect` 由 12 帧的 `CombatFx.empSpark` 改为新增的 `HitEffect.empHit`——还原 PU132 原版 50 帧淡绿色大圆环（半径 70）+ 中心淡绿闪光 + 10 枚外扩尖刺 + 白色核心 + 淡绿光源；`shootEffect`/`smokeEffect` 保持现有统一特效不动
 - **激光单位发射音效**：
   - **cygnus**：激光武器改用原版 T5 corvus 的 `shootCorvus` 音效，用 atempo 拉长至约 4.15 秒（音高不变，保留原有能量/低频质感），`shootSoundVolume = 0.65`，避免盖过其他单位
   - **mantle / aphelion**：激光武器改用 blue-eclipse 激光音效（`advance/eclipse-beam`）的降调加低频版——音高下调 16%（asetrate 降调 + atempo 还原时长）、110Hz 低架 +3.5dB，并在文件内压低音量供持续激光循环播放，保持低沉但不浑浊
