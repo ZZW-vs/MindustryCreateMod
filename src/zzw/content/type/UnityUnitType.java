@@ -97,6 +97,22 @@ public class UnityUnitType extends UnitType{
     public int maxSouls = 0;
 
     /**
+     * 灵魂阶级 (T1=1 ... T7=7), 0 = 不参与死亡拆魂。
+     *
+     * <p>魂系单位死亡时按此阶级决定生成多少个 {@code monolith-soul}:
+     * T1/T2 → 1, T3/T4 → 2, T5 → 3, T6 → 4, T7 → 5 (见 {@link #deathSouls()})。</p>
+     */
+    public int soulTier = 0;
+
+    /** 死亡时拆出的灵魂单位数量 (按 {@link #soulTier} 换算)。 */
+    public int deathSouls(){
+        if(soulTier <= 0) return 0;
+        if(soulTier <= 2) return 1;
+        if(soulTier <= 4) return 2;
+        return soulTier - 2;
+    }
+
+    /**
      * End 阵营防作弊参数集 (PU132 UnitType.antiCheatType)。
      *
      * <p>由 EndGroundUnit / EndInvisibleUnit 等防作弊实体在 add() 时读取;

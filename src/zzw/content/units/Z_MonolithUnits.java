@@ -314,6 +314,7 @@ public class Z_MonolithUnits{
             armor = 11f;  // ★ 加强 (原 10f)
             singleTarget = true;
             maxSouls = 4;
+            soulTier = 2;  // T2: 死亡拆出 1 个 monolith-soul
 
             canBoost = true;
             boostMultiplier = 2.5f;
@@ -445,6 +446,7 @@ public class Z_MonolithUnits{
             armor = 16f;  // ★ 加强 (原 15f)
             mechFrontSway = 0.55f;
             maxSouls = 5;
+            soulTier = 3;  // T3: 死亡拆出 2 个 monolith-soul
 
             canBoost = true;
             boostMultiplier = 2.5f;
@@ -692,6 +694,7 @@ public class Z_MonolithUnits{
             armor = 26f;  // ★ 加强 (原 23f → 25f → 26f)
             // TODO: PU132 commandLimit = 8 (指挥半径系统) — v155.4 无该字段
             maxSouls = 7;
+            soulTier = 4;  // T4: 死亡拆出 2 个 monolith-soul
 
             allowLegStep = hovering = true;
             // TODO: PU132 visualElevation = 0.2f — v155.4 无该字段
@@ -759,6 +762,7 @@ public class Z_MonolithUnits{
             armor = 42f;  // ★ 低阶曲线微调: 40f → 42f
             // TODO: PU132 commandLimit = 8 — v155.4 无该字段
             maxSouls = 9;
+            soulTier = 5;  // T5: 死亡拆出 3 个 monolith-soul
 
             // TODO: PU132 visualElevation = 0.3f — v155.4 无该字段
             allowLegStep = hovering = true;
@@ -850,6 +854,7 @@ public class Z_MonolithUnits{
             armor = 66f;  // ★ 新基准: 保留巨构高护甲特色 (原版 T5 的 3.7 倍)
             // TODO: PU132 commandLimit = 8 — v155.4 无该字段
             maxSouls = 12;
+            soulTier = 6;  // T6: 死亡拆出 4 个 monolith-soul
 
             // TODO: PU132 visualElevation = 0.5f — v155.4 无该字段
             allowLegStep = hovering = true;
@@ -919,6 +924,7 @@ public class Z_MonolithUnits{
             armor = 116f;  // ★ 新基准: 保留巨构高护甲特色 (原版 T5 的 6.4 倍)
             // TODO: PU132 commandLimit = 8 — v155.4 无该字段
             maxSouls = 15;
+            soulTier = 7;  // T7: 死亡拆出 5 个 monolith-soul
 
             // TODO: PU132 visualElevation = 0.7f — v155.4 无该字段
             allowLegStep = hovering = true;
@@ -1186,6 +1192,7 @@ public class Z_MonolithUnits{
             lowAltitude = true;
             flying = true;
             maxSouls = 4; // 灵魂容量 (灵魂系统字段, 随灵魂系统生效)
+            soulTier = 2; // T2: 死亡拆出 1 个 monolith-soul
 
             hitSize = 16f;
             speed = 4.2f;
@@ -1350,6 +1357,7 @@ public class Z_MonolithUnits{
             lowAltitude = true;
             flying = true;
             maxSouls = 5; // 灵魂容量 (灵魂系统字段, 随灵魂系统生效)
+            soulTier = 3; // T3: 死亡拆出 2 个 monolith-soul
 
             strafePenalty = 0.1f;
             hitSize = 36f;

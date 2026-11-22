@@ -82,11 +82,17 @@ public class SoulDecorationUnit extends DecorationUnitEntity implements Soul{
 
     @Override
     public void killed(){
-        // 步骤 3: 死亡拆魂
+        // 步骤 3: 死亡拆魂 (数量按阶级: T1/T2=1, T3/T4=2, T5=3, T6=4, T7=5)
         if(Vars.net.server() || !Vars.net.active()){
-            spreadSouls();
+            spreadSouls(type instanceof UnityUnitType u ? u.deathSouls() : souls());
         }
         super.killed();
+    }
+
+    @Override
+    public void draw(){
+        super.draw();
+        Soul.drawSoulBar(this);
     }
 
     @Override

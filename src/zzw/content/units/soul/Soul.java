@@ -1,10 +1,16 @@
 package zzw.content.units.soul;
 
+import arc.graphics.Color;
+import arc.graphics.g2d.Draw;
+import arc.graphics.g2d.Fill;
 import arc.math.Mathf;
+import arc.util.Align;
 import arc.util.Tmp;
 import mindustry.game.Team;
 import mindustry.gen.BlockUnitc;
 import mindustry.gen.Unit;
+import mindustry.ui.Fonts;
+import zzw.content.graphics.UnityPal;
 import zzw.content.units.entities.MonolithSoulUnit;
 
 /**
@@ -92,6 +98,15 @@ public interface Soul {
     }
 
     /**
+     * 单个灵魂被该单位吸收时恢复的生命值 (PU132 注释中的 healAmount 方案)。
+     *
+     * <p>用户指定: 每个 monolith-soul 为单位恢复 10% 最大生命, 单次最低 1000。</p>
+     */
+    default float soulHealAmount() {
+        return Math.max(maxHealth() * 0.1f, 1000f);
+    }
+
+    /**
      * 死亡时把体内灵魂拆解为灵魂单位 (PU132 Soul.spreadSouls)。
      *
      * <p>每个灵魂从本体中心随机方向偏移出生，再沿圆周均匀方向赋予初速度，
@@ -99,7 +114,17 @@ public interface Soul {
      * 该方法应在服务端调用 (单机即 {@code !net.active()} 或 {@code net.server()})。</p>
      */
     default void spreadSouls() {
-        int n = souls();
+        spreadSouls(souls());
+    }
+
+    /**
+     * 按指定数量拆出灵魂单位。
+     *
+     * <p>魂系单位死亡时改用本重载: 数量由阶级决定 (T1/T2=1, T3/T4=2, T5=3,
+     * T6=4, T7=5), 与体内灵魂计数无关。</p>
+     */
+    default void spreadSouls(int count) {
+        int n = count;
         if (n <= 0) return;
 
         boolean transferred = false;
@@ -127,6 +152,33 @@ public interface Soul {
      * (PU132 Soul.apply)。返回值为"是否已转移过操控权"。
      */
     boolean apply(MonolithSoulUnit soul, int index, boolean transferred);
+
+    /**
+     * 单位头顶的魂数量条 (与灵魂炮台/工厂面板的 {@code bar.souls} 同一套表现:
+     * 灵魂题材色进度条 + 数值标签)。
+     *
+     * <p>由 Soul 实体在 {@code draw()} 末尾调用, 只对 {@code maxSouls > 0} 的单位绘制。</p>
+     */
+    static void drawSoulBar(Unit unit) {
+        Soul soul = toSoul(unit);
+        if (soul == null || soul.maxSouls() <= 0) return;
+
+        float width = Math.max(unit.hitSize, 20f), height = 3.5f;
+        float y = unit.y + unit.hitSize * 0.5f + 6f;
+        float z = Draw.z();
+
+        Draw.z(mindustry.graphics.Layer.effect + 1f);
+        Draw.color(Color.black, 0.65f);
+        Fill.rect(unit.x, y, width, height);
+
+        Draw.color(UnityPal.monolith);
+        float fill = width * Mathf.clamp(soul.soulf());
+        Fill.rect(unit.x - width * 0.5f + fill * 0.5f, y, fill, height);
+        Draw.reset();
+
+        Fonts.outline.draw(soul.souls() + "/" + soul.maxSouls(), unit.x, y + height + 3f, Align.center);
+        Draw.z(z);
+    }
 
     /** 判断任意对象 (含控制器/BlockUnitc) 是否为灵魂持有者。 */
     static boolean isSoul(Object e) {

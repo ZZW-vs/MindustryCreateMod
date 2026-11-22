@@ -122,9 +122,12 @@ public class MonolithSoulUnit extends UnitEntity implements zzw.content.Factionc
         return forms.any();
     }
 
-    /** 地块数量对血量的影响系数 (PU132 MonolithSoulComp.lifeDelta)。 */
+    /** 地块数量对血量的影响系数 (PU132 MonolithSoulComp.lifeDelta)。
+     *
+     * <p>★ 用户调整: 流失速度减半 (0.18 → 0.09), 让灵魂单位有更充裕的时间
+     * 自动寻找魂系单位。</p> */
     public float lifeDelta() {
-        return (forms.size - 2.5f) * 0.18f;
+        return (forms.size - 2.5f) * 0.09f;
     }
 
     @Override
@@ -138,7 +141,7 @@ public class MonolithSoulUnit extends UnitEntity implements zzw.content.Factionc
     public void update() {
         if (!corporeal) {
             // 血量随时间变化：收集地块回血、join 时缓慢流失、否则按 lifeDelta
-            health = Mathf.clamp(health + (joining() ? -0.2f : lifeDelta()) * Time.delta, 0f, maxHealth);
+            health = Mathf.clamp(health + (joining() ? -0.1f : lifeDelta()) * Time.delta, 0f, maxHealth);
 
             // joinTime 朝目标推进；失去目标则回落
             joinTime = (joinTarget == null || !joinTarget.isAdded())
@@ -178,12 +181,22 @@ public class MonolithSoulUnit extends UnitEntity implements zzw.content.Factionc
 
         if (isValid()) {
             if (Mathf.equal(joinTime, 1f) && joinValid(joinTarget)) {
+                Teamc target = joinTarget;
+                Soul vessel = Soul.toSoul(target);
+
                 // 加入成功：死亡并把灵魂注入容器
                 kill();
                 MonolithFx.monolithSoulJoin.at(x, y, ringRotation, this);
 
-                LineFx.monolithSoulTransfer.at(x, y, rotation, joinTarget);
-                Time.run(LineFx.monolithSoulTransfer.lifetime, Soul.toSoul(joinTarget)::join);
+                LineFx.monolithSoulTransfer.at(x, y, rotation, target);
+                Time.run(LineFx.monolithSoulTransfer.lifetime, () -> {
+                    if (vessel == null || vessel.acceptSoul(1) < 1) return;
+                    // 被魂系单位吸收: 每个魂恢复 10% 最大生命, 单次最低 1000
+                    if (target instanceof mindustry.gen.Unit u && u.isValid()) {
+                        u.heal(vessel.soulHealAmount());
+                    }
+                    vessel.join();
+                });
             } else if (!corporeal && Mathf.equal(health, maxHealth)) {
                 // 收集足够地块回满血 → 实体化
                 corporeal = true;
