@@ -1,27 +1,31 @@
 package zzw.content.units.flame.unit;
 
-import mindustry.gen.Unit;
+import mindustry.gen.LegsUnit;
 import zzw.content.units.ZEntityRegister;
-import zzw.content.units.entities.EndGroundUnit;
 
 /**
  * 消沉单位实体 (移植自 flame.unit.DespondencyUnit)。
  *
- * <p>★ 与 FO 原版的关键差异 (按项目约定):</p>
+ * <p>★ 按 FO 原版机制:</p>
  * <ul>
- *   <li>FO 自带 {@code trueHealth} 台账与 {@code rawDamage} 防作弊；
- *       本项目改为继承 {@link EndGroundUnit}，复用 EndHealthLedger，
- *       避免两套台账叠加导致实际血量翻倍;</li>
- *   <li>FO {@code serialize=false} 不存档；本项目保持默认序列化，单位可正常存读档;</li>
- *   <li>FO {@code solidity()==null} 穿墙；本项目不覆写，保持正常碰撞;</li>
- *   <li>FO 在 updateValues 中强制 {@code elevation=1f}；这里不强制，
- *       仅保留 UnitType 的 lowAltitude/hovering 配置，避免与地面/甲板逻辑冲突。</li>
+ *   <li>单条血量 + 200 甲结算，不接入 End 的隐藏血量台账/防作弊伤害曲线；</li>
+ *   <li>不复活（无 death deny、无 revivesUsed）；</li>
+ *   <li>保留正常存档与正常碰撞，不穿墙。</li>
  * </ul>
+ *
+ * <p>★ 与 FO 的差异: FO 的 {@code serialize=false} 不存档，本项目保持默认序列化；
+ * 不强制 {@code elevation=1f}，仅保留 UnitType 的 lowAltitude/hovering 配置。</p>
  */
-public class DespondencyUnit extends EndGroundUnit{
+public class DespondencyUnit extends LegsUnit implements zzw.content.Factionc{
 
     public static DespondencyUnit create(){
         return new DespondencyUnit();
+    }
+
+    /** 派系 (FactionMeta 按单位类型登记, End 单位统一为 end 派系)。 */
+    @Override
+    public zzw.content.Faction faction(){
+        return zzw.content.FactionMeta.map(type);
     }
 
     @Override

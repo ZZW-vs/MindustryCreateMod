@@ -671,19 +671,13 @@ public class Z_EndUnits {
      * despondency 消沉 —— End 系列最强单位 (FlameOut 完整移植)。
      *
      * <p>数值按 FO 原值: 1750 万血 / 200 甲 / 速度 2 / hitSize 217。
-     * 按项目约定继承 EndGroundUnit，复用 EndHealthLedger 与复活体系，
-     * 复活次数 5 次。</p>
-     *
-     * <p>防作弊参数按 FO 的 "每击上限 health/220" 语义换算：
-     * damageThreshold=health/600, maxDamageThreshold=health/200,
-     * maxDamageTaken=health/220, resistStart=health/100。</p>
+     * 按 FO 原版机制使用单条血量 + 护甲结算，不接入 End 隐藏血量台账，
+     * 也不走复活路径。</p>
      */
     private static void despondency(){
         despondency = new DespondencyUnitType("despondency"){{
-            reviveLimit = 5;  // 最强 End 单位, 复活上限 5
-            antiCheatType = new zzw.content.units.anticheat.EndCheatVars(
-                    health / 600f, health / 200f, health / 220f, health / 100f,
-                    0.6f, 7f * 60f, 8f * 60f, 35f, 4);
+            reviveLimit = 0;  // FO 原版机制: 不复活
+            // 不配置 antiCheatType: 显示器实体继承 LegsUnit, 走原版单条血量结算
         }};
     }
 
