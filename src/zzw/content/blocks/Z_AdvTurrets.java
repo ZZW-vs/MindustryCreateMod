@@ -686,8 +686,8 @@ public class Z_AdvTurrets {
                 Z_Items.superAlloy, 2300, Z_Items.terminum, 1600, Z_Items.terminaAlloy, 800, Z_Items.terminationFragment, 100));
             coolantMultiplier = 0.6f;
             hasItems = true;
-            // 电力连接范围: 在原 26 格基础上加大 30 格 (仅本方块)
-            linkRange = 56f;
+            // 电力连接范围: 26 → 56 → 76 格 (仅本方块)
+            linkRange = 76f;
             // ★ 32 倍装填的配套: 弹药缓冲同比放大, 保证一箱弹药的总射击时长不缩水
             itemCapacity = 320;
             loopSoundVolume = 0.2f;
