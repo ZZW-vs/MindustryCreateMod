@@ -164,24 +164,7 @@ public class EndGroundUnit extends LegsUnit implements zzw.content.Factionc {
     @Override
     public void damage(float amount) {
         if (Float.isNaN(amount) || Float.isInfinite(amount) || amount <= 0f) return;
-
-        // ★ 受伤过快判定 (记忆/台账介入): 1 秒窗口内累计原始伤害超过最大生命 15% 的部分,
-        //   按 50% 额外压入真实血量台账, 让爆发/持续高 DPS 更快耗尽"隐藏血量",
-        //   避免被无脑硬复活拖住; 慢速磨血不受影响。
-        if (Time.time - fastDamageStart > zzw.content.units.anticheat.EndCheatVars.FAST_DAMAGE_WINDOW) {
-            fastDamageStart = Time.time;
-            fastDamage = 0f;
-        }
-        fastDamage += amount;
-        float fastThreshold = trueMaxHealth * zzw.content.units.anticheat.EndCheatVars.FAST_DAMAGE_RATIO;
-        if (fastDamage > fastThreshold) {
-            float fastExtra = Math.min(amount, fastDamage - fastThreshold)
-                    * zzw.content.units.anticheat.EndCheatVars.FAST_DAMAGE_LEDGER_PENALTY;
-            if (fastExtra > 0f) {
-                trueHealth = Math.max(trueHealth - fastExtra, 0f);
-                zzw.content.units.anticheat.EndHealthLedger.put(this, trueHealth);
-            }
-        }
+        float incoming = amount;
 
         // 读取防作弊参数 (未配置时用 PU132 voidVessel/chronos 默认比例)
         float damageThreshold = ac != null ? ac.damageThreshold : trueMaxHealth / 20f;
@@ -228,6 +211,24 @@ public class EndGroundUnit extends LegsUnit implements zzw.content.Factionc {
         } else {
             // 无敌帧中, 拒绝伤害
             return;
+        }
+
+        // ★ 受伤过快判定 (记忆/台账介入): 1 秒窗口内累计"实际命中"的原始伤害超过
+        //   最大生命 15% 的部分, 按 50% 额外压入真实血量台账, 让爆发/持续高 DPS
+        //   更快耗尽"隐藏血量", 避免被无脑硬复活拖住; 慢速磨血不受影响。
+        if (Time.time - fastDamageStart > zzw.content.units.anticheat.EndCheatVars.FAST_DAMAGE_WINDOW) {
+            fastDamageStart = Time.time;
+            fastDamage = 0f;
+        }
+        fastDamage += incoming;
+        float fastThreshold = trueMaxHealth * zzw.content.units.anticheat.EndCheatVars.FAST_DAMAGE_RATIO;
+        if (fastDamage > fastThreshold) {
+            float fastExtra = Math.min(incoming, fastDamage - fastThreshold)
+                    * zzw.content.units.anticheat.EndCheatVars.FAST_DAMAGE_LEDGER_PENALTY;
+            if (fastExtra > 0f) {
+                trueHealth = Math.max(trueHealth - fastExtra, 0f);
+                zzw.content.units.anticheat.EndHealthLedger.put(this, trueHealth);
+            }
         }
 
         // 台账扣减 (按防作弊上限/曲线/抗性后的金额)

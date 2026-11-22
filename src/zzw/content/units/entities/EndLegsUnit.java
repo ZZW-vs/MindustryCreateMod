@@ -193,26 +193,28 @@ public class EndLegsUnit extends UnitEntity implements zzw.content.Factionc {
     public void damage(float amount) {
         // ★ 防作弊伤害处理 (PU132 EndComp.damage 结构 + 段身单位的"超量伤害才衰减"规则)
         if (Float.isNaN(amount) || Float.isInfinite(amount) || amount <= 0f) return;
+        float incoming = amount;
 
-        // ★ 受伤过快判定 (记忆/台账介入): 1 秒窗口内累计原始伤害超过最大生命 15% 的部分,
-        //   按 50% 额外压入真实血量台账, 让爆发/持续高 DPS 更快耗尽"隐藏血量", 避免无脑硬复活。
+        // 无敌帧中, 拒绝伤害
+        if (invFrames[invIndex] > 0f) return;
+
+        // ★ 受伤过快判定 (记忆/台账介入): 1 秒窗口内累计"实际命中"的原始伤害超过
+        //   最大生命 15% 的部分, 按 50% 额外压入真实血量台账, 让爆发/持续高 DPS
+        //   更快耗尽"隐藏血量", 避免被无脑硬复活拖住; 慢速磨血不受影响。
         if (Time.time - fastDamageStart > zzw.content.units.anticheat.EndCheatVars.FAST_DAMAGE_WINDOW) {
             fastDamageStart = Time.time;
             fastDamage = 0f;
         }
-        fastDamage += amount;
+        fastDamage += incoming;
         float fastThreshold = trueMaxHealth * zzw.content.units.anticheat.EndCheatVars.FAST_DAMAGE_RATIO;
         if (fastDamage > fastThreshold) {
-            float fastExtra = Math.min(amount, fastDamage - fastThreshold)
+            float fastExtra = Math.min(incoming, fastDamage - fastThreshold)
                     * zzw.content.units.anticheat.EndCheatVars.FAST_DAMAGE_LEDGER_PENALTY;
             if (fastExtra > 0f) {
                 trueHealth = Math.max(trueHealth - fastExtra, 0f);
                 zzw.content.units.anticheat.EndHealthLedger.put(this, trueHealth);
             }
         }
-
-        // 无敌帧中, 拒绝伤害
-        if (invFrames[invIndex] > 0f) return;
 
         float resistScl = ac != null ? ac.resistScl : 0.2f;
         float invincibilityDuration = ac != null ? ac.invincibilityDuration : 15f;
