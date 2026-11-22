@@ -190,8 +190,8 @@ public class EndGameTurret extends PowerTurret {
         outlineIcon = false;
         noUpdateDisabled = false;
         hasItems = true;
-        // ★ 32 倍装填下每轮齐射仍消耗 2 个 terminum: 原版 10 的缓冲只够约 1 秒,
-        //   这里按 32 倍同比放大 (10 × 32) 让一箱弹药的总射击时长与原版一致。
+        // ★ 每轮齐射消耗 2 个 terminum; 装填按原版 300 tick (5 秒) 一轮,
+        //   320 的缓冲可支撑 160 轮齐射, 保证长时间不断火。
         itemCapacity = 320;
         loopSound = Z_Sounds.endgameActive;
         loopSoundVolume = 0.2f;
@@ -201,6 +201,12 @@ public class EndGameTurret extends PowerTurret {
         //   本炮台不使用普通子弹, 伤害全部由眼睛光束 / 齐射结算,
         //   这里必须给 shootType 一个非 null 值 —— 否则 PowerTurret.peekAmmo()
         //   返回 null, 会在 ammoReloadMultiplier() 处抛 NPE。
+        // ★ 32 倍装填不走 BulletType.reloadMultiplier —— 该通道会被
+        //   TurretBuild.updateReload() 直接累加到 reloadCounter 上,
+        //   等于把 300 tick 的"终局齐射"周期压缩到约 9 tick,
+        //   表现为"爆炸一次 → 眼睛射击 → 又爆炸"的死循环。
+        //   眼睛发射有自己的计时器 (eyeReloads), 与 reloadCounter 无关,
+        //   因此这里保持 1 倍装填即可: 齐射回到原版 5 秒一次的节奏。
         shootType = new BulletType(){{
             damage = (float)Double.MAX_VALUE;
             speed = 0.01f;
@@ -208,9 +214,6 @@ public class EndGameTurret extends PowerTurret {
             collides = false;
             hittable = false;
             absorbable = false;
-            // ★ 需求: 装填倍率 = 32。走原版 BulletType.reloadMultiplier 通道
-            //   (TurretBuild.ammoReloadMultiplier() 读取), 不需要额外覆写装填逻辑。
-            reloadMultiplier = 32f;
             // 见上方 targetBlocks 注释: 占位子弹也必须声明可索敌建筑,
             // 否则 findEnemy() 的 buildingPred 恒为 false, 基类 target 取不到建筑
             targetBlocks = true;
