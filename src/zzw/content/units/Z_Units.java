@@ -3100,9 +3100,9 @@ public class Z_Units {
             outlineColor = Color.valueOf("2e3142");
             constructor = mindustry.gen.LegsUnit::create;
             aiController = () -> new mindustry.ai.types.GroundAI();
-            // ★ 面板射程按激光真实可达距离 (length=900) 显示, 不再只显示 300 的炮台 range;
+            // ★ 面板射程按激光真实可达距离 (length=800) 显示, 不再只显示 300 的炮台 range;
             //   与炮台侧 TurretRangeUtil.set 的口径一致: 显示圈/索敌/实际弹程统一
-            range = 900f;
+            range = 800f;
 
             // 武器1: 反射激光 (PU_V8 ReflectingLaserBulletType, length=500f, width=65f, reflections=5)
             weapons.add(new BlankWeapon() {{
@@ -3122,7 +3122,7 @@ public class Z_Units {
                 // ★ 大激光伤害提高 (原 500f → 800f → 1200f)
                 bullet = new ReflectingLaserBulletType(1200f) {{
                     lifetime = 65f;
-                    length = 900f;   // ★ 激光长度 ×1.8 (500 → 900)
+                    length = 800f;   // ★ 激光长度 900 → 800, 略微缩短射程
                     // ★ 蓄力动画改由 chargeEffect 在 firstShotDelay 期间播放,
                     //   激光本体在蓄力结束后才出现 (原来 shootEffect 会和激光同帧播放)
                     chargeEffect = zzw.content.units.effects.ChargeFx.greenLaserChargeParent;
@@ -3212,10 +3212,11 @@ public class Z_Units {
                 x = 0f;
                 y = 0f;
                 shootY = 16.75f;
-                // ★ 修复索敌: Weapon.rotate 默认 false, 原来整道激光沿单位身体朝向发射,
-                //   目标在侧面/身后时会射向空处; 改为炮口旋转瞄准目标
-                rotate = true;
-                rotateSpeed = 2f;
+                // ★ 方向锁定: 激光沿本体朝向发射, 炮口不再自行旋转 (PU_V8 原版行为);
+                //   需要改变朝向时由本体 lookAt/faceTarget 转向来完成
+                rotate = false;
+                // 蓄力特效以本体为 parent, 蓄力期间跟随单位移动
+                parentizeEffects = true;
                 reload = 12f * 60f;
                 continuous = true;
                 cooldownTime = 280f;
@@ -3227,7 +3228,10 @@ public class Z_Units {
                 shootStatusDuration = 10f * 60f + zzw.content.units.effects.ChargeFx.sagittariusCharge.lifetime;
                 // ★ 大激光加强: 伤害 50f → 65f, 碰撞宽度也加宽 (见 SagittariusLaserBulletType)
                 bullet = new SagittariusLaserBulletType(65f) {{
-                    shootEffect = zzw.content.units.effects.ChargeFx.sagittariusCharge;
+                    // ★ 蓄力动画放在 chargeEffect: 开火前 firstShotDelay 期间播放,
+                    //   蓄力结束后才生成激光; 原来塞在 shootEffect 会与激光同帧出现
+                    chargeEffect = zzw.content.units.effects.ChargeFx.sagittariusCharge;
+                    shootEffect = CombatFx.laserShoot;
                     lifetime = 10f * 60f;
                     collidesTeam = true;
                     healPercent = 0.4f;
