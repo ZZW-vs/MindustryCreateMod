@@ -53,7 +53,13 @@ public class Z_TechTree{
             node(Z_Factory.darkAlloyForge, () -> {
                 nodeProduce(Z_Items.darkAlloy);
             });
-            node(Z_Blocks.monolithAlloyForge);
+            // ★ 灵魂闭环: 引魂者(灵魂地板 → 灵魂) → 残片提取器(需灵魂 → 远古残片)
+            //   → 巨构合金锻造炉(远古残片 + 灵岩 + 灵魂)。灵魂同时供给灵魂炮台。
+            node(Z_Blocks.soulInfuser, () -> {
+                node(Z_Blocks.debrisExtractor, () -> {
+                    node(Z_Blocks.monolithAlloyForge);
+                });
+            });
             node(Z_Factory.sparkAlloyForge, Seq.with(new Research(Z_Items.sparkAlloy)));
         });
 
@@ -200,7 +206,10 @@ public class Z_TechTree{
         // ★ 经验力场投影仪挂原版修复投影仪之后 (用户指定 2026-10-18)
         attach(Blocks.mendProjector, () -> {
             node(Z_Exp.shieldGenerator, () -> {
-                node(Z_Exp.deflectGenerator);
+                node(Z_Exp.deflectGenerator, () -> {
+                    // 巨石系电子战防御: 偏转光环
+                    node(Z_Blocks.deflectorAura);
+                });
             });
         });
 

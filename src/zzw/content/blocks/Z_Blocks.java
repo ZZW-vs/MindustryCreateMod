@@ -130,6 +130,8 @@ public class Z_Blocks {
     public static zzw.content.blocks.production.SoulFloorExtractor debrisExtractor;
     /** 巨石合金锻造厂: 远古碎屑+巨石 → 巨石合金 (需灵魂驱动) */
     public static zzw.content.blocks.production.SoulGenericCrafter monolithAlloyForge;
+    /** 偏转光环: 只拨偏敌方实体子弹的电子战装置 (不吸收伤害、不破碎) */
+    public static zzw.content.blocks.defense.DeflectorAura deflectorAura;
 
     // ===== PU_V8 移植: 地板 =====
     public static Floor electroTile;
@@ -160,6 +162,7 @@ public class Z_Blocks {
         createTerraCore();
         createReinforcer();
         createSoulFactories();
+        createMonolithDefense();
         createRecursiveReconstructor();
         registerEventListeners();
     }
@@ -596,6 +599,34 @@ public class Z_Blocks {
     }
 
     /**
+     * 巨石系防御: 偏转光环 (PU132 Monolith deflector-aura)。
+     *
+     * <p>与护盾类拉开定位差异: 不吸收伤害、不破碎、不参与经验升级,
+     * 只周期性把范围内的敌方实体子弹切向拨偏并降速。</p>
+     */
+    private static void createMonolithDefense() {
+        deflectorAura = new zzw.content.blocks.defense.DeflectorAura("deflector-aura"){{
+            requirements(Category.effect, ItemStack.with(
+                Items.silicon, 120,
+                Items.titanium, 90,
+                Z_Items.steel, 60,
+                Z_Items.dirium, 12
+            ));
+            size = 4;
+            health = 1100;
+            armor = 4f;
+            // 光环半径 5.25 格: 比护盾发生器大, 但明显小于偏折发生器
+            auraRadius = 168f;
+            // 每脉冲 35%, 默认 12 脉冲/秒; 一颗子弹穿过光环通常被命中 2~3 次
+            deflectChance = 0.35f;
+            deflectAngle = 38f;
+            speedMultiplier = 0.86f;
+            maxPerPulse = 8;
+            pulseTime = 5f;
+        }};
+    }
+
+    /**
      * 灵魂系工厂 (PU132 UnityBlocks L2243-2409, Monolith 阵营灵魂机制)
      * <p>灵魂地板 (灌注锐板岩/远古锐板岩/远古能量) 提供萃取效率; 灵魂灌注器
      * 萃取灵魂并输送给链接建筑; 碎屑提取器/巨石合金锻造厂持有灵魂后提速。</p>
@@ -620,6 +651,9 @@ public class Z_Blocks {
 
             size = 3;
             craftTime = 60f;
+            // ★ 配方: 灵岩作为灵魂载体, 每次灌注消耗 1 灵岩 (与方块描述一致)
+            itemCapacity = 10;
+            consumeItem(Z_Items.monolite, 1);
             updateEffect = mindustry.content.Fx.smeltsmoke;
             craftEffect = mindustry.content.Fx.producesmoke;
             // 灵魂生产者: 无需灵魂即可工作 (PU132 requireSoul=false)
