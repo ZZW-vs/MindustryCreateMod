@@ -73,6 +73,16 @@ public class EndGroundUnit extends LegsUnit implements zzw.content.Factionc {
         return 0;
     }
 
+    /**
+     * 是否启用"死亡拒绝 + 复活"。
+     *
+     * <p>默认 true。子类可覆写为 false: 仍然使用 EndHealthLedger 台账与
+     * 防作弊扣血 (单次上限/抗性/曲线)，但台账耗尽即真死，不进入任何复活路径。</p>
+     */
+    protected boolean useDeathRevival(){
+        return true;
+    }
+
     /** 工厂方法 (UnitType.constructor 用) */
     public static EndGroundUnit create() {
         return new EndGroundUnit();
@@ -117,7 +127,18 @@ public class EndGroundUnit extends LegsUnit implements zzw.content.Factionc {
         //   死亡拒绝永远不触发 (PU132 的 health 由原版 rawDamage 扣减, 与此不同步)
         if (maxHealth < trueMaxHealth || Float.isNaN(maxHealth)) maxHealth = trueMaxHealth;
         trueMaxHealth = maxHealth;
-        if (trueHealth > 0f && revivesUsed < reviveLimit() && !zzw.util.ReviveSeal.isSealed(this)) dead = false;
+        if (useDeathRevival()) {
+            if (trueHealth > 0f && revivesUsed < reviveLimit() && !zzw.util.ReviveSeal.isSealed(this)) dead = false;
+        } else {
+            // 不复活模式: 显示血量严格等于台账; 台账耗尽即真死
+            trueHealth = Mathf.clamp(trueHealth, 0f, trueMaxHealth);
+            if (trueHealth <= 0f && !dead) {
+                health = 0f;
+                kill();
+            } else if (health > trueHealth) {
+                health = trueHealth;
+            }
+        }
 
         // 抗性衰减 (按单位配置参数 resistDuration, 无配置回退 6*60)
         float resistDuration = ac != null ? ac.resistDuration : 6f * 60f;
@@ -154,7 +175,7 @@ public class EndGroundUnit extends LegsUnit implements zzw.content.Factionc {
         // super.update() 后再次同步 (super 可能改了 health)
         // ★ 只钳制显示血量, 绝不把台账回写成显示血量 (旧 else 分支会让台账被
         //   原始伤害拖着归零, 造成复活时有时无)。秒杀清零时按台账回溯。
-        if (trueHealth > 0f && revivesUsed < reviveLimit() && !zzw.util.ReviveSeal.isSealed(this)) {
+        if (useDeathRevival() && trueHealth > 0f && revivesUsed < reviveLimit() && !zzw.util.ReviveSeal.isSealed(this)) {
             if (this.health > trueHealth) this.health = Math.min(maxHealth, trueHealth);
             if (this.health <= 0f) this.health = Math.min(maxHealth, trueHealth);
             dead = false;
@@ -247,18 +268,28 @@ public class EndGroundUnit extends LegsUnit implements zzw.content.Factionc {
         // ★ 原版显示血量并行扣减 (PU132 关键机制):
         // 显示血量按"未经防作弊上限的原始伤害"扣减, 比台账先归零;
         // 归零触发 kill() → 台账 > 0 → 拒绝死亡 + 红色蓄力特效 + 复活。
-        float rawAmount = Math.max(amount - armor, Vars.minArmorDamage * amount) / healthMultiplier;
-        if (rawAmount > 0) {
-            float shieldDamage = Math.min(Math.max(shield, 0), rawAmount);
-            rawAmount -= shieldDamage;
+        if (useDeathRevival()) {
+            float rawAmount = Math.max(amount - armor, Vars.minArmorDamage * amount) / healthMultiplier;
             if (rawAmount > 0) {
-                health -= rawAmount;
+                float shieldDamage = Math.min(Math.max(shield, 0), rawAmount);
+                rawAmount -= shieldDamage;
+                if (rawAmount > 0) {
+                    health -= rawAmount;
+                }
             }
-        }
-        this.hitTime = 1f;
-        // 血量归零 → 触发原版死亡链 (kill → destroy → 拒绝判定)
-        if (health <= 0f && !dead) {
-            kill();
+            this.hitTime = 1f;
+            // 血量归零 → 触发原版死亡链 (kill → destroy → 拒绝判定)
+            if (health <= 0f && !dead) {
+                kill();
+            }
+        } else {
+            // ★ 不复活模式: 台账即生命值。显示血量同步台账,
+            //   台账耗尽才触发一次真正的死亡, 不存在拒绝/复活分支。
+            health = Mathf.clamp(trueHealth, 0f, maxHealth);
+            this.hitTime = 1f;
+            if (trueHealth <= 0f && !dead) {
+                kill();
+            }
         }
     }
 
@@ -267,6 +298,8 @@ public class EndGroundUnit extends LegsUnit implements zzw.content.Factionc {
      * 台账 (trueHealth) 未耗尽时, 播放红色蓄力特效并复活。
      */
     private boolean denyDeath() {
+        // ★ 不复活模式: 台账耗尽即真死, 不进入任何死亡拒绝分支
+        if (!useDeathRevival()) return false;
         // ★ 终局炮台封印: 被湮灭时不走任何复活逻辑
         if (zzw.util.ReviveSeal.isSealed(this)) return false;
         // ★ 以哈希台账为准: 实体字段被秒杀/作弊清零时, 只要台账还有血就回溯
@@ -316,7 +349,7 @@ public class EndGroundUnit extends LegsUnit implements zzw.content.Factionc {
         // ★ 以哈希台账为准, 不再要求当前 health > 0
         float ledger = zzw.content.units.anticheat.EndHealthLedger.get(this, trueHealth);
         trueHealth = ledger;
-        if (!zzw.util.ReviveSeal.isSealed(this) && ledger > 0f && revivesUsed < reviveLimit()) {
+        if (useDeathRevival() && !zzw.util.ReviveSeal.isSealed(this) && ledger > 0f && revivesUsed < reviveLimit()) {
             revivesUsed++;
             health = Math.max(health, Math.min(ledger, trueMaxHealth)
                     * zzw.content.units.anticheat.EndCheatVars.REVIVE_HEAL_RATIO);
