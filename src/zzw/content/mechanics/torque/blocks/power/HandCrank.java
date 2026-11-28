@@ -1,6 +1,7 @@
 package zzw.content.mechanics.torque.blocks.power;
 
 import arc.graphics.g2d.*;
+import arc.math.Mathf;
 import arc.scene.ui.layout.*;
 import arc.util.*;
 import mindustry.gen.*;
@@ -47,7 +48,9 @@ public class HandCrank extends GraphBlock{
         @Override
         public void updatePre(){
             GraphTorqueModule<?> tGraph = torque();
-            float ratio = (20f - tGraph.getNetwork().lastVelocity) / 20f;
+            if(tGraph == null || tGraph.getNetwork() == null) return;
+            // ★ clamp 到 [0,1]: 网络转速超过 20 时原公式会给负力矩 (手摇把反向制动), 手感异常
+            float ratio = Mathf.clamp((20f - tGraph.getNetwork().lastVelocity) / 20f, 0f, 1f);
 
             tGraph.force = ratio * force;
             cooldown += Time.delta;

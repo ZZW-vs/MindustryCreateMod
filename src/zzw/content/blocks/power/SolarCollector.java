@@ -87,9 +87,12 @@ public class SolarCollector extends HeatGenerator{
             Draw.rect(regions[rotation], x, y);
             UnityDrawf.drawHeat(heatRegion, x, y, rotdeg(), heat().getTemp());
 
-            if(thermalPwr > 0f){
+            // ★ 亮度钳制: thermalPwr 会随反射镜数量累加 (>1), 直接作为 Draw.color 会过曝泛白,
+            //   光锥看上去比实际范围"变大"; 按 0~1 映射保持固定形状, 只反映聚焦强度
+            float light = Mathf.clamp(thermalPwr, 0f, 1f);
+            if(light > 0f){
                 Draw.z(Layer.effect);
-                Draw.color(thermalPwr, thermalPwr, thermalPwr);
+                Draw.color(light, light, light);
                 Draw.rect(lightRegion, x, y, rotdeg());
                 Draw.z();
             }

@@ -160,9 +160,11 @@ public class ModularCrucible extends GraphBlock{
                     Draw.rect(solidItemStrips[stripIndex], x, y, 8f, 8f);
                 }
 
-                float siz = 8f * (ddd % 1f);
+                // ★ 尺寸稳定性: 原实现用 8*(solid%1), 数量每跨过整数, 图标会从满尺寸缩到 0
+                //   (整数时完全消失) 再长回, 表现为固体块持续忽大忽小. 数量信息已由 solidstrip 表达,
+                //   这里改为固定尺寸, 只表示"有未熔固体".
                 long pos = randomPos[Mathf.clamp(Mathf.floor(ddd), 0, randomPos.length - 1)];
-                Draw.rect(solidItem, SVec2.x(pos) + x, SVec2.y(pos) + y, siz, siz);
+                Draw.rect(solidItem, SVec2.x(pos) + x, SVec2.y(pos) + y, 8f, 8f);
             }
 
             Draw.color();

@@ -33,6 +33,8 @@ public class ElectricMotor extends TorqueGenerator{
     public class ElectricMotorBuild extends TorqueGeneratorBuild{
         @Override
         protected float generateTorque(){
+            // ★ 空值守卫: 未接入电网时 power.graph 为 null, 原实现每帧 NPE 会让整次 updateTile 中止
+            if(power == null || power.graph == null) return 0f;
             return power.graph.getSatisfaction();
         }
 

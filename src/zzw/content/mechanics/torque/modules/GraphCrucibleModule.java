@@ -97,8 +97,18 @@ public class GraphCrucibleModule extends GraphModule<GraphCrucible, GraphCrucibl
         CrucibleGraph net = networks.get(0);
         if(net == null) return;
         table.row();
-        var cell = table.add(new CrucibleDisplayElement(net.fluids, 3)).grow();
-        cell.update(element -> cell.height(element.getMinHeight()));
+        var element = new CrucibleDisplayElement(net.fluids, 3);
+        var cell = table.add(element).grow();
+        // ★ 尺寸稳定性: 原实现每帧无条件写入 cell.height(...), 内容轻微变化时面板高度反复重算;
+        //   这里只在行数真正变化时更新一次
+        float[] lastHeight = {element.getMinHeight()};
+        cell.update(e -> {
+            float h = element.getMinHeight();
+            if(h != lastHeight[0]){
+                lastHeight[0] = h;
+                cell.height(h);
+            }
+        });
     }
 
     @Override

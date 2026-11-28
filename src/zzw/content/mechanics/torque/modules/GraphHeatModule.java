@@ -46,11 +46,35 @@ public class GraphHeatModule extends GraphModule<GraphHeat, GraphHeatModule, Hea
     @Override
     void updateProps(HeatGraph graph, int index){
         float temp = getTemp();
+        float capacity = this.graph.baseHeatCapacity;
         float cond = this.graph.baseHeatConductivity;
         heatBuffer = 0f;
+
+        // 防呆: 热容量<=0 时 getTemp 会得到 Inf/NaN, 一旦写回 heat 就永久污染整张热网
+        if(!Float.isFinite(temp) || !Float.isFinite(cond) || !Float.isFinite(capacity) || capacity <= 0f){
+            heat = Math.max(0f, ambientTemp) * Math.max(0.0001f, capacity);
+            return;
+        }
+
         float clampedDelta = Mathf.clamp(Time.delta, 0, 1f / cond);
-        for(var n : neighbours.keys()) heatBuffer += (n.getTemp() - temp) * cond * clampedDelta;
+        // 记录所有热源的温度区间, 用于最后把缓冲能量钳制在"不越过任何热源"的范围内
+        float minInfluence = ambientTemp, maxInfluence = ambientTemp;
+        for(var n : neighbours.keys()){
+            float nt = n.getTemp();
+            if(!Float.isFinite(nt)) continue;
+            heatBuffer += (nt - temp) * cond * clampedDelta;
+            minInfluence = Math.min(minInfluence, nt);
+            maxInfluence = Math.max(maxInfluence, nt);
+        }
         heatBuffer += (ambientTemp - temp) * this.graph.baseHeatRadiativity * radiativityMul * clampedDelta;
+
+        // ★ 边界修复: 热辐射倍率 (散热器通水 4 倍 / 冷冻液 10 倍) 可能让单帧换热量超过温差所需,
+        //   直接把温度冲过目标温度 (如 -100℃ 被冲到 -150℃) 并因 ambient=min(floor,temp) 卡死.
+        //   将本帧热量限制在 [min(temp,最低热源), max(temp,最高热源)] 对应的能量区间内,
+        //   既不会越界, 也不影响正常的渐进升降温速度.
+        float low = Math.min(minInfluence, temp);
+        float high = Math.max(maxInfluence, temp);
+        heatBuffer = Mathf.clamp(heatBuffer, (low - temp) * capacity, (high - temp) * capacity);
     }
 
     @Override

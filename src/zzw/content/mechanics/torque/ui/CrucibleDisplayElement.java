@@ -46,7 +46,6 @@ public class CrucibleDisplayElement extends Element{
 
         for(var fluid : fluids){
             if(fluid.value.total() < 0.0001f) continue;
-
             float xpos = x + (i % columns) * cwidth;
             float ypos = y + (i / columns) * 32f;
 
@@ -77,7 +76,9 @@ public class CrucibleDisplayElement extends Element{
     public float getMinHeight(){
         float notempty = 0f;
         for(var fluid : fluids){
-            notempty += fluid.value.total() > 0 ? 1 : 0;
+            // ★ 与 draw() 的跳过阈值保持一致: 原先用 >0 计数, 而 draw 跳过 <0.0001 的微量残留,
+            //   会算出一个实际画不出内容的空行, 面板高度随之多跳一格
+            notempty += fluid.value.total() >= 0.0001f ? 1 : 0;
         }
         return Mathf.ceil(notempty / columns) * 32f;
     }

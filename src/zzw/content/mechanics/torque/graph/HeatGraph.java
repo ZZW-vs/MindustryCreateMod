@@ -27,10 +27,14 @@ public class HeatGraph extends BaseGraph<GraphHeatModule, HeatGraph>{
     @Override
     void updateGraph(){
         lastHeatFlow = 0f;
-        connected.each(module -> {
+        for(int i = 0, len = connected.size; i < len; i++){
+            GraphHeatModule module = connected.orderedItems().get(i);
             module.heat += module.heatBuffer;
+            // ★ 边界兜底: 任何异常 (容量为 0 / 外部直接改 heat) 都可能产生负热量或 NaN,
+            //   负开尔文会让热色叠加常亮且无法自行恢复, 这里统一钳到 0K 并清理非有限值
+            if(!Float.isFinite(module.heat) || module.heat < 0f) module.heat = 0f;
             lastHeatFlow += module.heatBuffer;
-        });
+        }
     }
 
     @Override

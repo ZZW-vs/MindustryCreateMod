@@ -25,16 +25,32 @@ public class HeatGenerator extends GraphBlock{
         /**
          * 向热量图注入热量.
          * <p>mul 为产能系数 (如燃烧效率/热液量), 网络温度越接近 maxTemp 增量越小 (渐近收敛)。</p>
+         * <p>★ 单帧注入量钳制到"恰好升到 maxTemp"所需热量: infi-heater (mulCoeff=5) 或
+         * 多反射镜集热器 (mul&gt;1) 时, 原公式单帧注入可超过温差数倍, 温度会先冲过
+         * maxTemp 再缓慢回落, 表现为数值剧烈跳动与热色闪烁。</p>
          */
         protected void generateHeat(float mul){
             GraphHeatModule hgraph = heat();
-            hgraph.heat += Math.max(0f, maxTemp - hgraph.getTemp()) * mulCoeff * mul;
+            if(hgraph == null || !Float.isFinite(mul) || mul <= 0f) return;
+
+            float gap = maxTemp - hgraph.getTemp();
+            if(!Float.isFinite(gap) || gap <= 0f) return;
+
+            float add = gap * mulCoeff * mul;
+            hgraph.heat += Math.min(add, gap * hgraph.graph.baseHeatCapacity);
         }
 
         /** 带注入上限版本: 每帧最多注入 limit 热量 (太阳能集热器用) */
         protected void generateHeat(float limit, float mul){
             GraphHeatModule hgraph = heat();
-            hgraph.heat += Math.min(limit, Math.max(0f, maxTemp - hgraph.getTemp()) * mulCoeff * mul);
+            if(hgraph == null || !Float.isFinite(limit) || limit <= 0f || !Float.isFinite(mul) || mul <= 0f) return;
+
+            float gap = maxTemp - hgraph.getTemp();
+            if(!Float.isFinite(gap) || gap <= 0f) return;
+
+            float add = Math.min(limit, gap * mulCoeff * mul);
+            if(!Float.isFinite(add) || add <= 0f) return;
+            hgraph.heat += Math.min(add, gap * hgraph.graph.baseHeatCapacity);
         }
     }
 }
