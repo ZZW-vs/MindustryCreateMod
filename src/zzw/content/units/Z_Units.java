@@ -736,7 +736,7 @@ public class Z_Units {
         devourer = new zzw.content.type.UnityUnitType("devourer-of-eldrich-gods") {{
             health = 1250000f;
             // PU132: antiCheatType = (h/600, h/190, h/610, h/100, 0.6, 7m, 8m, 35, 4)
-            reviveLimit = 3;  // 复活次数 (虫体, 按强度)
+            reviveLimit = 0;  // 复活次数 (噬神者, 用户指定不复活)
             // (SegmentWormEntity 据此启用 End 防作弊/死亡拒绝; 无配置的普通多节虫没有复活)
             antiCheatType = new zzw.content.units.anticheat.EndCheatVars(
                 health / 600f, health / 190f, health / 610f, health / 100f, 0.6f, 7f * 60f, 8f * 60f, 35f, 4);  // PU132 原版
@@ -1088,7 +1088,7 @@ public class Z_Units {
             // ===== 基础属性 (PU132 UnityUnitTypes.java 第4055-4095行) =====
             health = 2500000f;  // PU132 原版
             // PU132: antiCheatType = (8000, h/190, 10000, h/100, 0.6, 7m, 8m, 35, 3)
-            reviveLimit = 2;  // 复活次数 (压迫者, 用户指定 2 次)
+            reviveLimit = 1;  // 复活次数 (压迫者, 用户指定 1 次)
             antiCheatType = new zzw.content.units.anticheat.EndCheatVars(
                 8000f, health / 190f, 10000f, health / 100f, 0.6f, 7f * 60f, 8f * 60f, 35f, 3);
             flying = true;
@@ -1321,7 +1321,7 @@ public class Z_Units {
         enigma = new zzw.content.type.UnityUnitType("enigma") {{
             health = 2000f;
             // PU132 原版: antiCheatType = (900, 1000, h/10, 1000, 0.2, 6m, 3m, 15, 1)
-            reviveLimit = 1;  // 复活次数 (小型单位, 按强度)
+            reviveLimit = 0;  // 复活次数 (谜题 enigma, 用户指定不复活)
             // ★ 单次伤害上限 h/10(200) → h/4(500): 原上限还没 150 点护甲高, 扣甲后单次只剩 ~50;
             //   且超过 1000 的伤害会被原伤害曲线直接归零 → 高伤武器完全打不动。
             //   现改为上限内全额结算, 只有超量伤害才衰减。
@@ -1458,7 +1458,7 @@ public class Z_Units {
             //   与 1.7 万血严重不匹配; 现改为上限内全额结算。
             antiCheatType = new zzw.content.units.anticheat.EndCheatVars(
                 health / 20f, health / 1.25f, health / 4f, health / 25f, 0.2f, 6f * 60f, 3f * 60f, 15f, 4);
-            reviveLimit = 2;  // 复活次数 (按强度: chronos)
+            reviveLimit = 0;  // 复活次数 (chronos, 用户指定不复活)
             speed = 2f;
             accel = 0.1f;
             drag = 0.08f;
@@ -1503,7 +1503,7 @@ public class Z_Units {
         opticaecus = new zzw.content.units.types.InvisibleUnitType("opticaecus") {{
             health = 60000f;
             // PU132 原版: antiCheatType = (h/15, h/1.5, h/12.5, h/20, 0.2, 6m, 3m, 30, 4)
-            reviveLimit = 2;  // 复活次数 (按强度: opticaecus)
+            reviveLimit = 1;  // 复活次数 (opticaecus, 用户指定 1 次)
             // ★ 单次伤害上限 h/12.5(4800) → h/4(15000): EndInvisibleUnit 现在会读取
             //   这份配置 (旧实现固定用 AntiCheatBase 的 220 点硬上限, 对本单位实际只有
             //   ~11 点/次, 参数完全没生效)。5000 点护甲要求上限足够高才有意义。
@@ -1597,7 +1597,7 @@ public class Z_Units {
             rotateSpeed = 1.1f;
 
             // PU132 原版: antiCheatType = (h/610, h/190, h/560, h/120, 0.6, 7m, 8m, 35, 4)
-            reviveLimit = 3;  // 复活次数 (按强度: ravager)
+            reviveLimit = 2;  // 复活次数 (ravager, 用户指定 2 次)
             // ★ 放宽到可击杀 (对照用户反馈):
             //   - 曲线上限 maxDamageThreshold: h/190 → h/60 (原版超过 h/190≈8684 的伤害会被
             //     曲线完全归零, 高伤武器打上去 0 伤害);

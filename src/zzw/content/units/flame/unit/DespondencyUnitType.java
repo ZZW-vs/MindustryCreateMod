@@ -50,7 +50,7 @@ public class DespondencyUnitType extends DesolationUnitType{
         groundLayer = Layer.darkness + 1f;
 
         health = 17500000f;
-        speed = 2f;
+        speed = 0.55f;  // 与 create-desolation 一致 (用户要求)
         drag = 0.16f;
         armor = 200f;
         hitSize = 217f;
@@ -80,7 +80,7 @@ public class DespondencyUnitType extends DesolationUnitType{
         clipSize = 2000f;
 
         weapons.addAll(
-                new EndAntiAirWeapon("create-" + this.name + "-anti-air"){{
+                new EndAntiAirWeapon(this.name + "-anti-air"){{
                     x = 45.75f;
                     y = 15.5f;
                     mirror = true;
@@ -90,7 +90,7 @@ public class DespondencyUnitType extends DesolationUnitType{
                     bullet = new BulletType(0f, 9000f);
                 }},
 
-                new LaserWeapon("create-" + this.name + "-laser"){{
+                new LaserWeapon(this.name + "-laser"){{
                     x = 54.5f;
                     y = -15f;
                     mirror = true;
@@ -110,7 +110,7 @@ public class DespondencyUnitType extends DesolationUnitType{
                     bullet = new EndCreepLaserBulletType();
                 }},
 
-                new Weapon("create-" + this.name + "-railgun"){{
+                new Weapon(this.name + "-railgun"){{
                     x = 63f;
                     y = -34f;
                     shootY = 12f;
@@ -128,7 +128,7 @@ public class DespondencyUnitType extends DesolationUnitType{
                     bullet = new EndRailBulletType();
                 }},
 
-                new Weapon("create-" + this.name + "-cannon"){{
+                new Weapon(this.name + "-cannon"){{
                     x = 56f;
                     y = -62.75f;
                     shootY = 12f;
@@ -147,10 +147,25 @@ public class DespondencyUnitType extends DesolationUnitType{
                 }},
 
                 // 与 FO 相同: 主处决武器排在常规武器之后，保证手臂绘制层级
-                new EndDespondencyWeapon("create-" + this.name + "-main"),
+                new EndDespondencyWeapon(this.name + "-main"),
 
-                new EndLauncherWeapon("create-" + this.name + "-missile")
+                new EndLauncherWeapon(this.name + "-missile")
         );
+    }
+
+    @Override
+    public void load(){
+        super.load();
+
+        // ★ 修复"炮台不显示": 武器贴图名可能带/不带 create- 前缀, 这里统一用
+        //   FlameUtils.atlasRegion 重新解析并显式赋给 Weapon.region, 两种打包方式都能命中。
+        for(Weapon w : weapons){
+            arc.graphics.g2d.TextureRegion r = zzw.content.units.flame.FlameUtils.atlasRegion(w.name);
+            if(r != null && r.found()) w.region = r;
+
+            arc.graphics.g2d.TextureRegion o = zzw.content.units.flame.FlameUtils.atlasRegion(w.name + "-outline");
+            w.outlineRegion = (o != null && o.found()) ? o : w.region;
+        }
     }
 
     @Override

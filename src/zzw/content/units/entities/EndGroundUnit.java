@@ -333,6 +333,23 @@ public class EndGroundUnit extends LegsUnit implements zzw.content.Factionc {
             }
             invIndex = 0;
             invTimer = 0f;
+            // ★ 复活时清掉上一帧遗留的运动/开火状态:
+            //   - vel / flinch 清零: 避免"复活后原地疯狂抽搐"
+            //   - 所有武器装填归满、停止开火: 避免"复活瞬间炮台疯狂射击"
+            vel.setZero();
+            for (int i = 0; i < mounts.length; i++) {
+                mindustry.entities.units.WeaponMount wm = mounts[i];
+                if (wm == null) continue;
+                wm.reload = wm.weapon.reload;
+                wm.heat = 0f;
+                wm.warmup = 0f;
+                wm.charge = 0f;
+                wm.recoil = 0f;
+                wm.side = false;
+                wm.shoot = false;
+                wm.charging = false;
+                wm.bullet = null;
+            }
             // 红色粒子蓄力特效 (PU132 SpecialFx.endDeny)
             zzw.content.units.effects.SpecialFx.endDeny.at(x, y, rotation, this);
             return true;
@@ -362,32 +379,10 @@ public class EndGroundUnit extends LegsUnit implements zzw.content.Factionc {
 
     @Override
     public void remove() {
-        // ★ 以哈希台账为准, 不再要求当前 health > 0
-        float ledger = zzw.content.units.anticheat.EndHealthLedger.get(this, trueHealth);
-        trueHealth = ledger;
-        // ★ 只在"确实处于濒死/已死"时复活; 正常撤离/清场移除不复活
-        if (useDeathRevival() && (dead || health <= 0f) && !zzw.util.ReviveSeal.isSealed(this) && ledger > 0f && revivesUsed < reviveLimit()) {
-            revivesUsed++;
-            float reviveHp = Math.min(ledger, trueMaxHealth)
-                    * zzw.content.units.anticheat.EndCheatVars.REVIVE_HEAL_RATIO;
-            trueHealth = reviveHp;
-            zzw.content.units.anticheat.EndHealthLedger.put(this, trueHealth);
-            health = reviveHp;
-            dead = false;
-            if (trueTeam != null) team = trueTeam;
-            fastDamage = 0f;
-            fastDamageStart = 0f;
-            resist = 0f;
-            resistMax = 0f;
-            resistTime = 0f;
-            for (int i = 0; i < invFrames.length; i++) {
-                invFrames[i] = zzw.content.units.anticheat.EndCheatVars.REVIVE_INVULNERABLE_TIME;
-            }
-            invIndex = 0;
-            invTimer = 0f;
-            return;
-        }
-        // 真实死亡: 从全局防作弊登记表注销 (PU132 EndComp.remove)
+        // ★ 复活只走 destroy()/kill() 的 denyDeath 分支。
+        //   过去在这里也做复活, 会在引擎已经移出 Groups 后把实体"留在原地",
+        //   形成幽灵实体导致单位卡死/抽搐/重复开火, 现已移除。
+        trueHealth = zzw.content.units.anticheat.EndHealthLedger.get(this, trueHealth);
         zzw.content.units.anticheat.EndHealthLedger.remove(this);
         zzw.util.AntiCheat.removeUnit(this);
         super.remove();

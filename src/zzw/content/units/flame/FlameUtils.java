@@ -59,7 +59,11 @@ public class FlameUtils{
      * 会静默拿到 error 图 (粉黑格子)。这里先试带前缀的名字, 再回退裸名。</p>
      */
     public static TextureRegion atlasRegion(String name){
-        if(Core.atlas.has(MOD_PREFIX + name)) return Core.atlas.find(MOD_PREFIX + name);
+        // 兼容传入已带前缀的名字, 避免出现 create-create-xxx
+        String bare = name.startsWith(MOD_PREFIX) ? name.substring(MOD_PREFIX.length()) : name;
+
+        if(Core.atlas.has(MOD_PREFIX + bare)) return Core.atlas.find(MOD_PREFIX + bare);
+        if(Core.atlas.has(bare)) return Core.atlas.find(bare);
         return Core.atlas.find(name);
     }
 
