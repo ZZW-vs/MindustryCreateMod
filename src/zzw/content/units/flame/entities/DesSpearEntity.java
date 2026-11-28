@@ -151,7 +151,7 @@ public class DesSpearEntity extends DrawEntity{
                     FlameFX.desRailHit.at(col.x, col.y, rotation, (targetSize / 40f) * 0.3f);
                 }
 
-                EmpathyDamage.damageUnit(unit, (unit.maxHealth / 2f) * damageScl, false, null);
+                EmpathyDamage.damageUnit(unit, (unit.maxHealth / 4f) * damageScl, false, null);
             }
         }
         if(collided){

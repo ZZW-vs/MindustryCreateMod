@@ -134,11 +134,11 @@ public class EndRailBulletType extends BulletType{
                 Tmp.v2.trns(b.rotation(), 6f + 5f / u.mass());
                 u.vel.add(Tmp.v2);
 
-                EmpathyDamage.damageUnit(u, 32000f + u.maxHealth / 40f, true, () -> {
+                EmpathyDamage.damageUnit(u, 32000f * FlameUtils.DES_DAMAGE_SCALE + u.maxHealth / 80f, true, () -> {
                     SpecialDeathEffects.get(u.type).deathUnit(u, x, y, rot);
                 });
             }else if(h instanceof Building bl){
-                EmpathyDamage.damageBuildingRaw(bl, 32000f + bl.maxHealth / 40f, true, null);
+                EmpathyDamage.damageBuildingRaw(bl, 32000f * FlameUtils.DES_DAMAGE_SCALE + bl.maxHealth / 80f, true, null);
             }
         });
 

@@ -1,21 +1,34 @@
 package zzw.content.units.flame.unit;
 
+import arc.util.Time;
+import mindustry.gen.Unit;
 import zzw.content.units.ZEntityRegister;
+import zzw.content.units.anticheat.EndCheatVars;
+import zzw.content.units.anticheat.EndHealthLedger;
 import zzw.content.units.entities.EndGroundUnit;
+import zzw.content.units.flame.FlamePal;
 
 /**
  * 消沉单位实体 (移植自 flame.unit.DespondencyUnit)。
  *
- * <p>★ 血量体系: 接入 End 的 {@code EndHealthLedger} 哈希台账与防作弊扣减
- * (单次伤害上限、抗性累积、伤害曲线)，生命值以台账为准。</p>
+ * <p>★ 血量体系 (FO 原版 + End 台账融合):</p>
+ * <ul>
+ *   <li>生命值 17,500,000 / 护甲 200 按 FO 原值;</li>
+ *   <li>单次受击对"显示血量"的扣减上限为 {@code maxHealth / 220}
+ *       (FO 原版 {@code amount = min(amount, type.health / 220)}), 因此不会被任何
+ *       单发高伤子弹秒杀 —— 这是"一打就死"的直接修复;</li>
+ *   <li>真实血量走 {@link EndHealthLedger} 哈希台账, 按 End 防作弊的
+ *       单次上限 / 抗性 / 伤害曲线扣减;</li>
+ *   <li>台账耗尽才真死; 台账未耗尽时按 End 体系复活 (最多 10 次)。</li>
+ * </ul>
  *
- * <p>★ 复活: {@link #useDeathRevival()} 返回 false，台账耗尽即真死，
- * 不走死亡拒绝/复活路径。</p>
- *
- * <p>★ 与 FO 的差异: FO 的 {@code serialize=false} 不存档，本项目保持默认序列化；
- * 不强制 {@code elevation=1f}，仅保留 UnitType 的 lowAltitude/hovering 配置。</p>
+ * <p>★ 与 FO 的差异: FO 使用 {@code invFrames + lastDamage} 的 "只吃更大伤害"
+ * 规则并强制 {@code elevation = 1f}; 本项目改用 End 的无敌帧槽位体系,
+ * 但保留 FO 的单次伤害硬上限, 并补上 elevation 以修正悬浮渲染。</p>
  */
 public class DespondencyUnit extends EndGroundUnit{
+    /** FO 原版单次伤害上限系数: 每次最多扣 {@code health / 220}。 */
+    private static final float HIT_CAP_DIVISOR = 220f;
 
     public static DespondencyUnit create(){
         return new DespondencyUnit();
@@ -26,10 +39,29 @@ public class DespondencyUnit extends EndGroundUnit{
         return ZEntityRegister.classId(DespondencyUnit.class);
     }
 
-    /** 使用台账扣血，但不启用死亡拒绝与复活。 */
+    /**
+     * 单次伤害硬上限 (FO 原版机制)。
+     *
+     * <p>把入参先钳到 {@code maxHealth / 220}, 再交给 End 防作弊扣血:
+     * 既保留 End 的台账/抗性/曲线, 又保证任何单发子弹都不可能直接清空血条。</p>
+     */
     @Override
-    protected boolean useDeathRevival(){
-        return false;
+    public void damage(float amount){
+        if(Float.isNaN(amount) || Float.isInfinite(amount) || amount <= 0f) return;
+
+        float cap = maxHealth / HIT_CAP_DIVISOR;
+        if(cap > 0f) amount = Math.min(amount, cap);
+
+        super.damage(amount);
+    }
+
+    @Override
+    public void update(){
+        super.update();
+
+        // FO 原版: trueHealth > 0 时保持悬浮 (elevation = 1), 台账耗尽才落地。
+        float ledger = EndHealthLedger.get(this, health);
+        elevation = ledger > 0f ? 1f : 0f;
     }
 
     /** 消沉始终视作地面单位 (可被地面武器命中, 不吃"空中目标"过滤)。 */

@@ -447,6 +447,15 @@ public class UnityUnitType extends UnitType{
                 bt.add(Core.bundle.get("soul.disabled"));
             }));
         }
+
+        // ★ End 复活次数展示: 把配置的复活上限写进单位面板 (0 = 不复活, 不显示)
+        int revives = Math.min(reviveLimit, zzw.content.units.anticheat.EndCheatVars.MAX_REVIVES);
+        if(revives > 0){
+            stats.add(mindustry.world.meta.Stat.abilities, t -> t.table(bt -> {
+                bt.left().defaults().padRight(3).left();
+                bt.add(Core.bundle.format("end.revives", revives));
+            }));
+        }
     }
 
     /** 取所有武器中弹体的最大实际可达距离 (像素)。 */

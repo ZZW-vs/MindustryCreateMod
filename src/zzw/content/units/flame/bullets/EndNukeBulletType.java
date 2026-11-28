@@ -79,7 +79,7 @@ public class EndNukeBulletType extends BasicBulletType{
 
             FlameFX.desNukeShockSmoke.at(nx, ny, ang);
         }, bl -> {
-            float d = 21000f + bl.maxHealth / 5f;
+            float d = 21000f * FlameUtils.DES_DAMAGE_SCALE + bl.maxHealth / 10f;
 
             EmpathyDamage.damageBuildingRaw(bl, d, true, () -> {
                 SpecialDeathEffects eff = SpecialDeathEffects.get(bl.block);
@@ -133,7 +133,7 @@ public class EndNukeBulletType extends BasicBulletType{
                     Tmp.v2.trns(Angles.angle(bx, by, u.x, u.y), (16f + 5f / u.mass()) * damageScl);
                     u.vel.add(Tmp.v2);
 
-                    EmpathyDamage.damageUnit(u, (u.maxHealth / 10f + 10000f) * damageScl, true, () -> {
+                    EmpathyDamage.damageUnit(u, (u.maxHealth / 20f + 10000f * FlameUtils.DES_DAMAGE_SCALE) * damageScl, true, () -> {
                         FlameBatches.vaporBatch.discon = null;
                         FlameBatches.vaporBatch.switchBatch(u::draw, null, (d, w) -> {
                             float with = FlameUtils.inRayCastCircle(bx, by, arr, d);
@@ -223,7 +223,7 @@ public class EndNukeBulletType extends BasicBulletType{
                         });
                     };
 
-                    EmpathyDamage.damageBuildingRaw(bl, (bl.maxHealth / 10f + 10000f) * damageScl, true, death);
+                    EmpathyDamage.damageBuildingRaw(bl, (bl.maxHealth / 20f + 10000f * FlameUtils.DES_DAMAGE_SCALE) * damageScl, true, death);
                 }
             }
         });

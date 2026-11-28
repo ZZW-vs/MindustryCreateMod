@@ -311,12 +311,24 @@ public class EndGroundUnit extends LegsUnit implements zzw.content.Factionc {
             // 狂暴: 4 倍速 + 持续 10 秒 (PU32 aggression=4, aggressionTime=10*60)
             aggression = 4f;
             aggressionTime = 10f * 60f;
-            // 复活: 只回充台账的 40% (弱化"加血条"观感, 不再整条补满)
+            // 复活: 只回充台账的 25% (弱化"加血条"观感, 不再整条补满)
             health = Math.max(health, Math.min(trueHealth, trueMaxHealth)
                     * zzw.content.units.anticheat.EndCheatVars.REVIVE_HEAL_RATIO);
             dead = false;
             if (trueTeam != null) team = trueTeam;
             hitTime = 1f;
+            // ★ 复活保护: 清空"受伤过快"统计与抗性, 并给所有无敌帧槽位填满时间,
+            //   避免刚复活就被同一波火力立刻打回死亡 (复活体验更顺)
+            fastDamage = 0f;
+            fastDamageStart = 0f;
+            resist = 0f;
+            resistMax = 0f;
+            resistTime = 0f;
+            for (int i = 0; i < invFrames.length; i++) {
+                invFrames[i] = zzw.content.units.anticheat.EndCheatVars.REVIVE_INVULNERABLE_TIME;
+            }
+            invIndex = 0;
+            invTimer = 0f;
             // 红色粒子蓄力特效 (PU132 SpecialFx.endDeny)
             zzw.content.units.effects.SpecialFx.endDeny.at(x, y, rotation, this);
             return true;
@@ -355,6 +367,16 @@ public class EndGroundUnit extends LegsUnit implements zzw.content.Factionc {
                     * zzw.content.units.anticheat.EndCheatVars.REVIVE_HEAL_RATIO);
             dead = false;
             if (trueTeam != null) team = trueTeam;
+            fastDamage = 0f;
+            fastDamageStart = 0f;
+            resist = 0f;
+            resistMax = 0f;
+            resistTime = 0f;
+            for (int i = 0; i < invFrames.length; i++) {
+                invFrames[i] = zzw.content.units.anticheat.EndCheatVars.REVIVE_INVULNERABLE_TIME;
+            }
+            invIndex = 0;
+            invTimer = 0f;
             return;
         }
         // 真实死亡: 从全局防作弊登记表注销 (PU132 EndComp.remove)

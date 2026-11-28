@@ -195,15 +195,33 @@ public class EndDespondencyWeapon extends Weapon{
 
         for(int i = 0; i < 2; i++){
             String outline = i == 0 ? "-outline" : "";
-            armRegions[i][0] = Core.atlas.find("despondency-h-arm" + outline);
-            armRegions[i][1] = Core.atlas.find("despondency-f-arm" + outline);
-            armRegions[i][2] = Core.atlas.find("despondency-hand" + outline);
-            armRegions[i][3] = Core.atlas.find("despondency-hand2" + outline);
+            armRegions[i][0] = findRegion("despondency-h-arm" + outline);
+            armRegions[i][1] = findRegion("despondency-f-arm" + outline);
+            armRegions[i][2] = findRegion("despondency-hand" + outline);
+            armRegions[i][3] = findRegion("despondency-hand2" + outline);
         }
 
         for(DespondencyArm arm : arms){
-            arm.weapon = Core.atlas.find("despondency-" + arm.name);
+            arm.weapon = findRegion("despondency-" + arm.name);
         }
+    }
+
+    /**
+     * 查找贴图并在缺失时给出明确日志。
+     *
+     * <p>★ 修复"大招武器贴图错误": FO 参考包本身没有 {@code despondency-spear} 贴图,
+     * 直接 {@code atlas.find} 缺失时会静默返回 error 图 (粉黑格子), 看起来就是"错贴图"。
+     * 这里统一走本方法: 缺失时记录日志并回退到同类武器贴图, 不再出现 error 图。</p>
+     */
+    private static TextureRegion findRegion(String name){
+        if(Core.atlas.has(name)) return Core.atlas.find(name);
+
+        String fallback = name.contains("spear") || name.contains("halberd") || name.contains("claymore") || name.contains("sword")
+                ? "despondency-halberd"
+                : "despondency-h-arm";
+
+        arc.util.Log.warn("[despondency] 缺少贴图 @, 已回退到 @", name, fallback);
+        return Core.atlas.find(fallback, Core.atlas.find("error"));
     }
 
     @Override
@@ -483,7 +501,11 @@ public class EndDespondencyWeapon extends Weapon{
     void drawMain(Unit unit, WeaponMount mount){
         DespondencyMount m = (DespondencyMount)mount;
 
+        // ★ v160: drawOutline 阶段会先 applyOutlineColor, 部分情况下会把 Draw.color
+        //   留成深色, 导致手臂/武器整片变黑 ("贴图错误" 观感)。这里强制恢复白色。
+        Draw.color(Color.white);
         unit.type.applyColor(unit);
+        Draw.color(Color.white);
 
         if(!m.spears.isEmpty()){
             float z = Draw.z();

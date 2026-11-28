@@ -38,6 +38,13 @@ import java.util.Arrays;
  * </ul>
  */
 public class FlameUtils{
+    /**
+     * 消沉整体输出强度系数 (用户要求: 原版机制 + 强度按原版削弱一半)。
+     *
+     * <p>只缩放"持续削血"类伤害 (激光/轨道炮/核弹/导弹/长矛), 不缩放
+     * 处决 (maxHealth + 常数) 伤害 —— 处决是机制而非数值。</p>
+     */
+    public static final float DES_DAMAGE_SCALE = 0.5f;
 
     /** 线段命中回调 (entity, 命中点 x, 命中点 y)。 */
     public interface LineHitHandler<T>{

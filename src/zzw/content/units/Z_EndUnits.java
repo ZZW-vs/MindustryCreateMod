@@ -680,7 +680,7 @@ public class Z_EndUnits {
      */
     private static void despondency(){
         despondency = new DespondencyUnitType("despondency"){{
-            reviveLimit = 0;  // 台账耗尽即真死, 不复活
+            reviveLimit = zzw.content.units.anticheat.EndCheatVars.MAX_REVIVES;  // 最强 End 单位, 复活上限 10
             antiCheatType = new zzw.content.units.anticheat.EndCheatVars(
                     health / 600f, health / 200f, health / 220f, health / 100f,
                     0.6f, 7f * 60f, 8f * 60f, 35f, 4);

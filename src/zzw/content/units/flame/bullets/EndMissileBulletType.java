@@ -94,11 +94,11 @@ public class EndMissileBulletType extends BasicBulletType{
         FlameFX.desMissileHit.at(x, y, b.rotation());
 
         FlameUtils.scanEnemies(b.team, x, y, 40f, true, true, t -> {
-            float dam = Mathf.chance(0.333f) ? 1000f : 200f;
+            float dam = (Mathf.chance(0.333f) ? 1000f : 200f) * FlameUtils.DES_DAMAGE_SCALE;
             if(t instanceof Unit u){
-                EmpathyDamage.damageUnit(u, dam + u.maxHealth / 110f, true, () -> SpecialDeathEffects.get(u.type).deathUnit(u, x, y, Angles.angle(x, y, u.x, u.y)));
+                EmpathyDamage.damageUnit(u, dam + u.maxHealth / 220f, true, () -> SpecialDeathEffects.get(u.type).deathUnit(u, x, y, Angles.angle(x, y, u.x, u.y)));
             }else if(t instanceof Building bl){
-                EmpathyDamage.damageBuildingRaw(bl, dam + bl.maxHealth / 110f, true, () -> SpecialDeathEffects.get(bl.block).deathBuilding(bl, x, y, Angles.angle(x, y, bl.x, bl.y)));
+                EmpathyDamage.damageBuildingRaw(bl, dam + bl.maxHealth / 220f, true, () -> SpecialDeathEffects.get(bl.block).deathBuilding(bl, x, y, Angles.angle(x, y, bl.x, bl.y)));
             }
         });
     }

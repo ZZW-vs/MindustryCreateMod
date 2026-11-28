@@ -60,7 +60,7 @@ public class EndCreepLaserBulletType extends ContinuousBulletType implements Las
     public EndCreepLaserBulletType(){
         super();
 
-        damage = 9000f;
+        damage = 9000f * FlameUtils.DES_DAMAGE_SCALE;
         length = 500 * 8f;
         hitColor = FlamePal.red;
         hitEffect = FlameFX.desCreepHit;
@@ -251,7 +251,7 @@ public class EndCreepLaserBulletType extends ContinuousBulletType implements Las
         buildings.clear();
         Groups.unit.intersect(r.x, r.y, r.width, r.height, u -> {
             if(u.team != b.team && Mathf.within(x, y, u.x, u.y, range + u.hitSize / 2f) && u.checkTarget(false, true)){
-                EmpathyDamage.damageUnit(u, 12000f + u.maxHealth / 50f, true, () -> {
+                EmpathyDamage.damageUnit(u, 12000f * FlameUtils.DES_DAMAGE_SCALE + u.maxHealth / 100f, true, () -> {
                     SpecialDeathEffects eff = SpecialDeathEffects.get(u.type);
                     float rot = u.angleTo(x, y) + 180f;
                     eff.deathUnit(u, x, y, rot, e -> {
@@ -285,7 +285,7 @@ public class EndCreepLaserBulletType extends ContinuousBulletType implements Las
 
         for(Building bl : buildings){
             boolean lethal = Mathf.chance(0.3f);
-            float d = lethal ? 12000f + bl.maxHealth / 20f : bl.health / 1.5f;
+            float d = lethal ? 12000f * FlameUtils.DES_DAMAGE_SCALE + bl.maxHealth / 40f : bl.health / 1.5f;
             EmpathyDamage.damageBuildingRaw(bl, d, lethal, () -> {
                 SpecialDeathEffects eff = SpecialDeathEffects.get(bl.block);
 

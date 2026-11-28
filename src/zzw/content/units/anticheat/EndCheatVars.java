@@ -21,8 +21,8 @@ import arc.math.Interp;
  * </ul>
  */
 public class EndCheatVars{
-    /** 复活次数硬上限 (用户要求: 所有 End 单位最多复活 5 次)。 */
-    public static final int MAX_REVIVES = 5;
+    /** 复活次数硬上限 (End 体系: 最多复活 10 次)。 */
+    public static final int MAX_REVIVES = 10;
     /** "受伤过快"统计窗口 (tick): 1 秒。 */
     public static final float FAST_DAMAGE_WINDOW = 60f;
     /** 窗口内累计原始伤害达到最大生命的该比例, 即视为"受伤过快"。 */
@@ -30,7 +30,9 @@ public class EndCheatVars{
     /** 受伤过快时, 超出安全速率的部分按该比例额外压入真实血量台账 (记忆)。 */
     public static final float FAST_DAMAGE_LEDGER_PENALTY = 0.5f;
     /** 复活时回充的血量比例 (相对台账/上限), 弱化"加血条"观感。 */
-    public static final float REVIVE_HEAL_RATIO = 0.4f;
+    public static final float REVIVE_HEAL_RATIO = 0.25f;
+    /** 复活后的无敌时间 (tick): 避免刚复活就被同一波火力立刻打回死亡。 */
+    public static final float REVIVE_INVULNERABLE_TIME = 120f;
 
     private final static Interp defaultIn = new Interp.Pow(2);
 
