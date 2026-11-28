@@ -135,11 +135,19 @@ public class EndInvisibleUnit extends UnitEntity implements zzw.content.Factionc
                 }
             });
             if (!near[0]) {
-                Groups.build.intersect(x - size, y - size, size * 2f, size * 2f, b -> {
-                    if (b.team != team() && b.block != null) {
+                // ★ Groups.build 在 v160 中是 spatial=false 的实体组 (构造参数 false, false),
+                //   内部 QuadTree(tree) 为 null, 调用 intersect() 会直接抛 NullPointerException
+                //   (手机版崩溃根因: EntityGroup.intersect → tree.intersect on null)。
+                //   这里改为按矩形范围手动遍历建筑 (等价于 PU132 Utils.hasBuilding)。
+                //   建筑半宽 = block.size * tilesize / 2 = block.size * 4f。
+                for (mindustry.gen.Building b : Groups.build) {
+                    if (b == null || b.block == null || b.team == team()) continue;
+                    float pad = b.block.size * 4f;
+                    if (Math.abs(b.x - x) <= size + pad && Math.abs(b.y - y) <= size + pad) {
                         near[0] = true;
+                        break;
                     }
-                });
+                }
             }
             if (near[0]) {
                 disabledTime = 1.2f * 60f;
