@@ -1088,7 +1088,7 @@ public class Z_Units {
             // ===== 基础属性 (PU132 UnityUnitTypes.java 第4055-4095行) =====
             health = 2500000f;  // PU132 原版
             // PU132: antiCheatType = (8000, h/190, 10000, h/100, 0.6, 7m, 8m, 35, 3)
-            reviveLimit = 4;  // 复活次数 (终极虫体, 按强度)
+            reviveLimit = 2;  // 复活次数 (压迫者, 用户指定 2 次)
             antiCheatType = new zzw.content.units.anticheat.EndCheatVars(
                 8000f, health / 190f, 10000f, health / 100f, 0.6f, 7f * 60f, 8f * 60f, 35f, 3);
             flying = true;
@@ -2155,7 +2155,7 @@ public class Z_Units {
             rotateSpeed = 0.9f;
 
             // PU132: antiCheatType = (6000, 12000, h/560, h/120, 0.6, 7m, 8m, 35, 4)
-            reviveLimit = 4;  // 复活次数 (按强度: desolation)
+            reviveLimit = 5;  // 复活次数 (荒芜者, 用户指定 5 次)
             antiCheatType = new zzw.content.units.anticheat.EndCheatVars(
                 6000f, 12000f, health / 560f, health / 120f, 0.6f, 7f * 60f, 8f * 60f, 35f, 4);
 

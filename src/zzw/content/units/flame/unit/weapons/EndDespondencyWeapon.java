@@ -28,6 +28,7 @@ import zzw.content.units.flame.FlameBatches;
 import zzw.content.units.flame.FlameOutSFX;
 import zzw.content.units.flame.FlamePal;
 import zzw.content.units.flame.FlameUtils;
+import zzw.content.units.flame.effects.FlameFX;
 import zzw.content.units.flame.effects.Fragmentation.FragmentEntity;
 import zzw.content.units.flame.effects.SpecialDeathEffects;
 import zzw.content.units.flame.entities.DesShockWaveEntity;
@@ -397,8 +398,10 @@ public class EndDespondencyWeapon extends Weapon{
                 batch.useAlt = false;
                 batch.resScale = 0.5f;
                 batch.islandScl = 0.075f;
-                batch.genGore = eff.hasInternal;
-                batch.goreColor = eff.internalColor;
+                // ★ 还原"拍碎 + 血液": 通用目标也强制生成血肉碎块 (FO 原版仅在
+                //   OrganicDeath 上开 gore, 这里对所有被处决单位都出血液)
+                batch.genGore = true;
+                batch.goreColor = eff.hasInternal ? eff.internalColor : FlamePal.blood;
                 batch.sound = eff.deathSound;
                 batch.onDeathFunc = eff.fragDeath;
                 batch.fragFunc = e -> {
@@ -413,7 +416,17 @@ public class EndDespondencyWeapon extends Weapon{
                     m.fragHands.add(new FragmentHands(unit, Mathf.range(4f), Mathf.range(24f), u, e));
                 };
 
+                // ★ 截获绘制前先把 Draw 颜色复位为白色: FragmentationBatch 只在
+                //   纯白 (colorPacked > 0.9) 时才会生成碎片, 否则"生不出手"。
+                Draw.color(Color.white);
                 batch.switchBatch(u::draw);
+
+                // ★ 兜底: 若这次截获没生成任何碎片 (目标已不可绘制等), 直接走
+                //   常规死亡演出 + 重击特效, 保证"拍碎 + 血"一定能看到。
+                if(m.fragHands.isEmpty()){
+                    eff.deathUnit(u, u.x, u.y, unit.angleTo(u));
+                    FlameFX.desCreepHeavyHit.at(u.x, u.y, unit.angleTo(u), 1.2f);
+                }
             } : () -> eff.cutAlt(u);
             EmpathyDamage.damageUnit(u, u.maxHealth + 1000f, true, run);
             m.stageTime = eff.solid ? 4f * 60f + 90f : 120f;

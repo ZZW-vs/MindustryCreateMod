@@ -62,6 +62,12 @@ public class DespondencyUnit extends EndGroundUnit{
         // FO 原版: trueHealth > 0 时保持悬浮 (elevation = 1), 台账耗尽才落地。
         float ledger = EndHealthLedger.get(this, health);
         elevation = ledger > 0f ? 1f : 0f;
+
+        // ★ 移速钳制: 悬浮状态下 LegsUnit 的 speed() 会随 elevation 放大,
+        //   导致实际移速高于 FO 原值。这里把速度硬钳回 UnitType.speed。
+        if(vel.len() > type.speed){
+            vel.setLength(type.speed);
+        }
     }
 
     /** 消沉始终视作地面单位 (可被地面武器命中, 不吃"空中目标"过滤)。 */
