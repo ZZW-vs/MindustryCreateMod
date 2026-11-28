@@ -576,8 +576,7 @@ public class EndDespondencyWeapon extends Weapon{
         tr.setV2(Mathf.lerp(mu, fore.v2, fade));
 
         float dx = (end.x - mid.x) * 0.08f, dy = (end.y - mid.y) * 0.08f;
-        Lines.stroke(tr.height * Draw.scl * scl * s);
-        Lines.line(tr, mid.x - dx, mid.y - dy, end.x + dx * 0.2f, end.y + dy * 0.2f, false);
+        drawLimb(tr, mid.x - dx, mid.y - dy, end.x + dx * 0.2f, end.y + dy * 0.2f, tr.height * Draw.scl * scl);
 
         tr.set(hind);
         mu = Mathf.lerp(hind.v, hind.v2, 0.5f);
@@ -586,8 +585,7 @@ public class EndDespondencyWeapon extends Weapon{
 
         dx = (mid.x - v.x) * 0.15f;
         dy = (mid.y - v.y) * 0.15f;
-        Lines.stroke(tr.height * Draw.scl * scl * s);
-        Lines.line(tr, v.x - dx, v.y - dy, mid.x + dx, mid.y + dy, false);
+        drawLimb(tr, v.x - dx, v.y - dy, mid.x + dx, mid.y + dy, tr.height * Draw.scl * scl);
     }
 
     @Override
@@ -765,8 +763,7 @@ public class EndDespondencyWeapon extends Weapon{
                 tr.setV2(Mathf.lerp(fore.v2, mu, fin));
 
                 float dx = (hx - jx) * 0.08f, dy = (hy - jy) * 0.08f;
-                Lines.stroke(tr.height * Draw.scl * s * scl);
-                Lines.line(tr, jx - dx, jy - dy, hx + dx * 0.2f, hy + dy * 0.2f, false);
+                drawLimb(tr, jx - dx, jy - dy, hx + dx * 0.2f, hy + dy * 0.2f, tr.height * Draw.scl * scl);
 
                 tr.set(hind);
                 mu = Mathf.lerp(hind.v, hind.v2, 0.5f);
@@ -775,10 +772,21 @@ public class EndDespondencyWeapon extends Weapon{
 
                 dx = (jx - src.x) * 0.1f;
                 dy = (jy - src.y) * 0.1f;
-                Lines.stroke(tr.height * Draw.scl * s * scl);
-                Lines.line(tr, src.x - dx, src.y - dy, jx + dx, jy + dy, false);
+                drawLimb(tr, src.x - dx, src.y - dy, jx + dx, jy + dy, tr.height * Draw.scl * scl);
             }
         }
+    }
+
+    /** 把一张手臂贴图沿两点拉伸绘制 (替代受 useLegacyLine 影响的 Lines.line)。 */
+    static void drawLimb(TextureRegion reg, float x1, float y1, float x2, float y2, float thickness){
+        if(reg == null) return;
+        float len = Mathf.dst(x1, y1, x2, y2);
+        if(len <= 0.01f || thickness <= 0.01f) return;
+        // ★ 防止手臂被画成"方块/团块": 厚度不得超过该段长度的 0.85 倍,
+        //   否则整张手臂贴图会被压成看不出形状的一块。
+        thickness = Math.min(thickness, len * 0.85f);
+        float ang = Angles.angle(x1, y1, x2, y2);
+        Draw.rect(reg, (x1 + x2) / 2f, (y1 + y2) / 2f, len, thickness, ang);
     }
 
     static class SpearHolder{
@@ -846,10 +854,14 @@ public class EndDespondencyWeapon extends Weapon{
             for(int i = 0; i < 2; i++){
                 TextureRegion root = armRegions[i][0], end = armRegions[i][1], hand = armRegions[i][2];
 
-                Lines.stroke(root.height * Draw.scl * s * fscl);
+                // 爪/手
                 Draw.rect(hand, hx, hy, hand.width * Draw.scl * fscl, hand.height * Draw.scl * fscl * s, rot3);
-                Lines.line(end, j1x - n2x * fscl * 5f, j1y - n2y * fscl * 5f, j2x + n2x * fscl * 5f, j2y + n2y * fscl * 5f, false);
-                Lines.line(root, rx - n1x * fscl * 5f, ry - n1y * fscl * 5f, j1x + n1x * fscl * insize, j1y + n1y * fscl * insize, false);
+                // 前臂
+                drawLimb(end, j1x - n2x * fscl * 5f, j1y - n2y * fscl * 5f,
+                        j2x + n2x * fscl * 5f, j2y + n2y * fscl * 5f, end.height * Draw.scl * fscl);
+                // 上臂
+                drawLimb(root, rx - n1x * fscl * 5f, ry - n1y * fscl * 5f,
+                        j1x + n1x * fscl * insize, j1y + n1y * fscl * insize, root.height * Draw.scl * fscl);
 
                 if(i == 0){
                     float cprog = Mathf.curve(progress, 0f, 0.85f);
@@ -869,6 +881,18 @@ public class EndDespondencyWeapon extends Weapon{
                     Draw.rect(reg, hx + v2.x, hy + v2.y, width, height, rot3);
                 }
             }
+        }
+
+        /**
+         * 沿两点绘制一节手臂。
+         *
+         * <p>★ 不再使用 {@code Lines.line(region, ...)}: 该 API 的行为受全局
+         * {@code Lines.useLegacyLine} 影响 (四套 Batch 收尾会把它置为 false),
+         * 非 legacy 分支只取贴图边缘作为截面, 手臂会退化成一条细线 —— 这正是
+         * "看不懂手臂是什么" 的原因。这里显式按 长度×贴图高度 拉伸整张贴图。</p>
+         */
+        void drawLimb(TextureRegion reg, float x1, float y1, float x2, float y2, float thickness){
+            EndDespondencyWeapon.drawLimb(reg, x1, y1, x2, y2, thickness);
         }
     }
 }
