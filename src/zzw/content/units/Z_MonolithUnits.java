@@ -847,7 +847,7 @@ public class Z_MonolithUnits{
             // PU132: Legsc 实体 (多足, 携带灵魂 -> SoulLegsUnit)
             constructor = SoulLegsUnit::create;
 
-            health = 88000f;  // ★ 新基准: 原版 T5 (22k) 的 4 倍, 巨构重甲
+            health = 110000f;  // ★ 定位: 巨构重甲 T6 (最高 T6 血线); 原版 60000
             speed = 0.4f;
             rotateSpeed = 1.2f;
             hitSize = 64f;

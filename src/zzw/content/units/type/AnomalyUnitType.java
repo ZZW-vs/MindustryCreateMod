@@ -49,7 +49,7 @@ public class AnomalyUnitType extends UnityUnitType{
         // ★ 装饰实体: 持有 decors[] 驱动翅膀动画, 没有它翅膀不会显示!
         constructor = DecorationUnitEntity::create;
 
-        health = 235000f;  // ★ 新基准: 原版 T5 (22k) 的 10.7 倍
+        health = 155000f;  // ★ 定位: 牵引控制玻璃炮, T7 低血线; 原版 17000
         speed = 2.1f;
         rotateSpeed = 1f;
         accel = 0.08f;

@@ -34,7 +34,7 @@ public class DeviationUnitType extends UnityUnitType{
         // ★ 装饰实体: 持有 decors[] 驱动翅膀动画, 没有它翅膀不会显示!
         constructor = DecorationUnitEntity::create;
 
-        health = 76000f;  // ★ 新基准: 原版 T5 (22k) 的 3.5 倍
+        health = 48000f;  // ★ 定位: 闪电弹幕玻璃炮, T6 最低血线; 原版 8000
         speed = 2.8f;
         accel = 0.07f;
         drag = 0.05f;

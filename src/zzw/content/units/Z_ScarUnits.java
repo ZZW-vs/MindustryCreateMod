@@ -433,7 +433,7 @@ public class Z_ScarUnits {
         excelsus = new UnityUnitType("excelsus"){{
             aiController = DistanceGroundAI::new;
             speed = 0.6f;
-            health = 82000;  // ★ 新基准: 原版 T5 (22k) 的 3.7 倍, T6 顶点
+            health = 101000;  // ★ 定位: 全身覆盾重装步行, T6 高血线; 原版 38000
             hitSize = 66.5f;
             range = 370f;
             allowLegStep = true;

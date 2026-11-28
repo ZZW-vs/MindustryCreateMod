@@ -2883,7 +2883,7 @@ public class Z_Units {
 
         // ===== citadel (T6 Mech, 磁轨炮+火焰喷射) =====
         citadel = new UnitType("citadel") {{
-            health = 84000f;  // ★ 新基准: 原版 T5 (reign 24k) 的 3.5 倍
+            health = 90000f;  // ★ 定位: 重甲磁轨炮 Mech; 原版 48750, T6 重甲档
             armor = 42f;      // ★ 新基准: 原版 T5 (18) 的 2.3 倍
             speed = 0.3f;
             hitSize = 49f;
@@ -2956,7 +2956,7 @@ public class Z_Units {
         // ===== empire (T7 Mech, 火焰+导弹+炮弹) =====
         // PU_V8 原版: UnityUnitTypes.java 第1129-1248行
         empire = new UnitType("empire") {{
-            health = 240000f;  // ★ 新基准: 原版 T5 (24k) 的 10 倍
+            health = 260000f;  // ★ 定位: 攻城 Mech, T7 重甲最高血线; 原版 140000
             armor = 56f;       // ★ 新基准: 原版 T5 (18) 的 3.1 倍
             speed = 0.2f;
             hitSize = 49f;
@@ -3096,7 +3096,7 @@ public class Z_Units {
         // ===== cygnus (T6 Legs, 反射激光+EMP弹) =====
         // PU_V8 原版: UnityUnitTypes.java 第1250-1328行
         cygnus = new UnitType("cygnus") {{
-            health = 80000f;  // ★ 新基准: 原版 T5 (22k) 的 3.6 倍
+            health = 82000f;  // ★ 定位: 治疗+EMP 支援步行; 原版 45000
             armor = 34f;      // ★ 新基准: 原版 T5 (13) 的 2.6 倍
             speed = 0.26f;
             hitSize = 37f;
@@ -3196,7 +3196,7 @@ public class Z_Units {
 
         // ===== sagittarius (T7 Legs, 蓄力激光+加速箭弹, 力场护盾) =====
         sagittarius = new UnitType("sagittarius") {{
-            health = 230000f;  // ★ 新基准: 原版 T5 (22k) 的 10.5 倍
+            health = 200000f;  // ★ 定位: 远程狙击支援, 低于重甲攻城线; 原版 102500
             armor = 54f;       // ★ 新基准: 原版 T5 (13) 的 4.2 倍
             speed = 0.25f;
             hitSize = 55f;
@@ -3294,7 +3294,7 @@ public class Z_Units {
         // ===== araneidae (T6 Legs, 吸血激光+磁轨炮) =====
         // PU_V8 原版: UnityUnitTypes.java 第1415-1508行
         araneidae = new UnitType("araneidae") {{
-            health = 80000f;  // ★ 新基准: 原版 T5 (22k) 的 3.6 倍
+            health = 55000f;  // ★ 定位: 吸血猎手 (高 DPS 低血); 原版 30000, T6 低血线
             armor = 32f;      // ★ 新基准: 原版 T5 (13) 的 2.5 倍
             speed = 0.42f;
             hitSize = 35.5f;
@@ -3434,7 +3434,7 @@ public class Z_Units {
         // ===== theraphosidae (T7 Legs, 导弹+持续激光+磁轨炮) =====
         // PU_V8 原版: UnityUnitTypes.java 第1510-1635行
         theraphosidae = new UnitType("theraphosidae") {{
-            health = 240000f;  // ★ 新基准: 原版 T5 (22k) 的 11 倍
+            health = 150000f;  // ★ 定位: 高 DPS 低血猎手, T7 最低血线; 原版 38750
             armor = 56f;       // ★ 新基准: 原版 T5 (13) 的 4.3 倍
             speed = 0.4f;
             drag = 0.12f;
@@ -3607,7 +3607,7 @@ public class Z_Units {
         // ===== mantle (T6 Flying, 加速激光+炮弹) =====
         // PU_V8 原版: UnityUnitTypes.java 第1637-1710行
         mantle = new UnitType("mantle") {{
-            health = 80000f;  // ★ 新基准: 原版 T5 (22k) 的 3.6 倍
+            health = 96000f;  // ★ 定位: 空中持续激光输出, T6 偏高血线; 原版 54000
             armor = 32f;      // ★ 新基准: 原版 T5 (13) 的 2.5 倍
             speed = 0.45f;
             accel = 0.04f;
@@ -3703,7 +3703,7 @@ public class Z_Units {
         // ===== aphelion (T7 Flying, 加速激光+闪电炮弹) =====
         // PU_V8 原版: UnityUnitTypes.java 第1712-1805行
         aphelion = new UnitType("aphelion") {{
-            health = 250000f;  // ★ 新基准: 原版 T5 (22k) 的 11.4 倍
+            health = 240000f;  // ★ 定位: 闪电炮弹空中主力; 原版 130000
             armor = 54f;       // ★ 新基准: 原版 T5 (13) 的 4.2 倍
             speed = 0.44f;
             accel = 0.04f;
@@ -3821,7 +3821,7 @@ public class Z_Units {
             constructor = mindustry.gen.UnitEntity::create;
             // PU_V8: defaultController = HealingDefenderAI::new (v158 用 aiController 等效)
             aiController = () -> new zzw.content.units.ai.HealingDefenderAI();
-            health = 76000f;  // ★ 新基准: 支援型, 原版 T5 的 3.2 倍
+            health = 86000f;  // ★ 定位: 力场/修复支援平台; 原版 45000
             armor = 38f;      // ★ 新基准: 原版 T5 (18) 的 2.1 倍
             speed = 0.7f;
             rotateSpeed = 1f;
@@ -3886,7 +3886,7 @@ public class Z_Units {
             constructor = mindustry.gen.UnitEntity::create;
             // PU_V8: defaultController = HealingDefenderAI::new (v158 用 aiController 等效)
             aiController = () -> new zzw.content.units.ai.HealingDefenderAI();
-            health = 220000f;  // ★ 新基准: 支援型, 原版 T5 的 9.2 倍
+            health = 170000f;  // ★ 定位: 治疗核弹支援, T7 支援低血线; 原版 52500
             armor = 58f;       // ★ 新基准: 原版 T5 (18) 的 3.2 倍
             speed = 0.6f;
             rotateSpeed = 1f;
@@ -4633,7 +4633,7 @@ public class Z_Units {
             accel = 0.03f;
             fallSpeed = 0.0025f;
             fallRotateSpeed = 0.8f;
-            health = 74000f;  // ★ 新基准: 原版 T5 的 3.1 倍 (防空特化)
+            health = 62000f;  // ★ 定位: 防空拦截直升机 (低血高机动); 原版 25000
             engineSize = 0f;
             flying = true;
             hitSize = 45f;
@@ -4733,7 +4733,7 @@ public class Z_Units {
 
         // ===== fin (鳍级战列舰, PU_V8 原版) =====
         fin = new UnitType("fin") {{
-            health = 82000f;  // ★ 新基准: 海军线 T6, 原版 T5 的 3.4 倍
+            health = 72000f;  // ★ 定位: 海军战列舰 (导弹/迫击炮); 原版 36250
             speed = 0.5f;
             drag = 0.18f;
             hitSize = 77.5f;
@@ -4849,7 +4849,7 @@ public class Z_Units {
         // 注意: v158 无 rotateShooting/trailX/trailY/trailScl 字段, 已删除
         // 注意: schistocerca 已移植 (作为简化的直升机单位, CopterUnitType)
         blue = new UnitType("blue") {{
-            health = 240000f;  // ★ 新基准: 海军线 T7, 原版 T5 的 10 倍
+            health = 160000f;  // ★ 定位: 海军旗舰 (多武器但非重甲); 原版 42500
             speed = 0.4f;
             drag = 0.18f;
             hitSize = 80f;

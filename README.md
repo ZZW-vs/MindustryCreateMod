@@ -692,6 +692,11 @@
 - 新增螺旋石油钻井（oil-derrick）：扭矩驱动的石油抽取器（`SolidPump`，`result=Liquids.oil`、`attribute=Attribute.oil`，需建在油层上），绘制为螺旋钻杆样式（类 `zzw.content.mechanics.torque.blocks.production.OilDerrick`）
 
 ## 更新日志
+- **T6/T7 单位血量按原版定位分化**（原先 T6 普遍 ~80k、T7 ~220-250k 过于整齐）：
+  - T6：deviation 48k、araneidae 55k、mantodea 62k、fin 72k、cygnus 82k、sedec 86k、citadel 90k、mantle 96k、excelsus 101k、colossus 110k
+  - T7：theraphosidae 150k、anomaly 155k、blue 160k、trigintaduo 170k、sagittarius 200k、aphelion 240k、empire 260k、bastion 300k
+  - 蛛形猎手（araneidae/theraphosidae）按原版恢复为「高 DPS、低血量」进攻定位；支援、重甲、攻城、巨构保持更高血线；仅调整 `health`，未动护甲、伤害、武器与音效
+- **cygnus 激光略微改短**：反射激光长度与索敌/面板射程同步 900 → **800**（约 -11%），充能时间、持续帧数、伤害、反射次数与音效均保持不变
 - **colossus 开火音效校正**：
   - PU132 原版使用 `Sounds.laserblast`；实测 v146 的 `laserblast.ogg` 与 v160 的 `shootCorvus.ogg` **MD5 完全一致**，说明该字段在版本演进中改名为 `shootCorvus`
   - 当前误映射为 `beamMeltdown`（持续光束循环音，与单发激光爆发的音色不符），已改为 `Sounds.shootCorvus`
