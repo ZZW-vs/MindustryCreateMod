@@ -25,11 +25,14 @@ import zzw.content.units.types.DesolationUnitType;
  * ({@code -leg-shadow} / {@code -leg-base-shadow})，再补上：
  * 主武器索引、FO 的 {@code drawShadow} 行为与完整武器组。</p>
  *
- * <p>★ 数值按 FO 原值落地: 1750 万血 / 200 甲 / 速度 2 / hitSize 217。
+ * <p>★ 数值: 血量 875 万 (FO 原值减半) / 200 甲 / 速度 0.55 (与 create-desolation 一致) /
+ * hitSize 217 / 攻击范围统一 200 格。
  * 按项目约定仍继承 EndGroundUnit，因此防作弊参数由
  * {@code antiCheatType} 控制，并在 Z_EndUnits 注册时配置。</p>
  */
 public class DespondencyUnitType extends DesolationUnitType{
+    /** 消沉统一攻击范围: 200 格 (1 格 = 8 世界单位)。 */
+    public static final float DES_RANGE = 200f * 8f;
     public int mainWeaponIdx = -1;
 
     public DespondencyUnitType(String name){
@@ -49,7 +52,7 @@ public class DespondencyUnitType extends DesolationUnitType{
         shadowElevation = 8f;
         groundLayer = Layer.darkness + 1f;
 
-        health = 17500000f;
+        health = 8750000f;  // 用户要求: 血量在原 1750 万基础上减半
         speed = 0.55f;  // 与 create-desolation 一致 (用户要求)
         drag = 0.16f;
         armor = 200f;
@@ -165,6 +168,15 @@ public class DespondencyUnitType extends DesolationUnitType{
 
             arc.graphics.g2d.TextureRegion o = zzw.content.units.flame.FlameUtils.atlasRegion(w.name + "-outline");
             w.outlineRegion = (o != null && o.found()) ? o : w.region;
+
+            // ★ 用户要求: 攻击范围统一为 200 格 (= 200 × 8 世界单位)。
+            //   load() 在 init() 之后执行, 这里覆盖的 range 不会被重算覆盖。
+            if(w.bullet != null){
+                w.bullet.range = DES_RANGE;
+                if(w.bullet instanceof zzw.content.units.flame.bullets.EndCreepLaserBulletType laser){
+                    laser.length = DES_RANGE * 2f;  // 激光 calculateRange() = length / 2
+                }
+            }
         }
     }
 
