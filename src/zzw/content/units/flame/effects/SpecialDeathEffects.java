@@ -93,8 +93,9 @@ public class SpecialDeathEffects{
             explosionEffect = FlameFX.fragmentExplosion;
             deathSound = FlameSounds.expExotic;
         }};
-        // 本项目内容名没有 mod 前缀 (UnitType name = "despondency")
+        // 本项目 mod 内容名在运行期带 "create-" 前缀, 两种名字都注册以兼容
         nameMap.put("despondency", end);
+        nameMap.put("create-despondency", end);
 
         for(SpecialDeathEffects eff : all){
             eff.postLoad();

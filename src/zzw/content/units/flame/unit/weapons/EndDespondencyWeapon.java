@@ -27,6 +27,7 @@ import mindustry.type.Weapon;
 import zzw.content.units.flame.FlameBatches;
 import zzw.content.units.flame.FlameOutSFX;
 import zzw.content.units.flame.FlamePal;
+import zzw.content.units.flame.FlameUtils;
 import zzw.content.units.flame.effects.Fragmentation.FragmentEntity;
 import zzw.content.units.flame.effects.SpecialDeathEffects;
 import zzw.content.units.flame.entities.DesShockWaveEntity;
@@ -51,7 +52,8 @@ public class EndDespondencyWeapon extends Weapon{
     Seq<DespondencyArm> arms = new Seq<>();
     TextureRegion[][] armRegions;
 
-    public EndDespondencyWeapon(){
+    public EndDespondencyWeapon(String name){
+        super(name);
         mirror = false;
         x = y = 0f;
         mountType = DespondencyMount::new;
@@ -209,19 +211,17 @@ public class EndDespondencyWeapon extends Weapon{
     /**
      * 查找贴图并在缺失时给出明确日志。
      *
-     * <p>★ 修复"大招武器贴图错误": FO 参考包本身没有 {@code despondency-spear} 贴图,
-     * 直接 {@code atlas.find} 缺失时会静默返回 error 图 (粉黑格子), 看起来就是"错贴图"。
-     * 这里统一走本方法: 缺失时记录日志并回退到同类武器贴图, 不再出现 error 图。</p>
+     * <p>★ 修复"大招武器贴图错误": 本模组贴图在 atlas 中是
+     * {@code create-despondency-xxx}, 之前用裸名查找会静默拿到 error 图。
+     * 现统一走 {@link FlameUtils#atlasRegion(String)} 兼容 mod 前缀。</p>
      */
     private static TextureRegion findRegion(String name){
-        if(Core.atlas.has(name)) return Core.atlas.find(name);
-
-        String fallback = name.contains("spear") || name.contains("halberd") || name.contains("claymore") || name.contains("sword")
-                ? "despondency-halberd"
-                : "despondency-h-arm";
-
-        arc.util.Log.warn("[despondency] 缺少贴图 @, 已回退到 @", name, fallback);
-        return Core.atlas.find(fallback, Core.atlas.find("error"));
+        TextureRegion region = FlameUtils.atlasRegion(name);
+        if(region == null || !region.found()){
+            arc.util.Log.warn("[despondency] 缺少贴图 @, 已回退到 despondency-halberd", name);
+            return FlameUtils.atlasRegion("despondency-halberd");
+        }
+        return region;
     }
 
     @Override

@@ -54,7 +54,7 @@ public class DesSpearEntity extends DrawEntity{
     boolean draw;
 
     static TextureRegion region(){
-        return Core.atlas.find("despondency-spear");
+        return FlameUtils.atlasRegion("despondency-spear");
     }
 
     public static DesSpearEntity create(Unit unit, float x, float y, float rotation, boolean draw){

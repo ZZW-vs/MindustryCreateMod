@@ -1,7 +1,9 @@
 package zzw.content.units.flame;
 
+import arc.Core;
 import arc.func.Boolf;
 import arc.func.Cons;
+import arc.graphics.g2d.TextureRegion;
 import arc.math.Angles;
 import arc.math.Mathf;
 import arc.math.geom.Intersector;
@@ -45,6 +47,21 @@ public class FlameUtils{
      * 处决 (maxHealth + 常数) 伤害 —— 处决是机制而非数值。</p>
      */
     public static final float DES_DAMAGE_SCALE = 0.5f;
+
+    /** 本模组内容名的贴图前缀 (Mindustry 打包 mod 贴图时会加上 mod 内部名)。 */
+    public static final String MOD_PREFIX = "create-";
+
+    /**
+     * 按贴图短名取区域, 自动兼容 mod 前缀。
+     *
+     * <p>★ 修复消沉大招"武器贴图全是错的": 本模组贴图在 atlas 里是
+     * {@code create-despondency-xxx}, 直接 {@code atlas.find("despondency-xxx")}
+     * 会静默拿到 error 图 (粉黑格子)。这里先试带前缀的名字, 再回退裸名。</p>
+     */
+    public static TextureRegion atlasRegion(String name){
+        if(Core.atlas.has(MOD_PREFIX + name)) return Core.atlas.find(MOD_PREFIX + name);
+        return Core.atlas.find(name);
+    }
 
     /** 线段命中回调 (entity, 命中点 x, 命中点 y)。 */
     public interface LineHitHandler<T>{

@@ -80,7 +80,7 @@ public class DespondencyUnitType extends DesolationUnitType{
         clipSize = 2000f;
 
         weapons.addAll(
-                new EndAntiAirWeapon(this.name + "-anti-air"){{
+                new EndAntiAirWeapon("create-" + this.name + "-anti-air"){{
                     x = 45.75f;
                     y = 15.5f;
                     mirror = true;
@@ -90,7 +90,7 @@ public class DespondencyUnitType extends DesolationUnitType{
                     bullet = new BulletType(0f, 9000f);
                 }},
 
-                new LaserWeapon(this.name + "-laser"){{
+                new LaserWeapon("create-" + this.name + "-laser"){{
                     x = 54.5f;
                     y = -15f;
                     mirror = true;
@@ -110,7 +110,7 @@ public class DespondencyUnitType extends DesolationUnitType{
                     bullet = new EndCreepLaserBulletType();
                 }},
 
-                new Weapon(this.name + "-railgun"){{
+                new Weapon("create-" + this.name + "-railgun"){{
                     x = 63f;
                     y = -34f;
                     shootY = 12f;
@@ -128,7 +128,7 @@ public class DespondencyUnitType extends DesolationUnitType{
                     bullet = new EndRailBulletType();
                 }},
 
-                new Weapon(this.name + "-cannon"){{
+                new Weapon("create-" + this.name + "-cannon"){{
                     x = 56f;
                     y = -62.75f;
                     shootY = 12f;
@@ -147,9 +147,9 @@ public class DespondencyUnitType extends DesolationUnitType{
                 }},
 
                 // 与 FO 相同: 主处决武器排在常规武器之后，保证手臂绘制层级
-                new EndDespondencyWeapon(),
+                new EndDespondencyWeapon("create-" + this.name + "-main"),
 
-                new EndLauncherWeapon(this.name + "-missile")
+                new EndLauncherWeapon("create-" + this.name + "-missile")
         );
     }
 
