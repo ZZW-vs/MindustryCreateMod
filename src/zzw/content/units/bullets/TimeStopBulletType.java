@@ -51,8 +51,9 @@ public class TimeStopBulletType extends AntiCheatBulletTypeBase {
         RuneFx.clockFace(b.x(), b.y(), 7.5f, b.time * 3.2f, rot, 0.9f, trailColor);
 
         // 前向尖刺 (保留原版的"突进"轮廓)
-        Draw.color(Color.white);
-        Draw.alpha(0.85f);
+        // ★ 用户要求弹头全红: 原白色渐变在叠加混合下偏白, 改为与弹体一致的猩红
+        Draw.color(trailColor);
+        Draw.alpha(0.9f);
         Drawf.tri(b.x(), b.y(), 3.2f, 13f, rot);
         Draw.blend();
         Draw.reset();

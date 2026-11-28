@@ -132,16 +132,22 @@ public class SegmentWormEntity extends UnitEntity implements zzw.content.Faction
     }
 
     /**
-     * ★ 大招期间的减速倍率 (PU132 OppressionComp.updateLaserSpeed)
-     * PU132 原版: speedMultiplier *= 0.075f (减速到 7.5%, 不是完全锁定)
-     * - 头部 mounts[0].bullet != null 时 (主激光射击中) 触发
-     * - 充能期间(mount.charging)也减速, 让单位缓慢移动
+     * ★ 大招期间的减速倍率 (PU132 OppressionComp.updateLaserSpeed)。
+     *
+     * <p>PU132 原版为减速到 7.5%; 本项目按用户要求改为在大招期间
+     * <b>完全锁定</b>移动与转向 (见 {@link #update()})。此方法保留给
+     * 需要读取配置的代码使用, 不再参与实际速度计算。</p>
      */
     public float ultSpeedMultiplier() {
         if (!isUltActive()) return 1f;
         SegmentConfig cfg = type != null ? configs.get(type.name) : null;
         return cfg != null ? cfg.ultSpeedMultiplier : 0.075f;
     }
+
+    /** 大招锁定时的固定朝向 (进入锁定时记录一次) */
+    protected float ultLockRotation = 0f;
+    /** 是否正处于大招锁定状态 */
+    protected boolean ultLocked = false;
 
     /** 段身列表 (顺序: 头部后方第一段到最后一段) */
     public SegmentUnitEntity[] segments = new SegmentUnitEntity[0];
@@ -422,11 +428,17 @@ public class SegmentWormEntity extends UnitEntity implements zzw.content.Faction
 
     @Override
     public void update() {
-        // ★ 大招期间减速移动 (PU132 OppressionComp: speedMultiplier *= 0.075f)
-        // vel 在 super.update() 前减速, 防止物理系统加速
-        float ultScl = ultSpeedMultiplier();
-        if (ultScl < 1f) {
-            vel.scl(ultScl);
+        // ★ 大招期间完全锁定 (oppression): 充能/射击时既不能移动也不能转向,
+        //   保证主激光方向固定。进入锁定时记录朝向, 之后每帧强制还原。
+        boolean ultLock = isUltActive();
+        if (ultLock) {
+            if (!ultLocked) {
+                ultLockRotation = rotation;
+                ultLocked = true;
+            }
+            vel.setZero();
+        } else {
+            ultLocked = false;
         }
 
         // PU132 WormDefaultUnit.update L71-72: 保存速度历史 (用于 updateSegmentVLocal 3 帧平均)
@@ -479,12 +491,11 @@ public class SegmentWormEntity extends UnitEntity implements zzw.content.Faction
             vel.setZero();
         }
 
-        // ★ 大招期间减速 2: super.update() 后再次减速 vel + 减速旋转
-        // speedMultiplier 在 super.update() 中由 StatusComp 重置为 1f, 所以这里设置才有效
-        // PU132 原版: speedMultiplier *= 0.075f, 影响 rotateMove 中的旋转速度
-        if (ultScl < 1f) {
-            vel.scl(ultScl);
-            speedMultiplier *= ultScl;
+        // ★ 大招期间锁定 2: super.update() 后再次清零速度并还原朝向
+        //   (AI/物理可能在本帧改了 vel/rotation, 必须在最后压回去)
+        if (ultLock) {
+            vel.setZero();
+            rotation = ultLockRotation;
         }
 
         // ★ 兜底: 如果 add() 没创建段身, 在第一次 update() 时创建 ★

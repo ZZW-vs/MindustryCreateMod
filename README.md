@@ -692,6 +692,13 @@
 - 新增螺旋石油钻井（oil-derrick）：扭矩驱动的石油抽取器（`SolidPump`，`result=Liquids.oil`、`attribute=Attribute.oil`，需建在油层上），绘制为螺旋钻杆样式（类 `zzw.content.mechanics.torque.blocks.production.OilDerrick`）
 
 ## 更新日志
+- **End 阵营本轮调整**：
+  - ravager 移速 0.65 → **0.5**（重装地面单位推进更沉稳）
+  - chronos 时停子弹头部由白色改为**全红**；时停充能 10s → **30s**，与 15s 时停时长拉开间隔，不再无限续停
+  - oppression 大激光充能/射击期间**完全锁定移动与转向**（原为减速到 5%），激光方向保持固定
+  - desolation 射程对齐 **200 格**（主炮速度 1.75→3.34，8 秒飞行约 1600px），血量 307300 → **153650**（减半）
+  - End 复活次数：谜题 / chronos / 噬神者 / 消沉 **不复活**；opticaecus / 压迫者 **1 次**；ravager / 深海恐惧 **2 次**；天启 **3 次**
+  - 单位信息面板新增独立的「复活机制」框：显示复活次数与机制说明，不再和普通能力挤在一行纯文本里
 - **T6/T7 单位血量按原版定位分化**（原先 T6 普遍 ~80k、T7 ~220-250k 过于整齐）：
   - T6：deviation 48k、araneidae 55k、mantodea 62k、fin 72k、cygnus 82k、sedec 86k、citadel 90k、mantle 96k、excelsus 101k、colossus 110k
   - T7：theraphosidae 150k、anomaly 155k、blue 160k、trigintaduo 170k、sagittarius 200k、aphelion 240k、empire 260k、bastion 300k

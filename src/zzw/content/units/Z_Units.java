@@ -1476,7 +1476,8 @@ public class Z_Units {
             aiController = () -> new zzw.content.units.ai.WormAI();
 
             // 时间停止能力 (PU132: duration=15*60, rechargeTime=10*60)
-            abilities.add(new TimeStopAbility(15f * 60f, 10f * 60f) {{
+            // ★ 用户反馈释放过快: 充能 10s → 30s, 与 15s 的时停时长拉开间隔, 不再无限续停
+            abilities.add(new TimeStopAbility(15f * 60f, 30f * 60f) {{
                 // ★ PU132 原版: timeStopSound = UnitySounds.stopTime
                 timeStopSound = zzw.content.Z_Sounds.stopTime;
             }});
@@ -1589,8 +1590,9 @@ public class Z_Units {
         // ═══════════════════════════════════════════════════════════
         ravager = new zzw.content.type.UnityUnitType("ravager") {{
             health = 1650000f;
-            // ★ 对照 PU132 L4506: 原版 speed = 0.65 (此前误写 0.5)
-            speed = 0.65f;
+            // ★ 对照 PU132 L4506: 原版 speed = 0.65;
+            //   用户反馈掠夺者移速偏快, 下调到 0.5 (仍保留重装地面单位的推进感)
+            speed = 0.5f;
             drag = 0.16f;
             armor = 15500f;  // ★ End 阵营护甲: 按用户指定数值
             hitSize = 138f;
@@ -2147,9 +2149,13 @@ public class Z_Units {
         //  - 防作弊: EndLegsUnit (简化版, invincibilityArray=4)
         // ═══════════════════════════════════════════════════════════
         desolation = new zzw.content.units.types.DesolationUnitType("desolation") {{
-            health = 307300f;
+            // ★ 用户指定: 血量减半 (307300 → 153650)
+            health = 153650f;
             speed = 0.55f;
             drag = 0.16f;
+            // ★ 用户指定: 攻击范围 200 格 (200 * 8 = 1600 px);
+            //   主炮子弹按 speed 3.34 × lifetime 8s ≈ 1600px 对齐
+            range = 1600f;
             armor = 18900f;  // ★ End 阵营护甲: 按用户指定数值
             hitSize = 257f;
             rotateSpeed = 0.9f;
@@ -2390,8 +2396,8 @@ public class Z_Units {
                 rotate = false;
                 shootSound = zzw.content.Z_Sounds.ravagerNightmareShoot;
 
-                bullet = new DesolationBulletType(1.75f, 3000f) {{
-                    lifetime = 8f * 60f;
+                bullet = new DesolationBulletType(3.34f, 3000f) {{
+                    lifetime = 8f * 60f;  // 3.34 × 480 ≈ 1600px = 200 格
                     overDamage = 900000f;
                     overDamagePower = 3f;
                     overDamageScl = 3500f;

@@ -128,6 +128,10 @@ public class UnityUnitType extends UnitType{
      */
     public int reviveLimit = 0;
 
+    /** End 复活机制的独立信息面板条目 (与普通能力分开显示, 避免纯文本挤成一行) */
+    public static final mindustry.world.meta.Stat endReviveStat =
+        new mindustry.world.meta.Stat("endRevive", mindustry.world.meta.StatCat.function);
+
     public UnityUnitType(String name){
         super(name);
         outlines = false;
@@ -448,12 +452,18 @@ public class UnityUnitType extends UnitType{
             }));
         }
 
-        // ★ End 复活次数展示: 把配置的复活上限写进单位面板 (0 = 不复活, 不显示)
+        // ★ End 复活机制: 独立成框显示次数与机制说明 (用户要求, 纯文本观感差)
         int revives = Math.min(reviveLimit, zzw.content.units.anticheat.EndCheatVars.MAX_REVIVES);
         if(revives > 0){
-            stats.add(mindustry.world.meta.Stat.abilities, t -> t.table(bt -> {
-                bt.left().defaults().padRight(3).left();
-                bt.add(Core.bundle.format("end.revives", revives));
+            stats.add(endReviveStat, (mindustry.world.meta.StatValue)(t -> {
+                t.table(Tex.pane, b -> {
+                    b.left().defaults().left();
+                    b.add(Core.bundle.format("end.revives", revives)).color(Pal.accent);
+                    b.row();
+                    b.add(Core.bundle.get("end.revive.mechanic"))
+                        .color(arc.graphics.Color.lightGray)
+                        .width(300f).wrap().padTop(4f);
+                }).pad(6f);
             }));
         }
     }
