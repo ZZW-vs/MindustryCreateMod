@@ -1283,6 +1283,11 @@ public class EndGameTurret extends PowerTurret {
             //   AI 仍被 FO 每帧直接 update()、拖尾/技能照常, 但本体已不在引擎组里而消失。
             if(purgeFlameEmpathy(u)) return;
 
+            // ★ 第零层: 反制 Exogenesis「熵 / Seraph」的隐藏哈希真血。
+            //   必须在任何伤害/击杀之前抽掉真血表, 否则 killDirect 会命中它的
+            //   "硬抹除 → 快照静默复活" 分支 (见下方方法注释)。
+            counterExogenesisHiddenHealth(u);
+
             // ★ 第一层: 廉价击杀
             if(killDirect(u)) return;
 
@@ -1292,6 +1297,130 @@ public class EndGameTurret extends PowerTurret {
 
             // ★ 第三层: 反射拆解 (只有打不死的单位才会走到这里)
             annihilateStubbornUnit(u);
+        }
+
+        // ================= Exogenesis 隐藏哈希真血 (熵 / Seraph) =================
+
+        /**
+         * ★ 反制 Exogenesis 的隐藏哈希真血 BOSS。
+         *
+         * <p>反编译 {@code ExogenesisOld-Java重铸bata4.jar} 后确认: 熵
+         * ({@code exogenesisold-seraph}) 的血量不在单位上, 而是存在模组主类
+         * {@code exogenesisold.ExogenesisOld} 实例的 {@code seraphHp} 哈希表里
+         * (键 = 单位 id)。配套还有:</p>
+         * <ul>
+         *   <li>{@code seraphMitigationBar}: 动态减伤条 —— 当前真血低于它时伤害只吃 1%,
+         *       结果低于它 5% 时直接锁血; 有仇恨时每帧掉 maxHealth/10800 (=3 分钟);</li>
+         *   <li>{@code seraphSnap}: 每 30 秒一次的快照, 被秒杀后用来原地回滚;</li>
+         *   <li>{@code seraphWatch}: 每帧检查"单位没了但真血还在"的条目并重新 add(),
+         *       也就是作者说的"静默复活";</li>
+         *   <li>{@code seraphDirectWriteFrames / seraphFloorFrames}: 血量归零的容忍计数。</li>
+         * </ul>
+         *
+         * <p>突破点: 把 {@code seraphHp} 里该 id 的值写成 <b>0</b>, 不要删条目 ——
+         * 写成 0 后 {@code SeraphUnit.isHardErase()} 会直接返回 false, 走正常死亡;
+         * 若删掉条目, 它的判定会退化成 "prevHealth &gt; 0 即硬抹除", 反而触发快照复活。
+         * 随后清掉减伤条/快照/watch/帧计数, 并复位单位自身的
+         * {@code hardEraseKill / prevHealth / invFrames}, 使 kill/destroy/remove
+         * 的每一条路径都不会被拉回来。</p>
+         *
+         * <p>顺带处理同模组的「奇点 / Avetronox」({@code exogenesisold-sagittarius}):
+         * 它同样有 {@code hardEraseKill} + {@code sagWatch} 的原地复活, 这里一并摘除
+         * 监视表并清掉它的伤害窗口计数。</p>
+         *
+         * @return true 表示目标是 Exogenesis 的隐藏血量 BOSS (调用方继续走击杀链即可)
+         */
+        protected boolean counterExogenesisHiddenHealth(Unit u){
+            if(u == null || u.type == null) return false;
+
+            String typeName = u.type.name;
+            String className = u.getClass().getName();
+            boolean seraph = "exogenesisold-seraph".equals(typeName) || "exogenesisold.SeraphUnit".equals(className);
+            boolean avetronox = "exogenesisold-sagittarius".equals(typeName) || "exogenesisold.AvetronoxUnit".equals(className);
+            if(!seraph && !avetronox) return false;
+
+            Object mod = staticFieldOf(u, "exogenesisold.ExogenesisOld", "instance");
+            if(mod != null){
+                if(seraph){
+                    // 真血写 0 (不能 remove), 减伤条清零 → 不再触发 99% 减伤/锁血/锁死
+                    mapPut(mod, "seraphHp", u.id, 0f);
+                    mapPut(mod, "seraphMitigationBar", u.id, 0f);
+                    // 快照 / 监视 / 计时全部摘除 → 不会快照回滚, 也不会重置血量或复活
+                    mapRemove(mod, "seraphPrevHealth", u.id);
+                    mapRemove(mod, "seraphSnap", u.id);
+                    mapRemove(mod, "seraphWatch", u.id);
+                    mapRemove(mod, "seraphDirectWriteFrames", u.id);
+                    mapRemove(mod, "seraphFloorFrames", u.id);
+                    mapRemove(mod, "seraphDefenseBaseline", u.id);
+                    mapRemove(mod, "seraphDefenseBaselineTime", u.id);
+                    mapRemove(mod, "seraphUndoFxTime", u.id);
+                    mapRemove(mod, "seraphLastAttackTime", u.id);
+                }else{
+                    // Avetronox: 摘掉 watch 表, 避免 hardErase 判定后原地复活
+                    mapRemove(mod, "sagWatch", u.id);
+                    mapRemove(mod, "sagPrevHp", u.id);
+                    mapRemove(mod, "sagInstaKillCandidates", u.id);
+                    mapRemove(mod, "sagNearestEnemy", u.id);
+                    mapRemove(mod, "sagLost", u.id);
+                }
+            }
+
+            // 单位自身: 关掉硬抹除标记, 复位 handleSeraph/handleAvetronoxProtection
+            // 用来判断复活的字段 (prevHealth 落在 [0,6000] 也会让 isHardErase 直接 false)
+            setUnitBoolField(u, u.getClass(), "hardEraseKill", false);
+            setUnitField(u, u.getClass(), "invFrames", 0f);
+            setUnitField(u, u.getClass(), "prevHealth", 0f);
+            if(avetronox){
+                setUnitField(u, u.getClass(), "damageInWindow", 0f);
+            }
+            return true;
+        }
+
+        /** 读取其它模组主类的静态字段 (类/字段不存在时返回 null)。 */
+        protected Object staticFieldOf(Unit u, String className, String fieldName){
+            try{
+                Class<?> cls = findModClassCached(u, className);
+                if(cls == null) return null;
+                Field f = findField(cls, fieldName);
+                return f == null ? null : f.get(null);
+            }catch(Throwable ignored){
+                return null;
+            }
+        }
+
+        /** 把 (id → 数值) 容器里该单位的条目写成给定值 (支持 java.util.Map / IntMap)。 */
+        @SuppressWarnings("unchecked")
+        protected void mapPut(Object holder, String fieldName, int id, float value){
+            try{
+                Field f = findField(holder.getClass(), fieldName);
+                if(f == null) return;
+                Object map = f.get(holder);
+                if(map instanceof java.util.Map){
+                    ((java.util.Map<Object, Object>)map).put(id, value);
+                }else if(map instanceof arc.struct.IntFloatMap){
+                    ((arc.struct.IntFloatMap)map).put(id, value);
+                }else if(map instanceof arc.struct.IntMap){
+                    ((arc.struct.IntMap<Object>)map).put(id, value);
+                }
+            }catch(Throwable ignored){
+            }
+        }
+
+        /** 从 (id → 任意) 容器里摘除该单位的条目。 */
+        protected void mapRemove(Object holder, String fieldName, int id){
+            try{
+                Field f = findField(holder.getClass(), fieldName);
+                if(f == null) return;
+                Object map = f.get(holder);
+                if(map instanceof java.util.Map){
+                    ((java.util.Map<?, ?>)map).remove(id);
+                }else if(map instanceof arc.struct.IntMap){
+                    ((arc.struct.IntMap<?>)map).remove(id);
+                }else if(map instanceof arc.struct.IntSet){
+                    ((arc.struct.IntSet)map).remove(id);
+                }
+            }catch(Throwable ignored){
+            }
         }
 
         // ================= FlameOut 共鸣单位 (走它自己的移除协议) =================
