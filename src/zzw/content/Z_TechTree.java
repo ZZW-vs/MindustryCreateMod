@@ -383,18 +383,28 @@ public class Z_TechTree{
         //endregion
         //region items
 
+        // ★ 铜板: 铜板厂产出, 挂在原版铜之后
+        attach(Items.copper, () -> {
+            nodeProduce(Z_Items.Copper_Sheet);
+        });
+
         attach(Items.lead, () -> {
             nodeProduce(Z_Items.nickel, () -> {
-                nodeProduce(Z_Items.cupronickel);
+                // ★ 超级合金: 坩埚配方产出 (铜镍合金 + 电涌合金 + 焰金)
+                nodeProduce(Z_Items.cupronickel, () -> {
+                    nodeProduce(Z_Items.superAlloy);
+                });
             });
+
+            // ★ 幽金: 矿脉产出, 与镍并列挂在铅之后
+            nodeProduce(Z_Items.umbrium);
         });
 
         attach(Items.graphite, () -> {
             nodeProduce(Z_Items.monolite);
 
             nodeProduce(Z_Items.stone, () -> {
-                nodeProduce(Z_Items.Andesite_Alloy);
-
+                // ★ 观赏性物品 (安山岩合金等) 不挂科技树, 由 unlockRemaining() 兜底解锁
                 nodeProduce(Z_Items.denseAlloy, () -> {
                     nodeProduce(Z_Items.steel, () -> {
                         // ★ 铀物品节点 (PU132 原版此处被注释掉, 导致铀没有物品节点; 用户要求补上)
