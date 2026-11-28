@@ -311,9 +311,13 @@ public class EndGroundUnit extends LegsUnit implements zzw.content.Factionc {
             // 狂暴: 4 倍速 + 持续 10 秒 (PU32 aggression=4, aggressionTime=10*60)
             aggression = 4f;
             aggressionTime = 10f * 60f;
-            // 复活: 只回充台账的 25% (弱化"加血条"观感, 不再整条补满)
-            health = Math.max(health, Math.min(trueHealth, trueMaxHealth)
-                    * zzw.content.units.anticheat.EndCheatVars.REVIVE_HEAL_RATIO);
+            // 复活: 只回充台账的 25%, 并把台账本身削到该值 ——
+            // 复活不再"凭空多出一条血条", 总血量始终不超过 trueMaxHealth。
+            float reviveHp = Math.min(trueHealth, trueMaxHealth)
+                    * zzw.content.units.anticheat.EndCheatVars.REVIVE_HEAL_RATIO;
+            trueHealth = reviveHp;
+            zzw.content.units.anticheat.EndHealthLedger.put(this, trueHealth);
+            health = reviveHp;
             dead = false;
             if (trueTeam != null) team = trueTeam;
             hitTime = 1f;
@@ -361,10 +365,14 @@ public class EndGroundUnit extends LegsUnit implements zzw.content.Factionc {
         // ★ 以哈希台账为准, 不再要求当前 health > 0
         float ledger = zzw.content.units.anticheat.EndHealthLedger.get(this, trueHealth);
         trueHealth = ledger;
-        if (useDeathRevival() && !zzw.util.ReviveSeal.isSealed(this) && ledger > 0f && revivesUsed < reviveLimit()) {
+        // ★ 只在"确实处于濒死/已死"时复活; 正常撤离/清场移除不复活
+        if (useDeathRevival() && (dead || health <= 0f) && !zzw.util.ReviveSeal.isSealed(this) && ledger > 0f && revivesUsed < reviveLimit()) {
             revivesUsed++;
-            health = Math.max(health, Math.min(ledger, trueMaxHealth)
-                    * zzw.content.units.anticheat.EndCheatVars.REVIVE_HEAL_RATIO);
+            float reviveHp = Math.min(ledger, trueMaxHealth)
+                    * zzw.content.units.anticheat.EndCheatVars.REVIVE_HEAL_RATIO;
+            trueHealth = reviveHp;
+            zzw.content.units.anticheat.EndHealthLedger.put(this, trueHealth);
+            health = reviveHp;
             dead = false;
             if (trueTeam != null) team = trueTeam;
             fastDamage = 0f;
