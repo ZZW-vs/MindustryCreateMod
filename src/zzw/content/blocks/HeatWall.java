@@ -57,10 +57,11 @@ public class HeatWall extends GraphBlock {
     @Override
     public void setStats() {
         super.setStats();
-        // 温度限伤: 显示常温基准限伤与随温度变化的规则
+        // 温度限伤: 显示常温基准限伤与随温度变化的规则 (统一灰框)
         if (damageLimitBase > 0f) {
-            stats.add(Stat.abilities, "@", bundle.format("stat.unity.tempdamagelimit", damageLimitBase));
-            stats.add(Stat.abilities, "@", bundle.format("stat.unity.tempdamagelimit.rule", hotLimitSpan, hotLimitStep, coldLimitSpan, coldLimitStep));
+            zzw.content.util.StatUtils.addInfoBox(stats, Stat.abilities,
+                bundle.format("stat.unity.tempdamagelimit", damageLimitBase),
+                bundle.format("stat.unity.tempdamagelimit.rule", hotLimitSpan, hotLimitStep, coldLimitSpan, coldLimitStep));
         }
     }
 

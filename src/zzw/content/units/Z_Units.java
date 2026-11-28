@@ -2149,13 +2149,9 @@ public class Z_Units {
         //  - 防作弊: EndLegsUnit (简化版, invincibilityArray=4)
         // ═══════════════════════════════════════════════════════════
         desolation = new zzw.content.units.types.DesolationUnitType("desolation") {{
-            // ★ 用户指定: 血量减半 (307300 → 153650)
-            health = 153650f;
+            health = 307300f;
             speed = 0.55f;
             drag = 0.16f;
-            // ★ 用户指定: 攻击范围 200 格 (200 * 8 = 1600 px);
-            //   主炮子弹按 speed 3.34 × lifetime 8s ≈ 1600px 对齐
-            range = 1600f;
             armor = 18900f;  // ★ End 阵营护甲: 按用户指定数值
             hitSize = 257f;
             rotateSpeed = 0.9f;
@@ -2396,8 +2392,8 @@ public class Z_Units {
                 rotate = false;
                 shootSound = zzw.content.Z_Sounds.ravagerNightmareShoot;
 
-                bullet = new DesolationBulletType(3.34f, 3000f) {{
-                    lifetime = 8f * 60f;  // 3.34 × 480 ≈ 1600px = 200 格
+                bullet = new DesolationBulletType(1.75f, 3000f) {{
+                    lifetime = 8f * 60f;
                     overDamage = 900000f;
                     overDamagePower = 3f;
                     overDamageScl = 3500f;

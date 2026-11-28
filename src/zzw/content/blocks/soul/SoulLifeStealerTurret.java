@@ -50,14 +50,9 @@ public class SoulLifeStealerTurret extends SoulTractorBeamTurret {
         super.setStats();
         // 与 PU_V8 LifeStealerTurret.setStats 一致
         // ★ 伤害行由父类 TractorBeamTurret 显示 (damage * 60 = baseDamage 每秒), 不再重复添加
-        stats.add(Stat.abilities, cont -> {
-            cont.table(bt -> {
-                bt.left().defaults().padRight(3).left();
-                bt.add("[lightgray]蓄能上限: [accent]" + (int)maxContain);
-                bt.row();
-                bt.add("[lightgray]吸血治疗: [accent]" + (int)(healPercent * 100) + "%");
-            });
-        });
+        zzw.content.util.StatUtils.addInfoBox(stats, zzw.content.util.StatUtils.soulStat,
+            "蓄能上限: [accent]" + (int)maxContain + "[]",
+            "吸血治疗: [accent]" + (int)(healPercent * 100) + "%[]");
     }
 
     public class SoulLifeStealerTurretBuild extends SoulTractorBeamTurretBuild {

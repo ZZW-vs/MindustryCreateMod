@@ -41,10 +41,8 @@ public class SoulHeatRayTurret extends SoulTractorBeamTurret {
         stats.add(Stat.targetsGround, targetGround);
         // ★ 修复: 状态行改为与"灵魂"面板一致的嵌套表格结构 (对齐), 并使用已翻译的 bundle key
         if (status != StatusEffects.none) {
-            stats.add(Stat.abilities, t -> t.table(bt -> {
-                bt.left().defaults().padRight(3).left();
-                bt.add(arc.Core.bundle.format("soul.status", status.localizedName));
-            }));
+            zzw.content.util.StatUtils.addInfoBox(stats, zzw.content.util.StatUtils.soulStatusStat,
+                arc.Core.bundle.format("soul.status", status.localizedName));
         }
     }
 

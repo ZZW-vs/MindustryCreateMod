@@ -73,20 +73,9 @@ public class SoulFloorExtractor extends FloorExtractor {
         super.setStats();
         zzw.content.util.StatUtils.roundOutputStats(this);
         // 灵魂系统信息面板 (PU132 SoulComp.setStats: 需要/可选灵魂 + 容量)
-        stats.add(mindustry.world.meta.Stat.abilities, cont -> {
-            cont.row();
-            cont.table(bt -> {
-                bt.left().defaults().padRight(3f).left();
-
-                bt.row();
-                bt.add(arc.Core.bundle.get(requireSoul ? "soul.require" : "soul.optional"));
-
-                if (maxSouls > 0) {
-                    bt.row();
-                    bt.add(arc.Core.bundle.format("soul.max", maxSouls));
-                }
-            });
-        });
+        zzw.content.util.StatUtils.addInfoBox(stats, zzw.content.util.StatUtils.soulStat,
+            arc.Core.bundle.get(requireSoul ? "soul.require" : "soul.optional"),
+            maxSouls > 0 ? arc.Core.bundle.format("soul.max", maxSouls) : null);
     }
 
 

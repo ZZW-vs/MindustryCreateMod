@@ -444,27 +444,17 @@ public class UnityUnitType extends UnitType{
         }
 
         if(maxSouls > 0){
-            stats.add(mindustry.world.meta.Stat.abilities, t -> t.table(bt -> {
-                bt.left().defaults().padRight(3).left();
-                bt.add(Core.bundle.format("soul.capacity", maxSouls));
-                bt.row();
-                bt.add(Core.bundle.get("soul.disabled"));
-            }));
+            zzw.content.util.StatUtils.addInfoBox(stats, zzw.content.util.StatUtils.soulStat,
+                Core.bundle.format("soul.capacity", maxSouls),
+                Core.bundle.get("soul.disabled"));
         }
 
         // ★ End 复活机制: 独立成框显示次数与机制说明 (用户要求, 纯文本观感差)
         int revives = Math.min(reviveLimit, zzw.content.units.anticheat.EndCheatVars.MAX_REVIVES);
         if(revives > 0){
-            stats.add(endReviveStat, (mindustry.world.meta.StatValue)(t -> {
-                t.table(Tex.pane, b -> {
-                    b.left().defaults().left();
-                    b.add(Core.bundle.format("end.revives", revives)).color(Pal.accent);
-                    b.row();
-                    b.add(Core.bundle.get("end.revive.mechanic"))
-                        .color(arc.graphics.Color.lightGray)
-                        .width(300f).wrap().padTop(4f);
-                }).pad(6f);
-            }));
+            zzw.content.util.StatUtils.addInfoBox(stats, endReviveStat,
+                Core.bundle.format("end.revives", revives),
+                Core.bundle.get("end.revive.mechanic"));
         }
     }
 

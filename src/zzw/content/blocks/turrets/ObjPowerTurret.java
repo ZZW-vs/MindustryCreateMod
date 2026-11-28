@@ -108,12 +108,12 @@ public class ObjPowerTurret extends PowerTurret {
             });
         }
 
-        // 光束攻击面板信息
-        stats.add(Stat.abilities, "[accent]持续光束攻击[]");
-        stats.add(Stat.abilities, "[lightgray]光束上限: [accent]" + maxBeams + " 条");
-        stats.add(Stat.abilities, "[lightgray]光束伤害: [accent]" + (int)beamDamage);
-        stats.add(Stat.abilities, "[lightgray]光束范围: [accent]" + (int)beamRange);
-        stats.add(Stat.abilities, "[lightgray]攻击频率: [accent]" + String.format("%.1f", 60f / beamInterval) + " 次/秒");
+        // 光束攻击面板信息 (统一灰框样式)
+        zzw.content.util.StatUtils.addInfoBox(stats, Stat.abilities, "持续光束攻击",
+            "光束上限: [accent]" + maxBeams + "[] 条",
+            "光束伤害: [accent]" + (int)beamDamage + "[]",
+            "光束范围: [accent]" + (int)beamRange + "[]",
+            "攻击频率: [accent]" + String.format("%.1f", 60f / beamInterval) + "[] 次/秒");
     }
 
     public class ObjPowerTurretBuild extends PowerTurretBuild {

@@ -36,8 +36,15 @@ public class LimitWall extends Wall {
     @Override
     public void setStats() {
         super.setStats();
-        if (maxDamage > 0f) stats.add(Stat.abilities, "@", bundle.format("stat.unity.maxdamage", maxDamage));
-        if (blinkFrame > 0f) stats.add(Stat.abilities, "@", bundle.format("stat.unity.blinkframe", blinkFrame));
+        String maxLine = maxDamage > 0f ? bundle.format("stat.unity.maxdamage", maxDamage) : null;
+        String blinkLine = blinkFrame > 0f ? bundle.format("stat.unity.blinkframe", blinkFrame) : null;
+        if (maxLine != null && blinkLine != null) {
+            zzw.content.util.StatUtils.addInfoBox(stats, Stat.abilities, maxLine, blinkLine);
+        } else if (maxLine != null) {
+            zzw.content.util.StatUtils.addInfoBox(stats, Stat.abilities, maxLine);
+        } else if (blinkLine != null) {
+            zzw.content.util.StatUtils.addInfoBox(stats, Stat.abilities, blinkLine);
+        }
     }
 
     public class LimitWallBuild extends WallBuild {
